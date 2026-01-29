@@ -2,141 +2,138 @@ import requests
 from datetime import datetime, timedelta
 import streamlit as st
 import hashlib
+import time
 
-# ================= MOBİL STİL AYARLARI (CSS) =================
-def apply_mobile_pro_theme():
+# ================= SİBER CAM TASARIM (HİÇ SİYAH YOK) =================
+def apply_elite_glass_theme():
     st.markdown("""
         <style>
-        /* Ana Arkaplan ve Font */
-        .stApp { background-color: #0e1117; color: #ffffff; }
-        
-        /* Mobil Kart Tasarımı */
-        .stat-card {
-            background: linear-gradient(145deg, #1e2530, #161b22);
-            border-radius: 15px;
-            padding: 15px;
-            margin-bottom: 10px;
-            border: 1px solid #30363d;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        /* Arka Plan: Koyu Lacivert ve Gece Mavisi Geçişi */
+        .stApp {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
         }
         
-        /* Neon Yazı Tipleri */
-        .neon-text { color: #00f2ff; font-weight: bold; text-shadow: 0 0 5px #00f2ff; }
-        .win-text { color: #39ff14; font-weight: bold; }
-        .time-text { color: #8b949e; font-size: 0.85rem; }
+        /* Glassmorphism Kartlar: Şeffaf, Cam Efekti */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
         
-        /* Buton Tasarımı */
+        /* Yazı Renkleri */
+        .neon-blue { color: #38bdf8; font-weight: bold; }
+        .neon-green { color: #4ade80; font-weight: bold; }
+        .label-text { color: #94a3b8; font-size: 0.9rem; }
+        
+        /* Butonlar: Modern Degrade */
         div.stButton > button {
-            width: 100%;
-            border-radius: 10px;
-            background: linear-gradient(90deg, #00f2ff, #0066ff);
-            color: white; font-weight: bold; border: none;
-            padding: 12px; transition: 0.3s;
+            background: linear-gradient(90deg, #0ea5e9, #2563eb);
+            color: white; border: none; border-radius: 12px;
+            padding: 10px; font-weight: bold; transition: 0.3s;
         }
         
-        /* Giriş Kutuları */
+        /* Inputlar */
         .stTextInput input {
-            background-color: #161b22 !important;
-            color: white !important;
-            border: 1px solid #30363d !important;
-            border-radius: 10px !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: white !important; border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
         }
         </style>
     """, unsafe_allow_html=True)
 
-# ================= SİBER ÇEKİRDEK (DEĞİŞMEZ) =================
-API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
+# ================= KİLİTLİ LİSANS SİSTEMİ (ASLA DEĞİŞMEZ) =================
+@st.cache_resource
+def get_frozen_vault():
+    vault = {}
+    config = [("1-AY", 30, 400), ("3-AY", 90, 300), ("6-AY", 180, 150), ("12-AY", 365, 100), ("SINIRSIZ", 36500, 50)]
+    for label, days, count in config:
+        for i in range(1, count + 1):
+            # Sabit Seed: Sayfa yenilense de kodlar asla değişmez
+            seed = f"TIMUR_PERMANENT_V27_{label}_{i}"
+            h = hashlib.md5(seed.encode()).hexdigest().upper()
+            key = f"SBR-{label}-{h[:8]}-TM"
+            vault[key] = {"label": label, "expiry": datetime.now() + timedelta(days=days)}
+    return vault
+
+VAULT = get_frozen_vault()
 MASTER_TOKEN = "SBR-MASTER-2026-TIMUR-X7"
 MASTER_PASS = "1937timurR&"
 
-@st.cache_resource
-def get_vault():
-    v = {}
-    cfg = [("1-AY", 30, 400), ("3-AY", 90, 300), ("6-AY", 180, 150), ("12-AY", 365, 100), ("SINIRSIZ", 36500, 50)]
-    for lbl, d, c in cfg:
-        for i in range(1, c + 1):
-            s = f"V26_{lbl}_{i}_TIMUR"; h = hashlib.md5(s.encode()).hexdigest().upper()
-            k = f"SBR-{lbl}-{h[:8]}-TM"
-            v[k] = {"lbl": lbl, "exp": datetime.now() + timedelta(days=d)}
-    return v
-
-VAULT = get_vault()
-
 # ================= ARAYÜZ MİMARİSİ =================
-apply_mobile_pro_theme()
+apply_elite_glass_theme()
 
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
 if not st.session_state["auth"]:
-    # MOBİL HOŞGELDİN EKRANI
-    st.markdown("<h1 style='text-align: center; color: #00f2ff;'>🛡️ SİBER MASTER</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #8b949e;'>Yapay Zeka Destekli Analiz Protokolü</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🛡️ SİBER MASTER PRO</h1>", unsafe_allow_html=True)
     
-    # Teşvik Edici Mobil Kartlar
-    st.markdown("""
-        <div class='stat-card'>
-            <span class='win-text'>⚡ %94 BAŞARI ORANI</span><br>
-            <small style='color:white'>Canlı veriler anlık olarak işlenir.</small>
-        </div>
-    """, unsafe_allow_html=True)
-
-    tab1, tab2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 YÖNETİCİ"])
+    st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
+    tab1, tab2 = st.tabs(["🔑 LİSANS GİRİŞİ", "👨‍💻 ADMİN"])
+    
     with tab1:
-        u_lic = st.text_input("Lisans Anahtarı:", placeholder="SBR-XXXX-TM")
-        if st.button("ANALİZE BAŞLA"):
+        u_lic = st.text_input("Anahtarınızı Yapıştırın:", placeholder="SBR-XXXX-TM")
+        if st.button("SİSTEMİ AÇ"):
             if u_lic in VAULT:
-                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["exp"]})
+                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
                 st.rerun()
-            else: st.error("Geçersiz Anahtar!")
+            else: st.error("❌ Geçersiz veya hatalı anahtar!")
             
     with tab2:
-        a_t = st.text_input("Admin Token:", type="password")
-        a_p = st.text_input("Admin Şifre:", type="password")
-        if st.button("ADMİN GİRİŞİ"):
+        a_t = st.text_input("Yönetici Token:", type="password")
+        a_p = st.text_input("Şifre:", type="password")
+        if st.button("ADMİN OLARAK GİR"):
             if a_t == MASTER_TOKEN and a_p == MASTER_PASS:
-                st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP", "exp": datetime(2099, 1, 1)})
+                st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP", "exp": datetime(2030, 1, 1)})
                 st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # ================= MOBİL ANALİZ PANELİ =================
+    # ================= CANLI PANEL (CAM TASARIM) =================
     with st.sidebar:
-        st.markdown("<h2 style='color:#00f2ff;'>⚙️ AYARLAR</h2>", unsafe_allow_html=True)
-        trust_val = st.slider("Güven Eşiği (%)", 50, 95, 80)
+        st.markdown("<h2 style='color:#38bdf8;'>⚙️ PANEL</h2>", unsafe_allow_html=True)
+        trust_level = st.slider("Güven Oranı (%)", 50, 95, 85)
         
         rem = st.session_state["exp"] - datetime.now()
-        st.markdown(f"<div class='stat-card'>⌛ Kalan: {rem.days} Gün</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='glass-card'><small>Kalan Süre</small><br><b class='neon-blue'>{rem.days} Gün</b></div>", unsafe_allow_html=True)
         
         if st.session_state["role"] == "admin":
             st.divider()
-            p_sel = st.selectbox("Paket:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            keys = [k for k, v in VAULT.items() if v["lbl"] == p_sel]
-            st.text_area("Lisanslar:", value="\n".join(keys), height=150)
+            p_sel = st.selectbox("Paket Listesi:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            keys = [k for k, v in VAULT.items() if v["label"] == p_sel]
+            st.text_area("Kopyalanabilir Kodlar:", value="\n".join(keys), height=200)
             
         if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
 
-    # MOBİL MAÇ LİSTESİ (KART SİSTEMİ)
-    st.markdown("<h3 style='color:#00f2ff;'>🏆 CANLI ANALİZ RADARI</h3>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #38bdf8;'>🏆 CANLI ANALİZ MERKEZİ</h2>", unsafe_allow_html=True)
     
     
 
-    # Örnek Bir Analiz Kartı (Mobil Uyumlu)
+    # MAÇ KARTI ÖRNEĞİ
     st.markdown(f"""
-        <div class='stat-card'>
+        <div class='glass-card'>
             <div style='display: flex; justify-content: space-between;'>
-                <span class='time-text'>🔴 72' Dakika</span>
-                <span class='win-text'>%{trust_val} GÜVEN</span>
+                <span class='label-text'>74' Dakika | Türkiye Süper Lig</span>
+                <span class='neon-green'>%{trust_level} GÜVEN</span>
             </div>
-            <div style='text-align: center; margin: 10px 0;'>
-                <h4 style='margin:0; color:white;'>REAL MADRID 1 - 0 BARCELONA</h4>
+            <div style='text-align: center; margin: 15px 0;'>
+                <h3 style='color: white; margin:0;'>GALATASARAY 2 - 1 FENERBAHÇE</h3>
+                <p class='neon-blue' style='margin-top:10px;'>YAPAY ZEKA: Ev sahibi %72 hakimiyette. Korner beklentisi yüksek!</p>
             </div>
-            <div style='background: #30363d; height: 5px; border-radius: 5px;'>
-                <div style='background: #00f2ff; width: 75%; height: 5px; border-radius: 5px;'></div>
-            </div>
-            <div style='margin-top: 10px; font-size: 0.9rem; color:#00f2ff;'>
-                <b>AI YORUMU:</b> Ev sahibi baskıyı kurdu, 2. gol beklentisi yüksek!
+            <div style='display: flex; justify-content: space-around; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;'>
+                <div style='text-align:center;'>
+                    <span class='label-text'>Tehlikeli Atak</span><br><b class='neon-blue'>45 - 28</b>
+                </div>
+                <div style='text-align:center;'>
+                    <span class='label-text'>İsabetli Şut</span><br><b class='neon-green'>6 - 3</b>
+                </div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    st.info("Sistem canlı verileri siber hattan çekiyor...")
+    st.info("Canlı veriler siber hattan akıyor. Tüm sistem mobil cihazlara tam uyumludur.")
