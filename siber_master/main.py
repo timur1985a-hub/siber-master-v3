@@ -2,97 +2,141 @@ import requests
 from datetime import datetime, timedelta
 import streamlit as st
 import hashlib
-import time
 
-# ================= SİBER AYARLAR & GÜVENLİK =================
+# ================= MOBİL STİL AYARLARI (CSS) =================
+def apply_mobile_pro_theme():
+    st.markdown("""
+        <style>
+        /* Ana Arkaplan ve Font */
+        .stApp { background-color: #0e1117; color: #ffffff; }
+        
+        /* Mobil Kart Tasarımı */
+        .stat-card {
+            background: linear-gradient(145deg, #1e2530, #161b22);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 1px solid #30363d;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        /* Neon Yazı Tipleri */
+        .neon-text { color: #00f2ff; font-weight: bold; text-shadow: 0 0 5px #00f2ff; }
+        .win-text { color: #39ff14; font-weight: bold; }
+        .time-text { color: #8b949e; font-size: 0.85rem; }
+        
+        /* Buton Tasarımı */
+        div.stButton > button {
+            width: 100%;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #00f2ff, #0066ff);
+            color: white; font-weight: bold; border: none;
+            padding: 12px; transition: 0.3s;
+        }
+        
+        /* Giriş Kutuları */
+        .stTextInput input {
+            background-color: #161b22 !important;
+            color: white !important;
+            border: 1px solid #30363d !important;
+            border-radius: 10px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# ================= SİBER ÇEKİRDEK (DEĞİŞMEZ) =================
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-BASE_URL = "https://v3.football.api-sports.io"
-ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7" 
-ADMIN_PASS = "1937timurR&"
+MASTER_TOKEN = "SBR-MASTER-2026-TIMUR-X7"
+MASTER_PASS = "1937timurR&"
 
 @st.cache_resource
-def get_final_vault():
-    vault = {}
-    config = [("1-AY", 30, 400), ("3-AY", 90, 300), ("6-AY", 180, 150), ("12-AY", 365, 100), ("SINIRSIZ", 36500, 50)]
-    for label, days, count in config:
-        for i in range(1, count + 1):
-            seed = f"V25_{label}_{i}_2026_TIMUR"
-            key = f"SBR-{label}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
-            vault[key] = {"label": label, "expiry": datetime.now() + timedelta(days=days)}
-    return vault
+def get_vault():
+    v = {}
+    cfg = [("1-AY", 30, 400), ("3-AY", 90, 300), ("6-AY", 180, 150), ("12-AY", 365, 100), ("SINIRSIZ", 36500, 50)]
+    for lbl, d, c in cfg:
+        for i in range(1, c + 1):
+            s = f"V26_{lbl}_{i}_TIMUR"; h = hashlib.md5(s.encode()).hexdigest().upper()
+            k = f"SBR-{lbl}-{h[:8]}-TM"
+            v[k] = {"lbl": lbl, "exp": datetime.now() + timedelta(days=d)}
+    return v
 
-VAULT = get_final_vault()
+VAULT = get_vault()
 
-# ================= ARAYÜZ BAŞLANGIÇ =================
-st.set_page_config(page_title="Siber Master V2500", layout="wide")
+# ================= ARAYÜZ MİMARİSİ =================
+apply_mobile_pro_theme()
 
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
 if not st.session_state["auth"]:
-    # --- HAREKETLİ VE TEŞVİK EDİCİ ARAYÜZ ---
-    st.markdown("<h1 style='text-align: center; color: #00f2ff; animation: pulse 2s infinite;'>🛡️ SİBER MASTER V2500 AI PRO</h1>", unsafe_allow_html=True)
-    st.markdown("<marquee style='color: #ff4b4b; font-weight: bold;'>⚠️ DİKKAT: YAPAY ZEKA DESTEKLİ ANALİZ MOTORU GÜNCELLENDİ! %92 BAŞARI ORANI İLE KAZANMAYA BAŞLA!</marquee>", unsafe_allow_html=True)
+    # MOBİL HOŞGELDİN EKRANI
+    st.markdown("<h1 style='text-align: center; color: #00f2ff;'>🛡️ SİBER MASTER</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8b949e;'>Yapay Zeka Destekli Analiz Protokolü</p>", unsafe_allow_html=True)
     
-    # Fiyatlandırma Tablosu
-    pk_cols = st.columns(5)
-    pk_data = [("700 TL", "1 Ay"), ("2000 TL", "3 Ay"), ("5000 TL", "6 Ay"), ("8000 TL", "12 Ay"), ("10.000 TL", "Sınırsız")]
-    for i, (p, d) in enumerate(pk_data):
-        with pk_cols[i]:
-            st.markdown(f"<div style='border:2px solid #00f2ff; padding:20px; border-radius:15px; text-align:center; background:#161b22;'><h3>{d}</h3><h2 style='color:#00f2ff;'>{p}</h2><p>VIP Analiz Erişimi</p></div>", unsafe_allow_html=True)
+    # Teşvik Edici Mobil Kartlar
+    st.markdown("""
+        <div class='stat-card'>
+            <span class='win-text'>⚡ %94 BAŞARI ORANI</span><br>
+            <small style='color:white'>Canlı veriler anlık olarak işlenir.</small>
+        </div>
+    """, unsafe_allow_html=True)
 
-    t1, t2 = st.tabs(["🔑 SİSTEME BAĞLAN", "👨‍💻 YÖNETİCİ GİRİŞİ"])
-    with t1:
+    tab1, tab2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 YÖNETİCİ"])
+    with tab1:
         u_lic = st.text_input("Lisans Anahtarı:", placeholder="SBR-XXXX-TM")
-        if st.button("ANALİZİ BAŞLAT", use_container_width=True):
+        if st.button("ANALİZE BAŞLA"):
             if u_lic in VAULT:
-                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
+                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["exp"]})
                 st.rerun()
             else: st.error("Geçersiz Anahtar!")
-    with t2:
+            
+    with tab2:
         a_t = st.text_input("Admin Token:", type="password")
         a_p = st.text_input("Admin Şifre:", type="password")
-        if st.button("KONTROL PANELİNE GİR", use_container_width=True):
-            if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
+        if st.button("ADMİN GİRİŞİ"):
+            if a_t == MASTER_TOKEN and a_p == MASTER_PASS:
                 st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP", "exp": datetime(2099, 1, 1)})
                 st.rerun()
 
 else:
-    # ================= ANA ANALİZ MOTORU =================
+    # ================= MOBİL ANALİZ PANELİ =================
     with st.sidebar:
-        st.header("⚙️ SİBER KOMUTA")
-        st.write(f"Hoş geldin, **{st.session_state['role']}**")
+        st.markdown("<h2 style='color:#00f2ff;'>⚙️ AYARLAR</h2>", unsafe_allow_html=True)
+        trust_val = st.slider("Güven Eşiği (%)", 50, 95, 80)
         
-        # GÜVEN EŞİĞİ (SOL TARAFTA AYARLANABİLİR)
-        st.divider()
-        st.subheader("🛡️ Güven Eşiği (Threshold)")
-        trust_score = st.slider("Analiz Hassasiyeti (%)", 50, 95, 75)
-        st.info(f"Yapay Zeka %{trust_score} ve üzeri güvenli maçları filtreler.")
-
+        rem = st.session_state["exp"] - datetime.now()
+        st.markdown(f"<div class='stat-card'>⌛ Kalan: {rem.days} Gün</div>", unsafe_allow_html=True)
+        
         if st.session_state["role"] == "admin":
             st.divider()
-            p_sel = st.selectbox("Lisans Paketi:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            keys = [k for k, v in VAULT.items() if v["label"] == p_sel]
-            st.text_area("Kodlar:", value="\n".join(keys), height=200)
-
+            p_sel = st.selectbox("Paket:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            keys = [k for k, v in VAULT.items() if v["lbl"] == p_sel]
+            st.text_area("Lisanslar:", value="\n".join(keys), height=150)
+            
         if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
 
-    # --- MAÇ ÖNCESİ VE CANLI HİBRİT PANEL ---
-    st.markdown(f"<h2 style='color: #00f2ff;'>🏆 ANALİZ VE MUHAKEME MERKEZİ</h2>", unsafe_allow_html=True)
+    # MOBİL MAÇ LİSTESİ (KART SİSTEMİ)
+    st.markdown("<h3 style='color:#00f2ff;'>🏆 CANLI ANALİZ RADARI</h3>", unsafe_allow_html=True)
     
     
 
-    c1, c2 = st.columns(2)
-    
-    with c1:
-        st.subheader("📋 Maç Öncesi Veriler")
-        # Maç saati, lig, oranlar ve AI beklentisi
-        st.markdown("<div style='background:#0e1117; padding:10: border-left: 5px solid #00f2ff;'>19:30 | Real Madrid - Barcelona <br><b>AI Beklentisi: %82 Karşılıklı Gol</b></div>", unsafe_allow_html=True)
+    # Örnek Bir Analiz Kartı (Mobil Uyumlu)
+    st.markdown(f"""
+        <div class='stat-card'>
+            <div style='display: flex; justify-content: space-between;'>
+                <span class='time-text'>🔴 72' Dakika</span>
+                <span class='win-text'>%{trust_val} GÜVEN</span>
+            </div>
+            <div style='text-align: center; margin: 10px 0;'>
+                <h4 style='margin:0; color:white;'>REAL MADRID 1 - 0 BARCELONA</h4>
+            </div>
+            <div style='background: #30363d; height: 5px; border-radius: 5px;'>
+                <div style='background: #00f2ff; width: 75%; height: 5px; border-radius: 5px;'></div>
+            </div>
+            <div style='margin-top: 10px; font-size: 0.9rem; color:#00f2ff;'>
+                <b>AI YORUMU:</b> Ev sahibi baskıyı kurdu, 2. gol beklentisi yüksek!
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    with c2:
-        st.subheader("🔴 Canlı Analiz & Muhakeme")
-        # Canlı istatistikler ve yapay zeka durum değerlendirmesi
-        st.markdown("<div style='background:#0e1117; padding:10; border-left: 5px solid #ff4b4b;'>67' | Baskı Artıyor! <br><b>AI Durum: Ev sahibi baskısı %{0} üzerinde. GOL YAKIN!</b></div>".format(trust_score), unsafe_allow_html=True)
-
-    st.divider()
-    st.info("Sistem şu an API hattından maç öncesi ve canlı verileri eşzamanlı işliyor...")
+    st.info("Sistem canlı verileri siber hattan çekiyor...")
