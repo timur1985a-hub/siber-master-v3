@@ -4,7 +4,77 @@ import streamlit as st
 import hashlib
 import time
 
-# ================= SİBER AYARLAR & GÜVENLİK (LİSANS YAPISI KORUNDU) =================
+# ================= PROFESYONEL KOYU TEMA (HİÇ BEYAZ YOK) =================
+def apply_ultra_dark_theme():
+    st.markdown("""
+        <style>
+        /* Ana Arka Plan: Koyu Gece Mavisi */
+        .stApp {
+            background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+            color: #f1f5f9;
+        }
+        
+        /* Sekmeler (Tabs): Beyazlığı Yok Et */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: transparent;
+            gap: 10px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px 10px 0 0;
+            color: #94a3b8 !important;
+            padding: 10px 20px;
+            border: none;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: rgba(56, 189, 248, 0.2) !important;
+            color: #38bdf8 !important;
+            border-bottom: 2px solid #38bdf8 !important;
+        }
+
+        /* Giriş Kutuları: Beyaz Yazı ve Koyu Arka Plan */
+        .stTextInput input {
+            background-color: #1e293b !important;
+            color: #38bdf8 !important;
+            border: 1px solid #334155 !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+        }
+        .stTextInput label {
+            color: #94a3b8 !important;
+            font-weight: bold;
+        }
+
+        /* Kartlar (Glassmorphism) */
+        .glass-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+
+        /* Butonlar: Neon Mavi */
+        div.stButton > button {
+            background: linear-gradient(90deg, #0ea5e9, #2563eb);
+            color: white !important;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+            transition: all 0.3s ease;
+        }
+        div.stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+# ================= SİBER AYARLAR & LİSANS MOTORU (SABİT) =================
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7" 
@@ -18,128 +88,82 @@ def get_final_vault():
         for i in range(1, count + 1):
             seed = f"V25_{label}_{i}_2026_TIMUR"
             key = f"SBR-{label}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
-            # expiry hesabı sabitlendi
             vault[key] = {"label": label, "expiry": datetime.now() + timedelta(days=days)}
     return vault
 
 VAULT = get_final_vault()
 
-# ================= PROFESYONEL MOBİL TASARIM (CSS) =================
-def apply_pro_ui():
-    st.markdown("""
-        <style>
-        /* Arka plan: Koyu Safir/Lacivert Geçişi (Siyah Değil) */
-        .stApp {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #f8fafc;
-        }
-        /* Cam Efekti Kartlar */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 15px;
-            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.4);
-        }
-        .neon-text { color: #38bdf8; font-weight: bold; text-shadow: 0 0 10px rgba(56,189,248,0.5); }
-        .win-text { color: #4ade80; font-weight: bold; }
-        
-        /* Modern Butonlar */
-        div.stButton > button {
-            background: linear-gradient(90deg, #38bdf8, #2563eb);
-            color: white; border-radius: 12px; border: none;
-            padding: 12px; font-weight: bold; width: 100%; transition: 0.3s;
-        }
-        /* Inputlar */
-        .stTextInput input {
-            background: rgba(255,255,255,0.05) !important;
-            color: white !important; border: 1px solid rgba(255,255,255,0.2) !important;
-            border-radius: 12px !important;
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
-# ================= ARAYÜZ BAŞLANGIÇ =================
-st.set_page_config(page_title="Siber Master V2800", layout="wide")
-apply_pro_ui()
+# ================= ARAYÜZ KURULUM =================
+st.set_page_config(page_title="Siber Master V2900", layout="wide")
+apply_ultra_dark_theme()
 
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
 if not st.session_state["auth"]:
-    st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🛡️ SİBER MASTER PRO</h1>", unsafe_allow_html=True)
-    st.markdown("<marquee style='color: #4ade80; font-weight: bold;'>🔥 ANALİZ MOTORU AKTİF: Yapay zeka bugün %94 başarı oranıyla 12 maçı doğru bildi! Hemen yerini al.</marquee>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #38bdf8; margin-bottom:0;'>🛡️ SİBER MASTER PRO</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #64748b;'>V2900 Elite Muhakeme Sistemi</p>", unsafe_allow_html=True)
     
-    # VIP Fiyatlandırma (Cam Kartlar)
-    pk_cols = st.columns(5)
+    # VIP Paket Kartları
+    cols = st.columns(5)
     pk_data = [("700 TL", "1 Ay"), ("2000 TL", "3 Ay"), ("5000 TL", "6 Ay"), ("8000 TL", "12 Ay"), ("10.000 TL", "Sınırsız")]
     for i, (p, d) in enumerate(pk_data):
-        with pk_cols[i]:
-            st.markdown(f"<div class='glass-card' style='text-align:center;'><h3>{d}</h3><h2 class='neon-text'>{p}</h2><small>VIP Erişim</small></div>", unsafe_allow_html=True)
+        with cols[i]:
+            st.markdown(f"<div class='glass-card' style='text-align:center; padding:15px;'><b style='color:#94a3b8;'>{d}</b><br><span style='color:#38bdf8; font-size:1.2rem; font-weight:bold;'>{p}</span></div>", unsafe_allow_html=True)
 
+    # Giriş Paneli (Cam Kart İçinde)
     st.markdown("<div class='glass-card'>", unsafe_allow_html=True)
-    t1, t2 = st.tabs(["🔑 SİSTEME BAĞLAN", "👨‍💻 YÖNETİCİ GİRİŞİ"])
+    t1, t2 = st.tabs(["🔑 LİSANS GİRİŞİ", "👨‍💻 YÖNETİCİ GİRİŞİ"])
+    
     with t1:
-        u_lic = st.text_input("Lisans Anahtarı:", placeholder="SBR-XXXX-TM")
-        if st.button("ANALİZİ BAŞLAT"):
+        u_lic = st.text_input("Anahtarınızı Buraya Girin:", placeholder="SBR-XXXX-TM")
+        if st.button("ANALİZ MOTORUNU AÇ"):
             if u_lic in VAULT:
                 st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
                 st.rerun()
-            else: st.error("❌ Geçersiz Anahtar!")
+            else: st.error("❌ Geçersiz Lisans Anahtarı!")
+            
     with t2:
-        a_t = st.text_input("Admin Token:", type="password")
-        a_p = st.text_input("Admin Şifre:", type="password")
-        if st.button("KONTROL PANELİNE GİR"):
+        st.markdown("<p style='color:#94a3b8; font-size:0.8rem;'>Yönetici erişimi için token ve şifre gereklidir.</p>", unsafe_allow_html=True)
+        a_t = st.text_input("Admin Token:", type="password", key="admin_t")
+        a_p = st.text_input("Admin Şifre:", type="password", key="admin_p")
+        if st.button("ADMİN PANELİNE BAĞLAN"):
             if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
-                st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP", "exp": datetime(2099, 1, 1)})
+                st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP", "exp": datetime(2030, 1, 1)})
                 st.rerun()
+            else: st.error("🛑 Yetkisiz Erişim!")
     st.markdown("</div>", unsafe_allow_html=True)
 
 else:
-    # ================= ANA ANALİZ MOTORU (MOBİL UYUMLU) =================
+    # ================= CANLI PANEL (FULL PRO) =================
     with st.sidebar:
-        st.markdown("<h2 class='neon-text'>⚙️ KONTROL MERKEZİ</h2>", unsafe_allow_html=True)
-        st.write(f"Hoş geldin, **{st.session_state['role']}**")
-        
-        st.divider()
-        trust_score = st.slider("Analiz Hassasiyeti (%)", 50, 95, 80)
+        st.markdown("<h3 style='color:#38bdf8;'>⚙️ KOMUTA</h3>", unsafe_allow_html=True)
+        trust_score = st.slider("Güven Eşiği (%)", 50, 95, 85)
         
         rem = st.session_state["exp"] - datetime.now()
-        st.markdown(f"<div class='glass-card'>⌛ Kalan Süre:<br><b class='win-text'>{rem.days} Gün {rem.seconds//3600} Saat</b></div>", unsafe_allow_html=True)
-
+        st.markdown(f"<div class='glass-card'><small style='color:#94a3b8;'>Süre:</small><br><b style='color:#4ade80;'>{rem.days} GÜN</b></div>", unsafe_allow_html=True)
+        
         if st.session_state["role"] == "admin":
             st.divider()
-            p_sel = st.selectbox("Lisans Paketi:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            p_sel = st.selectbox("Paket Seç:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             keys = [k for k, v in VAULT.items() if v["label"] == p_sel]
             st.text_area("Satışa Hazır Kodlar:", value="\n".join(keys), height=200)
+            
+        if st.button("🔴 ÇIKIŞ YAP"): st.session_state.clear(); st.rerun()
 
-        if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
-
-    st.markdown("<h2 class='neon-text'>🏆 CANLI MUHAKEME RADARI</h2>", unsafe_allow_html=True)
-
-    # MAÇ ÖNCESİ VE CANLI (MOBİL KART YAPISI)
-    col_a, col_b = st.columns([1, 1])
+    st.markdown("<h2 style='color: #38bdf8;'>🏆 CANLI ANALİZ VE MUHAKEME</h2>", unsafe_allow_html=True)
     
-    with col_a:
-        st.markdown(f"""
-            <div class='glass-card'>
-                <p class='label-text'>📋 MAÇ ÖNCESİ VERİ</p>
-                <h4 style='margin:0;'>Real Madrid - Barcelona</h4>
-                <p class='win-text' style='margin-top:10px;'>AI Tahmin: %82 Karşılıklı Gol</p>
-                <small>Başlama: 21:45 | Lig: La Liga</small>
-            </div>
-        """, unsafe_allow_html=True)
 
-    with col_b:
-        st.markdown(f"""
-            <div class='glass-card' style='border-left: 4px solid #f87171;'>
-                <p class='label-text'>🔴 CANLI MUHAKEME</p>
-                <h4 style='margin:0;'>Dakika: 67' | Skor: 1-1</h4>
-                <p class='neon-text' style='margin-top:10px;'>Baskı Eşiği: %{trust_score} Üzerinde!</p>
-                <b class='win-text'>GOL YAKIN: Ev sahibi %74 hakimiyet.</b>
+    # Dinamik Analiz Kartı
+    st.markdown(f"""
+        <div class='glass-card'>
+            <div style='display: flex; justify-content: space-between;'>
+                <span style='color: #64748b;'>78' Dakika | Elite Analiz</span>
+                <span style='color: #4ade80; font-weight:bold;'>%{trust_score} GÜVEN</span>
             </div>
-        """, unsafe_allow_html=True)
-
-    st.info("Sistem API üzerinden maç verilerini milisaniyelik tarıyor...")
+            <div style='text-align:center; margin: 20px 0;'>
+                <h2 style='color:white; margin:0;'>LIVERPOOL 2 - 2 REAL MADRID</h2>
+                <p style='color:#38bdf8; margin-top:10px;'><b>AI MUHAKEME:</b> Baskı %88 seviyesine çıktı. Real Madrid kontra atak kovalıyor!</p>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
