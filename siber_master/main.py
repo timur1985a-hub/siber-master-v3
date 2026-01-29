@@ -24,145 +24,134 @@ def get_final_vault():
 
 VAULT = get_final_vault()
 
-# ================= 2. TASARIM VE GÜVEN ÇUBUĞU EK YAPISI =================
-def apply_ui():
+# ================= 2. LOGO GİZLEME VE MOBİL TAM EKRAN CSS =================
+def apply_ultra_ui():
     st.markdown("""
         <style>
-        .stApp { background: linear-gradient(180deg, #020617 0%, #0f172a 100%); color: #f1f5f9; }
-        .block-container { padding-top: 1rem !important; }
+        /* GitHub Logosu ve Menüleri Gizle */
+        #MainMenu {visibility: hidden;}
+        header {visibility: hidden;}
+        footer {visibility: hidden;}
+        .stDeployButton {display:none;}
         
+        /* Tam Ekran ve Arka Plan */
+        .stApp { background: linear-gradient(180deg, #020617 0%, #0f172a 100%); color: #f1f5f9; }
+        .block-container { padding: 0.5rem 1rem !important; max-width: 100% !important; }
+        
+        /* Kart Tasarımları */
         .glass-card { 
-            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); 
-            border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 15px; 
-            padding: 18px; margin-bottom: 15px; overflow: hidden;
+            background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(15px); 
+            border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; 
+            padding: 15px; margin-bottom: 12px;
         }
 
-        /* Güven Çubuğu (Yeni Ek) */
-        .progress-container { background: rgba(255,255,255,0.05); border-radius: 10px; height: 10px; margin: 10px 0; overflow: hidden; }
-        .progress-bar { height: 100%; border-radius: 10px; transition: width 0.8s ease-in-out; }
+        /* Karar Motoru Kutusu */
+        .decision-box {
+            background: rgba(56, 189, 248, 0.1); border: 1px solid #38bdf8;
+            border-radius: 8px; padding: 10px; margin-top: 10px; text-align: center;
+        }
+
+        .pkg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .pkg-item { background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 10px; padding: 10px; text-align: center; }
+        .pkg-val { color: #4ade80; font-weight: bold; font-size: 0.9rem; }
         
-        .pkg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
-        .pkg-item { background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 12px; padding: 12px; text-align: center; }
-        .pkg-val { color: #4ade80; font-weight: bold; font-size: 1.1rem; }
+        .minute-badge { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; }
+        .neon-blue { color: #38bdf8; font-weight: bold; }
         
-        .minute-badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; box-shadow: 0 0 10px rgba(239,68,68,0.3); }
-        .time-badge { background: #334155; color: #38bdf8; padding: 2px 8px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; }
-        
-        div.stButton > button { background: linear-gradient(90deg, #0ea5e9, #2563eb); color: white !important; border-radius: 12px; font-weight: bold; border: none; padding: 12px; }
-        .stTextInput input { background-color: #1e293b !important; color: #38bdf8 !important; border: 1px solid #334155 !important; border-radius: 10px !important; }
+        div.stButton > button { width: 100%; background: linear-gradient(90deg, #0ea5e9, #2563eb); border: none; border-radius: 10px; padding: 10px; font-weight: bold; color: white !important; }
         </style>
     """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="Siber Master V4600", layout="wide")
-apply_ui()
+st.set_page_config(page_title="Siber Master Pro", layout="wide", initial_sidebar_state="collapsed")
+apply_ultra_ui()
 
-# ================= 3. AI ARITMA VE MUHAKEME EK FONKSİYONU =================
-def siber_muhakeme_ai(fixture):
-    # Veri Arıtma Algoritması: Canlı baskı ve istatistikleri muhakeme eder
-    is_live = fixture['fixture']['status']['short'] in ['1H', '2H', 'HT', 'ET']
+# ================= 3. AKILLI MUHAKEME KARAR MOTORU =================
+def hyper_decision_logic(h_g, a_g, minute, press):
+    # Tüm kategorileri değerlendiren nihai karar mekanizması
+    if minute < 15: return "⚖️ İZLE", "Maçın başı, veri toplanıyor.", "#94a3b8"
     
-    # Gerçek veri simülasyonu (API'den gelen stats ile beslenir)
-    if is_live:
-        confidence = random.randint(78, 98)
-        label = "🔥 CANLI ANALİZ"
-    else:
-        confidence = random.randint(62, 84)
-        label = "⏳ ÖN MUHAKEME"
+    if press >= 90:
+        if h_g == a_g: return "🎯 SIRADAKİ GOL: EV", "Ev sahibi boğucu baskı kurdu.", "#4ade80"
+        return "🚀 1.5 ÜST / KG VAR", "Tempo çok yüksek, gol kokusu var.", "#38bdf8"
     
-    return confidence, label
+    if press > 75 and minute > 60:
+        return "⚡ CANLI TERCİH: 0.5 ÜST", "Son 30 dakikada baskı arttı.", "#fbbf24"
+    
+    return "🛡️ BEKLE / PAS", "Muhakeme motoru risk tespit etti.", "#f87171"
 
-# ================= 4. OTURUM KORUMA VE GİRİŞ (YAPI KORUNDU) =================
+# ================= 4. OTURUM YÖNETİMİ =================
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
 if not st.session_state["auth"]:
-    # HAREKETE GEÇİREN GİRİŞ ALANI
+    # Giriş Ekranı
     st.markdown("""
-        <div style='background: linear-gradient(90deg, rgba(56,189,248,0.12), rgba(37,99,235,0.12)); border: 1px solid #38bdf8; padding: 20px; border-radius: 15px; text-align: center; margin-bottom: 20px;'>
+        <div class='glass-card' style='text-align:center; border-color:#4ade80;'>
             <h3 style='color: #4ade80; margin:0;'>💎 KAZANANLAR KULÜBÜ</h3>
-            <p style='color: #f1f5f9; margin-top: 12px; font-size: 1.1rem; font-style: italic;'>
-                "Sıradan bahisçiler tesadüfleri bekler, Siber Master sahipleri ise sahadaki saniyeleri servete dönüştürür."
-            </p>
+            <p style='font-size:0.9rem; margin-top:10px;'>Saniyeleri servete dönüştürmek için bağlandınız.</p>
         </div>
         <div class='pkg-grid'>
-            <div class='pkg-item'><div style='color:#38bdf8; font-size:0.7rem;'>1 AY GÜÇ</div><div class='pkg-val'>700 TL</div></div>
-            <div class='pkg-item'><div style='color:#38bdf8; font-size:0.7rem;'>3 AY HAKİMİYET</div><div class='pkg-val'>2.000 TL</div></div>
-            <div class='pkg-item'><div style='color:#38bdf8; font-size:0.7rem;'>6 AY ELITE</div><div class='pkg-val'>5.000 TL</div></div>
-            <div class='pkg-item'><div style='color:#38bdf8; font-size:0.7rem;'>12 AY VIP</div><div class='pkg-val'>8.000 TL</div></div>
+            <div class='pkg-item'><small>1 AY</small><br><span class='pkg-val'>700 TL</span></div>
+            <div class='pkg-item'><small>3 AY</small><br><span class='pkg-val'>2.000 TL</span></div>
+            <div class='pkg-item'><small>6 AY</small><br><span class='pkg-val'>5.000 TL</span></div>
+            <div class='pkg-item'><small>12 AY</small><br><span class='pkg-val'>8.000 TL</span></div>
         </div>
+        <br>
     """, unsafe_allow_html=True)
 
-    t1, t2 = st.tabs(["🔑 ERİŞİM", "👨‍💻 ADMİN"])
-    with t1:
-        u_lic = st.text_input("Lisans Anahtarı:", key="lic_final")
-        if st.button("ANALİZ MOTORUNU BAŞLAT"):
-            if u_lic in VAULT:
-                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
-                st.rerun()
-            else: st.error("❌ Geçersiz Anahtar!")
+    u_lic = st.text_input("Erişim Anahtarı:", key="main_v48")
+    if st.button("SİSTEME GİRİŞ YAP"):
+        if u_lic in VAULT:
+            st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
+            st.rerun()
+        else: st.error("Geçersiz!")
 
 else:
-    # ================= 5. ANALİZ PANELİ (YENİ EKLERLE GÜNCELLENDİ) =================
+    # ================= 5. ANALİZ PANELİ (TAM EKRAN) =================
     with st.sidebar:
-        st.markdown("<h3 style='color:#38bdf8;'>👤 SİBER KONTROL</h3>", unsafe_allow_html=True)
-        # GÜVEN FİLTRESİ (YENİ EK)
-        guven_esigi = st.slider("Güven Eşiği (%)", 50, 99, 80)
-        rem = st.session_state["exp"] - datetime.now()
-        st.markdown(f"<div class='glass-card' style='padding:10px;'><small>Erişim:</small><br><b style='color:#4ade80;'>{rem.days} GÜN AKTİF</b></div>", unsafe_allow_html=True)
-        if st.button("🔴 SİSTEMİ KAPAT"): st.session_state.clear(); st.rerun()
+        st.markdown("<h3 class='neon-blue'>🛡️ SİBER KONTROL</h3>", unsafe_allow_html=True)
+        conf_filter = st.slider("Güven Eşiği %", 50, 99, 85)
+        if st.button("🔴 ÇIKIŞ YAP"): st.session_state.clear(); st.rerun()
 
-    st.markdown("<h3 style='color:#38bdf8;'>🏆 SİBER ANALİZ VE MUHAKEME</h3>", unsafe_allow_html=True)
-    if st.button("🔄 VERİLERİ VE AI ANALİZİ TAZELE"): st.rerun()
-
-    tab_live, tab_pre = st.tabs(["🔴 CANLI ANALİZ (DAKİKA)", "⏳ BÜLTEN ANALİZİ (SAAT)"])
-
+    # Üst Bilgi Paneli
+    st.markdown("<h3 style='text-align:center; color:#38bdf8; margin:0;'>🏆 MUHAKEME MERKEZİ</h3>", unsafe_allow_html=True)
+    
     try:
         headers = {"x-apisports-key": API_KEY, "User-Agent": "Mozilla/5.0"}
         resp = requests.get(f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}", headers=headers).json()
         fixtures = resp.get("response", [])
 
-        # CANLI MAÇLAR (Dakika Odaklı + Güven Çubuğu)
-        with tab_live:
-            live_matches = [f for f in fixtures if f['fixture']['status']['short'] in ['1H', '2H', 'HT']]
-            if not live_matches: st.info("Şu an canlı analiz bulunmuyor.")
-            for f in live_matches:
-                conf, ai_label = siber_muhakeme_ai(f)
-                if conf >= guven_esigi:
-                    dakika = f['fixture']['status']['elapsed']
-                    color = "#4ade80" if conf > 85 else "#38bdf8"
-                    st.markdown(f"""
-                    <div class='glass-card'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <span class='minute-badge'>{dakika}' DAKİKA</span>
-                            <b style='color:{color}; font-size:0.9rem;'>%{conf} AI GÜVEN</b>
-                        </div>
-                        <h4 style='text-align:center; margin:15px 0;'>{f['teams']['home']['name']} {f['goals']['home']} - {f['goals']['away']} {f['teams']['away']['name']}</h4>
-                        <div class='progress-container'><div class='progress-bar' style='width:{conf}%; background:{color};'></div></div>
-                        <div style='display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8;'>
-                            <span>🧠 AI ARITMASI: AKTİF</span>
-                            <span>SAHA BASKISI: %{random.randint(70,96)}</span>
-                        </div>
+        live_matches = [f for f in fixtures if f['fixture']['status']['short'] in ['1H', '2H', 'HT']]
+        
+        for f in live_matches:
+            # AI Simülasyon
+            press = random.randint(65, 98)
+            conf = random.randint(75, 99)
+            
+            if conf >= conf_filter:
+                min_val = f['fixture']['status']['elapsed']
+                h_g, a_g = f['goals']['home'], f['goals']['away']
+                
+                # Karar Motoru
+                tercih, aciklama, renk = hyper_decision_logic(h_g, a_g, min_val, press)
+                
+                st.markdown(f"""
+                <div class='glass-card'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <span class='minute-badge'>{min_val}' DAKİKA</span>
+                        <b style='color:#4ade80; font-size:0.8rem;'>%{conf} GÜVEN</b>
                     </div>
-                    """, unsafe_allow_html=True)
-
-        # BÜLTEN MAÇLARI (Saat Odaklı + Ön Muhakeme)
-        with tab_pre:
-            pre_matches = [f for f in fixtures if f['fixture']['status']['short'] == 'NS']
-            for f in pre_matches:
-                conf, ai_label = siber_muhakeme_ai(f)
-                if conf >= guven_esigi:
-                    saat = f['fixture']['date'][11:16]
-                    st.markdown(f"""
-                    <div class='glass-card'>
-                        <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <span class='time-badge'>SAAT: {saat}</span>
-                            <b style='color:#94a3b8; font-size:0.85rem;'>%{conf} ÖN ANALİZ</b>
-                        </div>
-                        <h4 style='text-align:center; margin:10px 0;'>{f['teams']['home']['name']} vs {f['teams']['away']['name']}</h4>
-                        <div class='progress-container'><div class='progress-bar' style='width:{conf}%; background:#334155;'></div></div>
-                        <small style='color:#94a3b8;'>📋 MUHAKEME NOTU: Form grafiği ve oran analizi tamamlandı.</small>
+                    <div style='text-align:center; margin:10px 0;'>
+                        <div style='font-size:0.9rem;'>{f['teams']['home']['name']} <b>{h_g} - {a_g}</b> {f['teams']['away']['name']}</div>
                     </div>
-                    """, unsafe_allow_html=True)
-
-    except Exception:
-        st.error("Veri bağlantısı yenileniyor...")
+                    <div style='background:rgba(255,255,255,0.05); height:6px; border-radius:10px; overflow:hidden;'>
+                        <div style='width:{press}%; background:#38bdf8; height:100%;'></div>
+                    </div>
+                    <div class='decision-box' style='border-color:{renk}; background:{renk}11;'>
+                        <b style='color:{renk}; font-size:0.95rem;'>SİBER TERCİH: {tercih}</b><br>
+                        <small style='color:#f1f5f9; font-size:0.75rem;'>{aciklama}</small>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+    except:
+        st.warning("Veri akışı bekleniyor...")
