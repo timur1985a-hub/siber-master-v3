@@ -4,6 +4,18 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 
+# --- 0. GOOGLE DOĞRULAMA KATMANI (GÖRÜNMEZ ÇAPA) ---
+st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
+
+# Google'ın mülk doğrulaması için istediği "maç satı" (meta tag)
+st.markdown("""
+    <div style="display:none;">
+        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
+        <p>google-site-verification: google8ffdf1f7bdb7adf3.html</p>
+    </div>
+""", unsafe_allow_html=True)
+
 # --- 1. SİBER HAFIZA VE LİSANS MOTORU (SABİT - DOKUNULMAZ) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
@@ -25,7 +37,6 @@ def get_vault():
 VAULT = get_vault()
 
 # --- 2. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
-st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -68,6 +79,7 @@ def h2h_muhakeme_90(id1, id2):
             else: s["x"] += 1
             if (hg + ag) > 2.5: s["u"] += 1
             if hg > 0 and ag > 0: s["kg"] += 1
+    if n == 0: return None
     res = {"MS 1": (s["h"]/n)*100, "MS X": (s["x"]/n)*100, "MS 2": (s["a"]/n)*100, "KG VAR": (s["kg"]/n)*100, "2.5 ÜST": (s["u"]/n)*100, "2.5 ALT": (1 - s["u"]/n)*100}
     basarili = {k: v for k, v in res.items() if v >= 90}
     return {"KARAR": max(basarili, key=basarili.get), "GUVEN": int(max(basarili.values()))} if basarili else None
@@ -90,7 +102,6 @@ def canli_muhakeme(fixture_id, h_name, a_name):
 # --- 4. GİRİŞ PANELİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
-    # [Paket Kutuları ve Giriş Şablonu - Değişmez]
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
         <div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div>
@@ -125,7 +136,6 @@ else:
     target_date = st.date_input("Analiz Günü:", datetime.now())
     if st.button("🚀 SİBER MUHAKEMEYİ BAŞLAT (GLOBAL + CANLI)"):
         with st.spinner("Tüm Dünya Taranıyor..."):
-            # Hem Canlı Hem Bülten Verisini Aynı Anda Çek
             fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
             
             for m in fikstur:
@@ -134,7 +144,6 @@ else:
                 utc_time = datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00'))
                 tr_time = (utc_time + timedelta(hours=3)).strftime('%H:%M')
                 
-                # --- CANLI MAÇ ANALİZİ ---
                 if status in ["1H", "HT", "2H", "ET", "P"]:
                     hakimiyet, tavsiye = canli_muhakeme(m['fixture']['id'], h_name, a_name) or ("📡 Veri Alınıyor", "BEKLEMEDE")
                     st.markdown(f"""<div class='card' style='border-left-color: #ff4b4b;'>
@@ -146,7 +155,6 @@ else:
                         <p style='text-align:center; font-weight:bold; color:#58a6ff;'>🏆 Y.Z. ÖNERİSİ: {tavsiye}</p>
                     </div>""", unsafe_allow_html=True)
 
-                # --- BAŞLAMAMIŞ MAÇ ANALİZİ (%90+) ---
                 elif status in ["NS", "TBD"]:
                     res = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
                     if res:
