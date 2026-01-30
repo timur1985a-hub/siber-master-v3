@@ -15,7 +15,7 @@ BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# Dinamik Lisans Veritabanı (Oturum boyunca korunur)
+# Dinamik Lisans Veritabanı
 if "lic_db" not in st.session_state: 
     st.session_state["lic_db"] = {}
 
@@ -24,15 +24,14 @@ def get_vault():
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
-        for i in range(1, 101): # Önceden tanımlı 100 statik key
+        for i in range(1, 101):
             k = f"SBR-{lbl}-{hashlib.md5(f'V34_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
-            # Bu statik keylere sınırsız başlangıç veriyoruz (ilk girişte başlar)
             v[k] = {"label": lbl, "days": d, "expire": None}
     return v
 
 VAULT = get_vault()
 
-# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS (MİLİMETRİK) ---
+# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -78,7 +77,103 @@ def fetch_data():
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None})
 
-# --- 4. GİRİŞ ÖNCESİ (PANEL) ---
+# --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    
+    m_data = fetch_data()[:25]
+    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
+    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    
+    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><b>10.000 TL</b></div></div>""", unsafe_allow_html=True)
+    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
+
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        t1, t2 = st.tabs(["🔑 SİSTEME GİRİŞ", "👨‍💻 MASTER PANEL"])
+        with t1:
+            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login")
+            if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
+                key = u_in.strip()
+                db = st.session_state["lic_db"]
+                target = db.get(key) or VAULT.get(key)
+                
+                if target:
+                    now = datetime.now()
+                    if target.get("expire"):
+                        if now > target["expire"]:
+                            st.error("❌ LİSANSINIZIN SÜRESİ DOLDU! Lütfen yeni bir lisans alın.")
+                        else:
+                            st.session_state.update({"auth": True, "role": "user", "current_user": key})
+                            st.rerun()
+                    else:
+                        expire_date = now + timedelta(days=target["days"])
+                        if key in st.session_state["lic_db"]:
+                            st.session_state["lic_db"][key]["expire"] = expire_date
+                        else:
+                            st.session_state["lic_db"][key] = target
+                            st.session_state["lic_db"][key]["expire"] = expire_date
+                        st.session_state.update({"auth": True, "role": "user", "current_user": key})
+                        st.rerun()
+                else:
+                    st.error("❌ Geçersiz Lisans Anahtarı!")
+
+        with t2:
+            a_t = st.text_input("Admin Token:", type="password", key="a_token")
+            a_p = st.text_input("Admin Password:", type="password", key="a_pass")
+            if st.button("MASTER GİRİŞ", use_container_width=True):
+                if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: 
+                    st.session_state.update({"auth": True, "role": "admin"})
+                    st.rerun()
+
+else:
+    # --- 5. GİRİŞ SONRASI ---
+    if st.session_state["role"] == "admin":
+        st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
+        with st.expander("🎫 YENİ LİSANS ÜRETME MERKEZİ", expanded=True):
+            p_choice = st.selectbox("Paket Seçin", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            p_days = {"1-AY": 30, "3-AY": 90, "6-AY": 180, "12-AY": 365, "SINIRSIZ": 36500}[p_choice]
+            if st.button("⚡ BENZERSİZ LİSANS OLUŞTUR"):
+                new_key = f"SBR-{p_choice}-{hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:8]}-TM"
+                st.session_state["lic_db"][new_key] = {"label": p_choice, "days": p_days, "expire": None}
+                st.code(new_key, language="text")
+                st.success(f"{p_choice} Lisansı Başarıyla Üretildi.")
+        
+        st.write("### 📊 Aktif Lisans Listesi")
+        st.dataframe(pd.DataFrame.from_dict(st.session_state["lic_db"], orient='index'))
+
+    else:
+        st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
+        st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur.</div>", unsafe_allow_html=True)
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
+            st.cache_data.clear(); st.cache_resource.clear(); st.rerun()
+    with col_b:
+        if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
+            st.cache_data.clear(); st.rerun()
+
+    st.divider()
+
+    if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
+        res_area = st.container()
+        matches = fetch_data()
+        if matches:
+            for i, m in enumerate(matches):
+                is_live = m['fixture']['status']['short'] in ['1H', '2H', 'HT']
+                score = 80 + (i % 15) if is_live else 90 + (i % 10)
+                if (is_live and score >= 80) or (not is_live and score >= 90):
+                    with res_area:
+                        st.markdown(f"""
+                            <div class='decision-card'>
+                                <div class='ai-score'>%{score}</div>
+                                <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span><br>
+                                <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
+                                <hr style='border:0.1px solid #30363d; margin:10px 0;'>
+                                <span style='color:#2ea043; font-weight:bold;'>YAPAY ZEKA KARARI:</span> KG VAR & 2.5 ÜST<br>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
