@@ -5,14 +5,14 @@ from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. MASTER SEO & GOOGLE ANALYTICS (KURAL: GİZLİ VE PROFESYONEL) ---
+# --- 1. GÜÇLENDİRİLMİŞ SEO & ANALYTICS (PRENSİP: SIFIR GÖRÜNTÜ KİRLİLİĞİ) ---
 st.set_page_config(
     page_title="Yapay Zeka Maç Tahmin | Siber Radar V250 | %90+ Başarı",
     page_icon="🎯",
     layout="wide"
 )
 
-# Yeni Analytics Kodun: G-9KHTP6QZY8
+# Yeni oluşturduğun G-9KHTP6QZY8 ölçüm kimliği ve SEO katmanı
 st.markdown(f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
     <script>
@@ -23,21 +23,21 @@ st.markdown(f"""
     </script>
     
     <style>
-        .siber-seo-vault {{ display: none !important; }}
+        /* SEO ve doğrulama etiketlerini kullanıcıdan tamamen gizler */
+        .siber-seo-shield {{ display: none !important; visibility: hidden; opacity: 0; }}
     </style>
-    <div class="siber-seo-vault">
+    <div class="siber-seo-shield">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
         
         <meta name="robots" content="index, follow" />
-        <meta name="description" content="Siber Radar V250: Yapay zeka destekli iddaa tahmin motoru. Canlı maç analizleri ve %90+ güvenli banko kuponlar.">
-        <meta name="keywords" content="maç tahminleri, yapay zeka iddaa, canlı analiz, banko kuponlar, siber radar">
-        <meta name="author" content="Siber Radar Team">
+        <meta name="description" content="Siber Radar V250: Yapay zeka destekli profesyonel iddaa tahmin motoru. Canlı analiz ve yüksek başarı oranlı maç tahminleri.">
+        <meta name="keywords" content="yapay zeka maç tahmin, iddaa tahminleri, siber radar, canlı maç analizi, banko kuponlar">
         <link rel="canonical" href="https://yapayzekamactahmin.streamlit.app/" />
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
+# --- 2. SİBER HAFIZA VE LİSANS MOTORU (PRENSİP: SABİT ÇEKİRDEK) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -57,7 +57,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 3. DEĞİŞMEZ TASARIM (KURALLAR: MİLİM OYNAMADI) ---
+# --- 3. DEĞİŞMEZ TASARIM (PRENSİP: MİLİM OYNAMADI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -79,7 +79,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ (PRENSİP: DOKUNULMAZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -110,4 +110,4 @@ if not st.session_state["auth"]:
 else:
     # --- 5. ANA PANEL ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🚀 Siber Radar SEO & Analytics Motoru %100 Verimlilikle Çalışıyor.")
+    st.info("🎯 Siber Radar V250: SEO ve Analytics Protokolleri Kurallara Uygun Şekilde Devrede.")
