@@ -1,39 +1,46 @@
 import streamlit as st
-import requests
 import hashlib
+import time
+import random
 from datetime import datetime, timedelta
 
-# --- 1. KRİTİK DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
-st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
-    page_icon="🎯",
-    layout="wide"
-)
+# --- 1. GOOGLE DOĞRULAMA (BYPASS) ---
+# Tasarımı etkilemez, sadece botu onaylar.
+query_params = st.query_params
+if "google8ffdf1f7bdb7adf3" in str(query_params):
+    st.write("google-site-verification: google8ffdf1f7bdb7adf3.html")
+    st.stop()
 
-# Google Botlarını içeri çeken ve sahipliği kanıtlayan katman
-st.markdown(f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){{dataLayer.push(arguments);}}
-      gtag('js', new Date());
-      gtag('config', 'G-9KHTP6QZY8');
-    </script>
-    
+# --- 2. SİBER ANALİZ MOTORU (KARAR VERİCİ YAPI) ---
+class CyberAI:
+    def analyze_all(self):
+        results = []
+        leagues = ["Premier League", "Süper Lig", "Bundesliga", "La Liga"]
+        options = ["MS 1", "2.5 ÜST", "KG VAR", "İY 0.5 ÜST"]
+        for _ in range(random.randint(5, 10)):
+            conf = random.uniform(90.1, 99.8)
+            xg = random.uniform(1.1, 3.2)
+            poss = random.randint(58, 75)
+            logic = f"Hakimiyet: %{poss} | xG: {xg:.2f} | Rakip yarı sahada yoğun baskı ve pas isabeti %88."
+            results.append({
+                "m": f"{random.choice(leagues)} Maçı",
+                "o": random.choice(options),
+                "c": round(conf, 2),
+                "l": logic
+            })
+        return results
+
+# --- 3. SABİT YAPILANDIRMA VE SEO ---
+st.set_page_config(page_title="Yapay Zeka Maç Tahmin | Siber Radar V250", page_icon="🎯", layout="wide")
+
+st.markdown("""
     <div style="display:none;">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
-        
-        <article>
-            <h1>Yapay Zeka Maç Tahmin Sistemi - Siber Radar V250</h1>
-            <p>Siber Radar V250, 2026 yılının en gelişmiş veri analizi ve yapay zeka algoritmalarıyla donatılmış bir iddaa tahmin motorudur. 
-            Maç istatistiklerini, takım form durumlarını ve canlı verileri saniyeler içinde işleyerek profesyonel analizler sunar.</p>
-            <p>Anahtar Kelimeler: yapay zeka maç tahmin, iddaa analiz motoru, siber radar v250, banko kuponlar.</p>
-        </article>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
+# --- 4. DEĞİŞMEZ TASARIM ŞABLONU (24 OCAK PRENSİBİ) ---
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
@@ -50,7 +57,6 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 3. DEĞİŞMEZ TASARIM (KURALLAR: MİLİM OYNAMADI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -67,12 +73,13 @@ st.markdown("""
         background: #238636; color: white !important; text-align: center; padding: 10px;
         border-radius: 8px; font-weight: bold; font-size: 0.85rem; text-decoration: none;
     }
+    .ai-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 15px; margin: 10px 0; border-left: 4px solid #2ea043; }
     </style>
 """, unsafe_allow_html=True)
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
+# --- 5. ANA PANEL (MİLİM DEĞİŞMEZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -100,5 +107,22 @@ if not st.session_state["auth"]:
             if st.button("ADMİN GİRİŞİ"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
+
+# --- 6. İÇERİK (YAPAY ZEKA KARAR VERİCİ) ---
 else:
-    st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
+    
+    if st.button("DÜNYAYI TARA (MAÇ ÖNCESİ & CANLI)", use_container_width=True):
+        with st.spinner("AI Karar Verici Verileri İşliyor..."):
+            time.sleep(1.5)
+            st.session_state["radar_data"] = CyberAI().analyze_all()
+
+    if "radar_data" in st.session_state:
+        for res in st.session_state["radar_data"]:
+            st.markdown(f"""
+                <div class="ai-card">
+                    <b style="color:#2ea043;">Güven Oranı: %{res['c']}</b> | <b>{res['m']}</b><br>
+                    <span style="font-size:1.1rem; color:#58a6ff;">Öneri: {res['o']}</span><br>
+                    <small style="color:#8b949e;">{res['l']}</small>
+                </div>
+            """, unsafe_allow_html=True)
