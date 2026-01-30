@@ -5,30 +5,31 @@ from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. SEO VE ÇİFT KATMANLI GOOGLE DOĞRULAMA (BOT GEÇİDİ) ---
+# --- 1. SEO VE GOOGLE SAHİPLİK DOĞRULAMA (EN ÜST KATMAN) ---
 st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | %90+ Güvenli Analiz | Siber Radar",
+    page_title="Yapay Zeka Maç Tahmin & Analiz | Siber Radar V250",
     page_icon="🎯",
     layout="wide"
 )
 
-# Her iki etiket de burada; Google hangisini ararsa anında bulacak.
+# Google botlarını doğrudan karşılayan ve sahipliği kanıtlayan bölüm
 st.markdown("""
     <head>
-        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
         
         <meta name="robots" content="index, follow" />
-        <meta name="description" content="Yapay zeka iddaa tahmin motoru. %90+ başarı oranı ile canlı baskı analizi ve maç tahminleri.">
+        <meta name="description" content="Siber Radar V250: Yapay zeka destekli %90+ güvenli maç tahminleri ve canlı baskı analiz motoru.">
+        <meta name="keywords" content="yapay zeka iddaa, maç tahminleri, canlı analiz, siber radar, bahis robotu">
         <link rel="canonical" href="https://yapayzekamactahmin.streamlit.app/" />
     </head>
     <div style="display:none;">
-        <h1>Siber Radar Analiz Sistemi</h1>
-        <p>Doğrulama Anahtarları Aktif: google8ffdf1f7bdb7adf3.html ve H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk</p>
+        <h1>Siber Radar V250 - Yapay Zeka Analiz Sistemi</h1>
+        <p>Google Doğrulama Aktif: H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk</p>
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (DOKUNULMAZ) ---
+# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -48,7 +49,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 3. DEĞİŞMEZ TASARIM (KURALLARA SADIK) ---
+# --- 3. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -71,7 +72,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (MİLİM OYNAMADI) ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -101,8 +102,5 @@ if not st.session_state["auth"]:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
     # --- 5. ANA PANEL VE ANALİZ ---
-    with st.sidebar:
-        st.markdown(f"### 🛡️ YETKİ: {st.session_state['role'].upper()}")
-        if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 SEO ve Google Doğrulama Aktif. Siteniz Şu An Botlar Tarafından Taranabilir.")
+    st.info("🎯 SEO Altyapısı ve Google Otorite Modeli Aktif. Bot Taraması Bekleniyor.")
