@@ -26,11 +26,23 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
+# --- 2. DEĞİŞMEZ TASARIM VE KONTRAST AYARI ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
+    /* Yan Menü Butonları İçin Özel Kontrast */
+    [data-testid="stSidebar"] button {
+        background-color: #0d1117 !important;
+        border: 2px solid #2ea043 !important;
+        color: #2ea043 !important;
+        font-weight: bold !important;
+        box-shadow: 0 0 10px rgba(46, 160, 67, 0.2);
+    }
+    [data-testid="stSidebar"] button:hover {
+        background-color: #2ea043 !important;
+        color: white !important;
+    }
     .hype-title { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 900; margin: 10px 0; }
     .pkg-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
     .pkg-box { 
@@ -47,13 +59,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. GLOBAL YAN PANEL (BELLEK VE GÜNCELLEME) ---
+# --- 3. GLOBAL YAN PANEL (YÜKSEK GÖRÜNÜRLÜK) ---
 with st.sidebar:
-    st.markdown("### 🛡️ SİSTEM YÖNETİMİ")
+    st.markdown("<h2 style='color:#2ea043;'>⚙️ PANEL</h2>", unsafe_allow_html=True)
     if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
         st.cache_data.clear()
         st.cache_resource.clear()
         st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
     if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
         st.rerun()
     st.divider()
@@ -82,7 +95,7 @@ if not st.session_state["auth"]:
         t1, t2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 MASTER"])
         with t1:
             u_in = st.text_input("Anahtar:", type="password", key="user_login")
-            if st.button("SİSTEMİ AÇ"):
+            if st.button("SİSTEMİ AÇ", key="btn_u"):
                 if u_in in VAULT:
                     if u_in not in st.session_state["lic_db"]: st.session_state["lic_db"][u_in] = datetime.now() + timedelta(days=VAULT[u_in]["days"])
                     if datetime.now() > st.session_state["lic_db"][u_in]: st.error("SÜRE DOLDU!")
@@ -90,9 +103,8 @@ if not st.session_state["auth"]:
         with t2:
             a_t = st.text_input("Token:", type="password", key="admin_token")
             a_p = st.text_input("Şifre:", type="password", key="admin_pass")
-            if st.button("ADMİN GİRİŞİ"):
+            if st.button("ADMİN GİRİŞİ", key="btn_a"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
-    # --- 5. ANALİZ MERKEZİ ---
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
-    st.success("Sistem hazır. Verileri çekmek için lütfen kriterleri seçin.")
+    st.success("Sistem hazır. Sol menüdeki yeşil butonları kullanabilirsiniz.")
