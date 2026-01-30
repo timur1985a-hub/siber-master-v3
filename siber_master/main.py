@@ -12,7 +12,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- 1. SİBER HAFIZA VE API MOTORU (DOKUNULMAZ) ---
+# --- 1. SİBER HAFIZA VE API MOTORU ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -32,7 +32,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
+# --- 2. DEĞİŞMEZ TASARIM ŞABLONU ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -53,9 +53,27 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
+# --- 3. GLOBAL KONTROL PANELİ (HERKESE AÇIK) ---
+with st.sidebar:
+    st.markdown("### 🛡️ SİSTEM YÖNETİMİ")
+    # Bu butonlar giriş yapmadan önce de görünür
+    if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.success("Bellek Sıfırlandı!")
+        st.rerun()
+    
+    if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
+        st.rerun()
+    
+    st.divider()
+    if st.session_state.get("auth"):
+        st.markdown(f"**YETKİ:** {st.session_state['role'].upper()}")
+        if st.button("🔴 GÜVENLİ ÇIKIŞ", use_container_width=True):
+            st.session_state.clear()
+            st.rerun()
 
-# --- 3. ANALİZ MOTORU ---
+# --- 4. ANALİZ MOTORU ---
 def siber_fetch(endpoint, params):
     try:
         r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
@@ -95,8 +113,8 @@ def canli_muhakeme(fixture_id, h_name, a_name):
     elif h_dom <= 35: return f"🔵 %{100-h_dom} EZİCİ BASKI", "SIRADAKİ GOL: DEP"
     return "⚪ DENGELİ", "BEKLEMEDE"
 
-# --- 4. GİRİŞ PANELİ ---
-if not st.session_state["auth"]:
+# --- 5. GİRİŞ VE ANA PANEL ---
+if not st.session_state.get("auth"):
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
@@ -122,41 +140,20 @@ if not st.session_state["auth"]:
             if st.button("ADMİN GİRİŞİ"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
-    # --- 5. BİRLEŞİK KOMUTA PANELİ (GÜNCELLEME VE TEMİZLİK BUTONLARI) ---
-    with st.sidebar:
-        st.markdown(f"### 🛡️ YETKİ: {st.session_state['role'].upper()}")
-        
-        # SİSTEM TEMİZLİK BUTONLARI
-        if st.button("🧹 BELLEĞİ TEMİZLE"):
-            st.cache_data.clear()
-            st.cache_resource.clear()
-            st.success("Bellek ve Önbellek Sıfırlandı!")
-            st.rerun()
-            
-        if st.button("♻️ VERİLERİ GÜNCELLE"):
-            st.rerun()
-            
-        if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
-
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
-    
     target_date = st.date_input("Analiz Tarihi:", datetime.now())
+    
     if st.button("🚀 ANALİZİ BAŞLAT", use_container_width=True):
         with st.spinner("Gerçek Zamanlı Veriler İşleniyor..."):
             fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
-            
-            if not fikstur:
-                st.info("Seçilen tarih için aktif bir maç verisi bulunamadı.")
+            if not fikstur: st.info("Gösterilecek aktif maç bulunamadı.")
             
             for m in fikstur:
                 status = m['fixture']['status']['short']
-                # TAKIM İSİMLERİ SADECE API'DEN GELİYOR (SABİT İSİM YOK)
-                h_name = m['teams']['home']['name']
-                a_name = m['teams']['away']['name']
+                h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
                 league = m['league']['name']
                 tr_time = (datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00')) + timedelta(hours=3)).strftime('%H:%M')
                 
-                # CANLI MAÇLAR BLOĞU
                 if status in ["1H", "HT", "2H", "ET", "P"]:
                     res_live = canli_muhakeme(m['fixture']['id'], h_name, a_name)
                     if res_live:
@@ -170,7 +167,6 @@ else:
                             <p style='text-align:center; font-weight:bold; color:#58a6ff;'>Y.Z. ÖNERİSİ: {tav}</p>
                         </div>""", unsafe_allow_html=True)
 
-                # MAÇ ÖNCESİ ANALİZ BLOĞU
                 elif status in ["NS", "TBD"]:
                     res_h2h = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
                     if res_h2h:
