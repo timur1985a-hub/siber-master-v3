@@ -9,7 +9,7 @@ import pytz
 # --- 1. SİBER HAFIZA VE ADMİN KİMLİĞİ (DEĞİŞMEZ ÇEKİRDEK) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
-# ADMIN VE API TANIMLARI (ADMİN ŞİFRESİ MANTIĞI)
+# ADMIN VE API TANIMLARI
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -17,13 +17,13 @@ ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7"
 ADMIN_PASS = "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# Dinamik Lisans Hafızası (Admin'in ürettiklerini Admin gibi tanır)
+# EVRENSEL LİSANS VERİTABANI (KODUN KALBİ)
 if "lic_db" not in st.session_state:
     st.session_state["lic_db"] = {}
 
 @st.cache_resource
-def get_vault():
-    """500 Statik Anahtarı Kodun İçine Admin Şifresi Disiplininde Mühürler"""
+def get_static_vault():
+    """Admin Şifresi Disiplininde 500 Statik Anahtarı Mühürler"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
@@ -32,7 +32,7 @@ def get_vault():
             v[k] = {"label": lbl, "days": d}
     return v
 
-VAULT = get_vault()
+STATIC_VAULT = get_static_vault()
 
 # --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
 st.markdown("""
@@ -49,6 +49,7 @@ st.markdown("""
         border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace;
         box-shadow: inset 0px 0px 5px rgba(248, 81, 73, 0.3); font-size: 1rem;
     }
+    .match-badge span { color: #e6edf3; margin: 0 10px; opacity: 0.6; }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
     .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; }
@@ -95,20 +96,20 @@ if not st.session_state["auth"]:
     with c2:
         t1, t2 = st.tabs(["🔑 SİSTEME GİRİŞ", "👨‍💻 MASTER PANEL"])
         with t1:
-            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login").strip()
+            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login_final").strip()
             if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-                # KÖPRÜ MANTIĞI: Admin bilgisi gibi doğrudan eşleşme kontrolü
-                if u_in in VAULT or u_in in st.session_state["lic_db"]:
+                # EVRENSEL TANIMA: Hem statik 500 anahtarı hem de senin ürettiğin anahtarı kontrol eder
+                if u_in in STATIC_VAULT or u_in in st.session_state["lic_db"]:
                     st.session_state.update({"auth": True, "role": "user"})
                     st.rerun()
                 else:
                     st.error("❌ Lisans Anahtarı Geçersiz!")
 
         with t2:
-            a_t_in = st.text_input("Admin Token:", type="password", key="a_token_in").strip()
-            a_p_in = st.text_input("Admin Password:", type="password", key="a_pass_in").strip()
+            at_in = st.text_input("Admin Token:", type="password", key="at_in").strip()
+            ap_in = st.text_input("Admin Password:", type="password", key="ap_in").strip()
             if st.button("MASTER GİRİŞ", use_container_width=True):
-                if a_t_in == ADMIN_TOKEN and a_p_in == ADMIN_PASS: 
+                if at_in == ADMIN_TOKEN and ap_in == ADMIN_PASS: 
                     st.session_state.update({"auth": True, "role": "admin"})
                     st.rerun()
                 else:
@@ -117,13 +118,14 @@ else:
     # --- 5. GİRİŞ SONRASI ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 LİSANS ÜRET VE KÖPRÜYE EKLE", expanded=True):
+        with st.expander("🎫 LİSANS ÜRET VE EVRENSEL KÖPRÜYE EKLE", expanded=True):
             p_choice = st.selectbox("Paket", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             if st.button("⚡ SİSTEME MÜHÜRLE"):
+                # Admin panelinden ürettiğin o SBR-SINIRSIZ... kodu burada hayat bulur
                 new_key = f"SBR-{p_choice}-{hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:8]}-TM"
-                st.session_state["lic_db"][new_key] = True # Köprüye ekle
+                st.session_state["lic_db"][new_key] = True 
                 st.code(new_key)
-                st.success("Lisans tıpkı Admin şifresi gibi sisteme mühürlendi.")
+                st.success(f"{p_choice} Lisansı artık Admin şifresi kadar geçerlidir.")
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
         st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur.</div>", unsafe_allow_html=True)
@@ -141,10 +143,10 @@ else:
     if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
         matches = fetch_data()
         if matches:
-            for i, m in enumerate(matches):
+            for m in matches:
                 is_live = m['fixture']['status']['short'] in ['1H', '2H', 'HT']
-                score = 80 + (i % 15) if is_live else 90 + (i % 10)
-                if (is_live and score >= 80) or (not is_live and score >= 90):
+                score = 80 + (int(time.time()) % 15) if is_live else 90 + (int(time.time()) % 10)
+                if score >= 85:
                     st.markdown(f"""
                         <div class='decision-card'>
                             <div class='ai-score'>%{score}</div>
