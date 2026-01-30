@@ -5,41 +5,40 @@ from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. KRİTİK GOOGLE ANALYTICS & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
+# --- 1. MASTER SEO & DOUBLE ANALYTICS (PRENSİP: GİZLİ ENJEKSİYON) ---
 st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250 | %90+ Başarı",
+    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
     page_icon="🎯",
     layout="wide"
 )
 
-# Yeni Analytics G-F8MH7PT9R7 - Botlar için en hızlı tetikleme
+# Çift Etiket Entegrasyonu (G-9KHTP6QZY8 & GT-MJSXTWTN)
 st.markdown(f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-F8MH7PT9R7"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-MJSXTWTN"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
       gtag('js', new Date());
-      gtag('config', 'G-9KHTP6QZY8', {{ 'send_page_view': true }});
-      gtag('config', 'G-F8MH7PT9R7', {{ 'send_page_view': true }});
+      gtag('config', 'G-9KHTP6QZY8');
+      gtag('config', 'GT-MJSXTWTN');
     </script>
     
     <style>
-        .siber-seo-article {{ display: none !important; }}
+        .siber-ghost-layer {{ 
+            position: absolute; top: -1000px; left: -1000px; 
+            height: 0; width: 0; overflow: hidden;
+        }}
     </style>
-    <div class="siber-seo-article">
-        <h1>Yapay Zeka Maç Tahmin ve Analiz Motoru</h1>
-        <p>Siber Radar V250, en gelişmiş yapay zeka algoritmalarını kullanarak dünya liglerindeki maçları analiz eder. 
-        Yüksek başarı oranlı iddaa tahminleri, canlı baskı analizleri ve profesyonel istatistikler sunar.</p>
+    <div class="siber-ghost-layer">
+        <p>Verification IDs: G-9KHTP6QZY8, GT-MJSXTWTN</p>
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
-        <meta name="robots" content="index, follow" />
     </div>
 """, unsafe_allow_html=True)
 
 # --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
-BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
@@ -78,7 +77,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (KURAL: DOKUNULMAZ) ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -109,4 +108,4 @@ if not st.session_state["auth"]:
 else:
     # --- 5. ANA PANEL ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 SEO ve Analytics Zırhı Aktif. Bot Taraması Bekleniyor.")
+    st.info("🎯 Çift Katmanlı Google Etiketleri (G-9KHTP6QZY8 & GT-MJSXTWTN) Gizli Modda Aktif.")
