@@ -23,6 +23,7 @@ def get_vault():
     cfg = [("1-AYLIK", 30), ("3-AYLIK", 90), ("6-AYLIK", 180), ("12-AYLIK", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 201):
+            # Lisans algoritması orijinal haliyle korunuyor
             k = f"SBR-{lbl[:3]}-{hashlib.md5(f'V34_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
             v[k] = {"label": lbl, "days": d}
     return v
@@ -33,7 +34,6 @@ st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
-    
     .marquee-container {
         background: rgba(13, 17, 23, 0.9); border-top: 2px solid #f85149; border-bottom: 2px solid #f85149;
         box-shadow: 0px 0px 15px rgba(248, 81, 73, 0.2); padding: 15px 0; margin-bottom: 25px; overflow: hidden; white-space: nowrap;
@@ -46,17 +46,14 @@ st.markdown("""
     }
     .match-badge span { color: #e6edf3; margin: 0 10px; opacity: 0.6; }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-    
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
     .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; }
     .internal-welcome { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 800; }
     .owner-info { text-align: center; color: #58a6ff; font-size: 1rem; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-    
     .stButton>button { background-color: #0d1117 !important; border: 1px solid #2ea043 !important; color: #2ea043 !important; font-weight: bold !important; border-radius: 6px !important; }
     .pkg-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
     .pkg-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; width: calc(18% - 10px); min-width: 120px; text-align: center; border-top: 3px solid #2ea043; }
     .wa-small { display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto; background: #238636; color: white !important; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; text-decoration: none; }
-    
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .live-decision { border-left-color: #f85149; background: linear-gradient(90deg, #1c1112 0%, #0d1117 100%); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
@@ -65,7 +62,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. YARDIMCI FONKSİYONLAR ---
+# --- 3. FONKSİYONLAR ---
 def to_tsi(utc_str):
     try:
         utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -80,7 +77,7 @@ def fetch_data():
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
 
-# --- 4. GİRİŞ ÖNCESİ (ASIL PAZARLAMA PANELİ) ---
+# --- 4. GİRİŞ ÖNCESİ (ORİJİNAL PANEL) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
@@ -94,33 +91,31 @@ if not st.session_state["auth"]:
 
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
+        # LİSANS VE MASTER PANEL SEKMELERİ (ORİJİNAL)
         t1, t2 = st.tabs(["🔑 SİSTEME GİRİŞ", "👨‍💻 MASTER PANEL"])
         with t1:
-            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login")
-            if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-                # TELEFON GİRİŞ FIX: Boşlukları temizle ve tam eşleşme kontrol et
+            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login_final")
+            if st.button("YAPAY ZEKAYI AKTİF ET", key="btn_u"):
                 entry = u_in.strip()
-                if entry in VAULT: 
+                if entry in VAULT:
                     st.session_state.update({"auth": True, "role": "user"})
                     st.rerun()
                 else:
-                    st.error("Lisans Geçersiz!")
-
+                    st.error("❌ Lisans Geçersiz!")
         with t2:
-            a_t = st.text_input("Admin Token:", type="password", key="a_token")
-            a_p = st.text_input("Admin Password:", type="password", key="a_pass")
-            if st.button("MASTER GİRİŞ", use_container_width=True):
-                # MASTER GİRİŞ FIX: Strip eklendi
-                if a_t.strip() == ADMIN_TOKEN and a_p.strip() == ADMIN_PASS: 
+            a_t = st.text_input("Admin Token:", type="password", key="a_token_final")
+            a_p = st.text_input("Admin Password:", type="password", key="a_pass_final")
+            if st.button("MASTER GİRİŞ", key="btn_a"):
+                if a_t.strip() == ADMIN_TOKEN and a_p.strip() == ADMIN_PASS:
                     st.session_state.update({"auth": True, "role": "admin"})
                     st.rerun()
                 else:
-                    st.error("Admin Bilgileri Hatalı!")
+                    st.error("❌ Yetki Reddedildi!")
 
 else:
     # --- 5. GİRİŞ SONRASI (İÇ PANEL) ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>Bu yazılımın sahibi Timur'dur. (Yetki: {st.session_state['role'].upper()})</div>", unsafe_allow_html=True)
+    st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur.</div>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     with col_a:
@@ -135,21 +130,18 @@ else:
     if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
         res_area = st.container()
         matches = fetch_data()
-        
         if matches:
             count = 0
             for i, m in enumerate(matches):
                 is_live = m['fixture']['status']['short'] in ['1H', '2H', 'HT']
                 score = 80 + (i % 15) if is_live else 90 + (i % 10)
-                
                 if (is_live and score >= 80) or (not is_live and score >= 90):
                     count += 1
                     with res_area:
                         card_style = "live-decision" if is_live else ""
-                        score_style = "live" if is_live else ""
                         st.markdown(f"""
                             <div class='decision-card {card_style}'>
-                                <div class='ai-score {score_style}'>%{score}</div>
+                                <div class='ai-score'>%{score}</div>
                                 <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ TSİ: {to_tsi(m['fixture']['date'])}</span><br>
                                 <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
                                 <hr style='border:0.1px solid #30363d; margin:10px 0;'>
@@ -157,6 +149,5 @@ else:
                             </div>
                         """, unsafe_allow_html=True)
             st.success(f"✅ Tarama Tamamlandı. {count} sinyal listelendi.")
-        else: st.warning("Veri akışı şu an kapalı.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
