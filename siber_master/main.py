@@ -5,29 +5,35 @@ from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. GOOGLE ANALYTICS & SAHİPLİK DOĞRULAMA (KURAL: GİZLİ KATMAN) ---
+# --- 1. MASTER SEO & GOOGLE ANALYTICS (KURAL: GİZLİ VE PROFESYONEL) ---
 st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | %90+ Güvenli Analiz | Siber Radar",
+    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250 | %90+ Başarı",
     page_icon="🎯",
     layout="wide"
 )
 
-# Bulduğun G-MQ17PH5RJV kodunu sisteme tam entegre ettim.
+# Yeni Analytics Kodun: G-9KHTP6QZY8
 st.markdown(f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-MQ17PH5RJV"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){{dataLayer.push(arguments);}}
       gtag('js', new Date());
-      gtag('config', 'G-MQ17PH5RJV');
+      gtag('config', 'G-9KHTP6QZY8');
     </script>
     
     <style>
-        .siber-hidden-seo {{ display: none !important; visibility: hidden; }}
+        .siber-seo-vault {{ display: none !important; }}
     </style>
-    <div class="siber-hidden-seo">
+    <div class="siber-seo-vault">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
+        
+        <meta name="robots" content="index, follow" />
+        <meta name="description" content="Siber Radar V250: Yapay zeka destekli iddaa tahmin motoru. Canlı maç analizleri ve %90+ güvenli banko kuponlar.">
+        <meta name="keywords" content="maç tahminleri, yapay zeka iddaa, canlı analiz, banko kuponlar, siber radar">
+        <meta name="author" content="Siber Radar Team">
+        <link rel="canonical" href="https://yapayzekamactahmin.streamlit.app/" />
     </div>
 """, unsafe_allow_html=True)
 
@@ -104,4 +110,4 @@ if not st.session_state["auth"]:
 else:
     # --- 5. ANA PANEL ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 Google Analytics ve Sahiplik Doğrulama Sistemi Tam Kapasite Devrede.")
+    st.info("🚀 Siber Radar SEO & Analytics Motoru %100 Verimlilikle Çalışıyor.")
