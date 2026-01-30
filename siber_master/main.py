@@ -4,9 +4,12 @@ import streamlit as st
 import hashlib
 import time
 
-# ================= 1. AYARLAR VE API MÜHÜRLERİ =================
+# ================= 1. KUTSAL AYARLAR VE YENİ API MÜHÜRÜ =================
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 BASE_URL = "https://v3.football.api-sports.io"
+
+# Sahip Timur'un Yeni Güncel Shopier API Token'ı
+SHOPIER_JWT_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiIzMDY5YWY5OTM4YzllOTVhYzNhZjk2YzNkNzE3ZTM5YSIsImp0aSI6ImRmYjVkMDQ0ZWE0MDBhZWI3ZWFlNTA5NmY2ZDk4M2ViYzgyYjZkOTBkYjM5OTk5NDQ2MGY4ZTMwMWNmNzA4NjNlNzg2ZGVlMmQ3YWE1MGFhZjUyYWM2ZmIxYmY3ZmFjNmRjODQ2NWY5OTJjNjc0MDFhZTRkYmJjN2MzNTZhYjUyOTg5ZjRjZjk1YmQxMjhjOGE5ZmQ2YWRlZTNiYzkzNTAiLCJpYXQiOjE3Njk3MzU1NjEsIm5iZiI6MTc2OTczNTU2MSwiZXhwIjoxOTI3NTIwMzIxLCJzdWIiOiIyNTAzMDYzIiwic2NvcGVzIjpbIm9yZGVyczpyZWFkIiwib3JkZXJzOndyaXRlIiwicHJvZHVjdHM6cmVhZCIsInByb2R1Y3RzOndyaXRlIiwic2hpcHBpbmdzOnJlYWQiLCJzaGlwcGluZ3M6d3JpdGUiLCJkaXNjb3VudHM6cmVhZCIsImRpc2NvdW50czp3cml0ZSIsInBheW91dHM6cmVhZCIsInJlZnVuZHM6cmVhZCIsInJlZnVuZHM6d3JpdGUiLCJzaG9wOnJlYWQiLCJzaG9wOndyaXRlIl19.sajWbv4KIcYjrHLLHRsVdvXVLhZGEOLjqadgyVYoYIjS0-uZZxnXGe9ZvToLil6FOVz0hJsv0yrkeoeASkLLpgx_2GPnFIpn3wDOitUBi_WkvdU9hTkbcwtDjW_tZ9QFUZP24rfPL5UXZrZeTaO4-H-Y_Jlky_TAKmJrMCIabo1WNwazBGv0vnOwo0xCf1d2mS7DI3Cm3ky_qcVCbN8PR2f9WTYHUqlxN0hE7GQSvngKU4tE1M3xwhFq44Cr9-kkJ6O1stHKK8jGBx-d10YVD_jGi6BsZg3uFcAQd_GwCBJ4pAy7kOyKfkjzJrH7E_IwvQ6-UIsOts0nIKa8L9Asnw"
 
 @st.cache_resource
 def get_final_vault():
@@ -21,56 +24,43 @@ def get_final_vault():
 
 VAULT = get_final_vault()
 
-# ================= 2. TASARIM DÜZELTME (FIXED UI) =================
+# ================= 2. TASARIM VE GÖRSEL MİMARİ =================
 def apply_fixed_ui():
     st.markdown("""
         <style>
         #MainMenu, header, footer, .stDeployButton {visibility: hidden; display:none;}
         [data-testid="stHeader"] {background: rgba(0,0,0,0); height: 0px;}
         .stApp { background-color: #020617; color: #f1f5f9; }
-        
-        /* Paket Kartları */
         .pkg-card {
             background: rgba(15, 23, 42, 0.9);
             border: 1px solid rgba(56, 189, 248, 0.3);
             border-radius: 15px;
             padding: 20px;
             text-align: center;
-            margin-bottom: 15px;
-            transition: 0.3s;
+            margin-bottom: 10px;
         }
-        .pkg-card:hover { border-color: #38bdf8; background: rgba(15, 23, 42, 1); }
-        .price-tag { font-size: 1.5rem; color: #4ade80; font-weight: bold; margin: 10px 0; }
-        
-        .success-box { 
-            background: rgba(74, 222, 128, 0.1); 
-            border: 2px dashed #4ade80; 
-            padding: 20px; 
-            border-radius: 12px; 
-            text-align: center; 
-            color: #4ade80; 
-            font-weight: bold;
-        }
+        .price-tag { font-size: 1.4rem; color: #4ade80; font-weight: bold; margin: 10px 0; }
+        .success-box { background: rgba(74, 222, 128, 0.1); border: 2px dashed #4ade80; padding: 20px; border-radius: 12px; text-align: center; color: #4ade80; }
+        div.stButton > button { width: 100%; border-radius: 10px; font-weight: bold; }
         </style>
     """, unsafe_allow_html=True)
 
-st.set_page_config(page_title="Siber Master Terminal", layout="wide")
+st.set_page_config(page_title="Siber Master V14", layout="wide")
 apply_fixed_ui()
 
-# ================= 3. ÖDEME FONKSİYONU =================
-def redirectToShopier(pkg_name):
-    # BURASI ÇOK ÖNEMLİ: Kendi Shopier dükkan linklerinizi buraya ekleyin
-    links = {
-        "1-AY": "https://www.shopier.com/SizinDukkan_1Ay",
-        "3-AY": "https://www.shopier.com/SizinDukkan_3Ay",
-        "6-AY": "https://www.shopier.com/SizinDukkan_6Ay",
-        "SINIRSIZ": "https://www.shopier.com/SizinDukkan_Sinirsiz"
-    }
-    target_link = links.get(pkg_name, "https://www.shopier.com/SizinDukkan")
+# ================= 3. GARANTİ ÖDEME KÖPRÜSÜ =================
+def handle_purchase(pkg_name):
+    """
+    Shopier ödeme linkini açar ve eş zamanlı olarak VAULT'tan anahtarı hazırlar.
+    """
+    # ÖNEMLİ: Shopier dükkan adını buraya yaz (Örn: shopier.com/SiberMaster)
+    shopier_base_url = "https://www.shopier.com/SizinDukkanAdiniz" 
     
-    # JavaScript ile yeni sekmede ödeme sayfasını açar
-    js = f"window.open('{target_link}')"
+    js = f"window.open('{shopier_base_url}', '_blank').focus();"
     st.components.v1.html(f"<script>{js}</script>", height=0)
+    
+    # Ödeme yapılıyorken kullanıcıya anahtarını göster (Güven artırır)
+    st.session_state.purchased_key = next(k for k,v in VAULT.items() if v['label'] == pkg_name)
 
 # ================= 4. GİRİŞ VE SATIŞ EKRANI =================
 if "auth" not in st.session_state:
@@ -78,59 +68,39 @@ if "auth" not in st.session_state:
 
 if not st.session_state["auth"]:
     st.markdown("<h1 style='text-align:center; color:#38bdf8;'>🛡️ SİBER MASTER TERMİNAL</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center;'>Erişim için bir paket seçin ve ödemeyi tamamlayın.</p>", unsafe_allow_html=True)
-
-    # PAKET MATRİSİ
-    col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.markdown("<div class='pkg-card'><h3>1 AY</h3><div class='price-tag'>700 TL</div></div>", unsafe_allow_html=True)
-        if st.button("SATIN AL", key="b1"):
-            redirectToShopier("1-AY")
-            st.session_state.purchased_key = next(k for k,v in VAULT.items() if v['label'] == "1-AY")
+    cols = st.columns(4)
+    packages = [("1-AY", "700 TL"), ("3-AY", "2.000 TL"), ("6-AY", "5.000 TL"), ("SINIRSIZ", "15.000 TL")]
 
-    with col2:
-        st.markdown("<div class='pkg-card'><h3>3 AY</h3><div class='price-tag'>2.000 TL</div></div>", unsafe_allow_html=True)
-        if st.button("SATIN AL", key="b2"):
-            redirectToShopier("3-AY")
-            st.session_state.purchased_key = next(k for k,v in VAULT.items() if v['label'] == "3-AY")
+    for i, (name, price) in enumerate(packages):
+        with cols[i]:
+            st.markdown(f"<div class='pkg-card'><h3>{name}</h3><div class='price-tag'>{price}</div></div>", unsafe_allow_html=True)
+            if st.button(f"HEMEN AL", key=f"btn_{name}"):
+                handle_purchase(name)
 
-    with col3:
-        st.markdown("<div class='pkg-card'><h3>6 AY</h3><div class='price-tag'>5.000 TL</div></div>", unsafe_allow_html=True)
-        if st.button("SATIN AL", key="b3"):
-            redirectToShopier("6-AY")
-            st.session_state.purchased_key = next(k for k,v in VAULT.items() if v['label'] == "6-AY")
-
-    with col4:
-        st.markdown("<div class='pkg-card'><h3>KRAL</h3><div class='price-tag'>15.000 TL</div></div>", unsafe_allow_html=True)
-        if st.button("SATIN AL", key="b4"):
-            redirectToShopier("SINIRSIZ")
-            st.session_state.purchased_key = next(k for k,v in VAULT.items() if v['label'] == "SINIRSIZ")
-
-    # BAŞARILI ÖDEME BİLDİRİMİ
     if st.session_state.purchased_key:
         st.markdown(f"""
             <div class='success-box'>
-                ✅ ÖDEME SAYFASI AÇILDI!<br>
-                Ödeme sonrası lisansınız: <span style='color:white; font-size:1.4rem;'>{st.session_state.purchased_key}</span><br>
-                <small>Ödemenizi tamamladıktan sonra kodu kopyalayıp aşağıya girin.</small>
+                ✅ ÖDEME EKRANI AÇILDI!<br>
+                <b>Ödeme sonrası lisansınız:</b> <br>
+                <span style='color:white; font-size:1.5rem;'>{st.session_state.purchased_key}</span><br>
+                <small>Lütfen ödemeyi tamamlayıp anahtarı aşağıya girin.</small>
             </div>
         """, unsafe_allow_html=True)
 
     st.divider()
-    
-    # LİSANS AKTİVASYON
-    u_lic = st.text_input("Lisans Anahtarını Girin:", value=st.session_state.purchased_key if st.session_state.purchased_key else "")
+    u_lic = st.text_input("Lisans Anahtarını Aktif Et:", value=st.session_state.purchased_key if st.session_state.purchased_key else "")
     if st.button("🚀 SİSTEME GİRİŞ YAP"):
         if u_lic in VAULT:
             st.session_state.update({"auth": True, "key": u_lic})
             st.rerun()
         else:
-            st.error("Hatalı anahtar.")
+            st.error("Anahtar doğrulanamadı.")
 
-# ================= 5. ANALİZ PANELİ (GİRİŞTEN SONRA) =================
+# ================= 5. ANALİZ MERKEZİ (GİRİŞ SONRASI) =================
 else:
-    st.sidebar.success(f"Oturum: {st.session_state.key}")
-    if st.sidebar.button("ÇIKIŞ"): st.session_state.clear(); st.rerun()
+    st.sidebar.success(f"Bağlantı Güvenli: {st.session_state.key}")
+    if st.sidebar.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
+    
     st.title("🛡️ Canlı Siber Analiz Merkezi")
-    st.info("Sinyaller taranıyor... Verileri güncellemek için yan menüyü kullanın.")
+    st.info("Siber Master V14000 aktif. Tüm veriler mühürlü hattan akıyor.")
