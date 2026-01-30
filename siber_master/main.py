@@ -26,27 +26,24 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM (RENK UYUMU AKTİF) ---
+# --- 2. DEĞİŞMEZ TASARIM (MOBİL UYUMLU CSS) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     
-    /* Global Buton Uyumu */
+    /* Buton Tasarımı ve Yan Yana Hizalama */
     .stButton>button {
         background-color: #0d1117 !important;
-        border: 2px solid #2ea043 !important;
+        border: 1px solid #2ea043 !important;
         color: #2ea043 !important;
         font-weight: bold !important;
-        border-radius: 8px !important;
-        transition: 0.3s;
+        font-size: 0.75rem !important; /* Mobilde taşmaması için küçültüldü */
+        border-radius: 6px !important;
+        padding: 5px 2px !important;
+        height: 35px !important;
     }
-    .stButton>button:hover {
-        background-color: #2ea043 !important;
-        color: white !important;
-        box-shadow: 0 0 15px rgba(46, 160, 67, 0.4);
-    }
-
+    
     .hype-title { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 900; margin: 10px 0; }
     .pkg-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
     .pkg-box { 
@@ -59,32 +56,12 @@ st.markdown("""
         background: #238636; color: white !important; text-align: center; padding: 10px;
         border-radius: 8px; font-weight: bold; font-size: 0.85rem; text-decoration: none;
     }
-    .card { background: #0d1117; border: 1px solid #30363d; border-radius: 12px; padding: 20px; margin-bottom: 20px; border-left: 6px solid #238636; }
-    
-    /* Yan Menü (Sidebar) Uyumu */
-    [data-testid="stSidebar"] { background-color: #0d1117 !important; border-right: 1px solid #30363d; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. GLOBAL YAN PANEL (HER AN ERİŞİLEBİLİR) ---
-with st.sidebar:
-    st.markdown("<h3 style='color:#2ea043; text-align:center;'>⚙️ KONTROL</h3>", unsafe_allow_html=True)
-    if st.button("🧹 BELLEĞİ SİL", use_container_width=True, key="side_clear"):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.rerun()
-    if st.button("♻️ GÜNCELLE", use_container_width=True, key="side_refresh"):
-        st.rerun()
-    st.divider()
-    if st.session_state.get("auth"):
-        st.success(f"YETKİ: {st.session_state['role'].upper()}")
-        if st.button("🔴 ÇIKIŞ"):
-            st.session_state.clear()
-            st.rerun()
-
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ PANELİ (SABİT ŞABLON) ---
+# --- 3. GİRİŞ PANELİ (SABİT ŞABLON) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -96,8 +73,22 @@ if not st.session_state["auth"]:
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🟢 LİSANS AL / WHATSAPP</a>", unsafe_allow_html=True)
 
+    # BUTONLARI BURAYA ALDIM - TELEFONDA ŞIK DURACAK ŞEKİLDE
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
+        # Mini bir sütun daha açarak butonları yan yana yapıştırıyoruz
+        b_col1, b_col2 = st.columns(2)
+        with b_col1:
+            if st.button("🧹 TEMİZLE", use_container_width=True, key="clean_m"):
+                st.cache_data.clear()
+                st.cache_resource.clear()
+                st.rerun()
+        with b_col2:
+            if st.button("♻️ GÜNCELLE", use_container_width=True, key="upd_m"):
+                st.rerun()
+        
+        st.write("") # Küçük bir boşluk
+        
         t1, t2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 MASTER"])
         with t1:
             u_in = st.text_input("Anahtar:", type="password", key="user_login")
@@ -109,10 +100,9 @@ if not st.session_state["auth"]:
             a_p = st.text_input("Şifre:", type="password", key="admin_pass")
             if st.button("ADMİN GİRİŞİ", use_container_width=True):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
-    
-    # Ana Ekran Kurtarma Butonları (Renk Uyumlu)
-    st.markdown("<br><p style='text-align:center; color:#58a6ff; font-size:0.8rem;'>Hata durumunda aşağıdaki butonları kullanın.</p>", unsafe_allow_html=True)
-    col_x, col_y = st.columns(2)
-    with col_x:
-        if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True, key="main_clear"):
-            st.cache_data
+else:
+    # --- 4. ANALİZ MERKEZİ ---
+    st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
+    if st.button("🔴 ÇIKIŞ"):
+        st.session_state.clear()
+        st.rerun()
