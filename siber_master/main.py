@@ -1,17 +1,18 @@
 import streamlit as st
 import requests
-from datetime import datetime, timedelta
 import hashlib
+from datetime import datetime, timedelta
 
-# --- 0. VERSİYON KONTROL ---
-VERSION = "2.5.3-MOBILE-FIX" 
-
+# --- 0. GOOGLE DOĞRULAMA (DOSYA İMZASI) ---
 st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
+st.markdown("""
+    <div style="display:none;">
+        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
+        <p>google-site-verification: google8ffdf1f7bdb7adf3.html</p>
+    </div>
+""", unsafe_allow_html=True)
 
-# Google Doğrulama (Görünmez)
-st.markdown("""<div style="display:none;"><meta name="google-site-verification" content="8ffdf1f7bdb7adf3" /></div>""", unsafe_allow_html=True)
-
-# --- 1. SİBER HAFIZA VE LİSANS ---
+# --- 1. SİBER HAFIZA VE API (DOKUNULMAZ) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -31,7 +32,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. TASARIM ---
+# --- 2. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -42,6 +43,7 @@ st.markdown("""
         background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; 
         width: calc(18% - 10px); min-width: 120px; text-align: center; border-top: 3px solid #2ea043;
     }
+    .pkg-box b { color: #58a6ff; display: block; font-size: 0.9rem; }
     .wa-small {
         display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto;
         background: #238636; color: white !important; text-align: center; padding: 10px;
@@ -51,7 +53,22 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. GİRİŞ VE ANA KONTROL PANELİ (ORTA BÖLÜM) ---
+# --- 3. GLOBAL YAN PANEL (BUTONLAR BURADA SABİT) ---
+with st.sidebar:
+    st.markdown("### 🛡️ SİSTEM YÖNETİMİ")
+    if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.rerun()
+    if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
+        st.rerun()
+    st.divider()
+    if st.session_state.get("auth"):
+        if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+            st.session_state.clear()
+            st.rerun()
+
+# --- 4. GİRİŞ PANELİ ---
 if not st.session_state.get("auth"):
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -63,28 +80,14 @@ if not st.session_state.get("auth"):
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🟢 LİSANS AL / WHATSAPP</a>", unsafe_allow_html=True)
 
-    # BUTONLARI BURAYA (MOBİLDE HERKESİN GÖRECEĞİ YERE) ALDIM
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("🧹 BELLEĞİ SİL", use_container_width=True):
-            st.cache_data.clear()
-            st.cache_resource.clear()
-            st.rerun()
-    with col_b:
-        if st.button("♻️ GÜNCELLE", use_container_width=True):
-            st.rerun()
-
-    st.divider()
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        u_in = st.text_input("Anahtar:", type="password")
+        u_in = st.text_input("Anahtar:", type="password", key="log_in")
         if st.button("SİSTEMİ AÇ", use_container_width=True):
             if u_in in VAULT or u_in == ADMIN_PASS:
                 st.session_state["auth"] = True
                 st.rerun()
 else:
-    # Uygulama İçeriği (Giriş Yapılınca Burası Görünür)
+    # --- 5. ANALİZ MERKEZİ ---
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
-    if st.button("🔴 ÇIKIŞ YAP"):
-        st.session_state.clear()
-        st.rerun()
+    st.info("Sistem hazır. Sol menüden güncellemeleri yönetebilirsiniz.")
