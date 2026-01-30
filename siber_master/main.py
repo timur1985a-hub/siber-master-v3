@@ -27,21 +27,26 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM VE PAZARLAMA CSS ---
+# --- 2. DEĞİŞMEZ TASARIM VE KAYAN YAZI CSS (MİLİMETRİK) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     
-    /* Dış Alan: İştahlandırıcı Pazarlama Yazısı */
-    .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; text-transform: uppercase; }
-    .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 25px; animation: pulse 2s infinite; }
+    .marquee-container {
+        background: #0d1117; border: 1px solid #30363d; color: #2ea043;
+        padding: 10px 0; margin-bottom: 20px; overflow: hidden; white-space: nowrap; border-radius: 8px;
+    }
+    .marquee-text {
+        display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite;
+        font-weight: bold; font-family: monospace;
+    }
+    @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     
-    /* İç Alan: Marka Değeri Yüksek Karşılama */
+    .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
+    .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; }
     .internal-welcome { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 800; }
     .owner-info { text-align: center; color: #58a6ff; font-size: 1rem; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     
     .stButton>button { background-color: #0d1117 !important; border: 1px solid #2ea043 !important; color: #2ea043 !important; font-weight: bold !important; border-radius: 6px !important; }
     .pkg-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
@@ -50,12 +55,24 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+@st.cache_data(ttl=3600)
+def get_marquee_data():
+    try:
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
+        res = r.json().get('response', [])
+        matches = [f" {m['teams']['home']['name']} vs {m['teams']['away']['name']} | " for m in res[:25]]
+        return "".join(matches) if matches else "📊 Yapay Zeka bugün için dev fırsatları analiz ediyor..."
+    except: return "⚠️ Global veri akışı taranıyor..."
+
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
 
-# --- 3. GİRİŞ ÖNCESİ (PAZARLAMA VE LİSANS ODAKLI) ---
+# --- 3. GİRİŞ ÖNCESİ (MİLİMETRİK SABİT PAZARLAMA PANELİ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ DÜNYANIN EN GÜÇLÜ YAPAY ZEKASI %90+ BAŞARIYLA SENİ BEKLİYOR!</div>", unsafe_allow_html=True)
+    
+    m_content = get_marquee_data()
+    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>🚀 BUGÜNÜN RADARINDAKİ MAÇLAR: {m_content}</div></div>", unsafe_allow_html=True)
     
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
@@ -64,6 +81,7 @@ if not st.session_state["auth"]:
         <div class='pkg-box'><small>12 AYLIK</small><b>9.000 TL</b></div>
         <div class='pkg-box'><small>SINIRSIZ</small><b>10.000 TL</b></div>
     </div>""", unsafe_allow_html=True)
+    
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -80,22 +98,21 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 
 else:
-    # --- 4. GİRİŞ SONRASI (PROFESYONEL MARKA KARŞILAMASI) ---
+    # --- 4. GİRİŞ SONRASI (PROFESYONEL İÇ PANEL VE YÖNETİM) ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur. Yazılım hakkındaki görüş ve önerilerinizi lütfen bize bildirin.</div>", unsafe_allow_html=True)
     
-    # Kural: Butonlar içeride
+    # EK KURAL: Güncelle ve Temizle butonları sadece burada mevcuttur.
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
-            st.cache_data.clear(); st.cache_resource.clear(); st.rerun()
+            st.cache_data.clear(); st.cache_resource.clear(); st.success("Bellek boşaltıldı."); st.rerun()
     with col_b:
         if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
             st.cache_data.clear(); st.rerun()
 
     st.divider()
-
     if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
-        st.info("Yapay Zeka analizi başlıyor...")
-
+        st.info("AI Stratejik Taraması aktif hale getirildi.")
+    
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
