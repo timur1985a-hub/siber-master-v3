@@ -27,19 +27,21 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM VE KAYAN YAZI CSS (MİLİMETRİK) ---
+# --- 2. DEĞİŞMEZ TASARIM VE GÜNCELLENMİŞ KIRMIZI KAYAN YAZI CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     
+    /* Kayan Yazı: KIRMIZI ve YAVAŞ AKIŞ (90s) */
     .marquee-container {
-        background: #0d1117; border: 1px solid #30363d; color: #2ea043;
-        padding: 10px 0; margin-bottom: 20px; overflow: hidden; white-space: nowrap; border-radius: 8px;
+        background: #0d1117; border: 1px solid #f85149; color: #f85149;
+        padding: 12px 0; margin-bottom: 20px; overflow: hidden; white-space: nowrap; border-radius: 8px;
     }
     .marquee-text {
-        display: inline-block; padding-left: 100%; animation: marquee 30s linear infinite;
-        font-weight: bold; font-family: monospace;
+        display: inline-block; padding-left: 100%; 
+        animation: marquee 90s linear infinite; /* 30s'den 90s'ye çıkarıldı: Daha Yavaş */
+        font-weight: 900; font-family: 'Courier New', monospace; font-size: 1.1rem;
     }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     
@@ -60,8 +62,8 @@ def get_marquee_data():
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
         res = r.json().get('response', [])
-        matches = [f" {m['teams']['home']['name']} vs {m['teams']['away']['name']} | " for m in res[:25]]
-        return "".join(matches) if matches else "📊 Yapay Zeka bugün için dev fırsatları analiz ediyor..."
+        matches = [f" 🔴 {m['teams']['home']['name']} vs {m['teams']['away']['name']} 🔴 " for m in res[:30]]
+        return " --- ".join(matches) if matches else "📊 Yapay Zeka bugün için dev fırsatları analiz ediyor..."
     except: return "⚠️ Global veri akışı taranıyor..."
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
@@ -72,7 +74,7 @@ if not st.session_state["auth"]:
     st.markdown("<div class='marketing-subtitle'>⚠️ DÜNYANIN EN GÜÇLÜ YAPAY ZEKASI %90+ BAŞARIYLA SENİ BEKLİYOR!</div>", unsafe_allow_html=True)
     
     m_content = get_marquee_data()
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>🚀 BUGÜNÜN RADARINDAKİ MAÇLAR: {m_content}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>🚀 ANALİZ EDİLEN MAÇLAR: {m_content}</div></div>", unsafe_allow_html=True)
     
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
@@ -98,11 +100,10 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 
 else:
-    # --- 4. GİRİŞ SONRASI (PROFESYONEL İÇ PANEL VE YÖNETİM) ---
+    # --- 4. GİRİŞ SONRASI (BUTONLAR İÇERİDE GİZLİ) ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur. Yazılım hakkındaki görüş ve önerilerinizi lütfen bize bildirin.</div>", unsafe_allow_html=True)
     
-    # EK KURAL: Güncelle ve Temizle butonları sadece burada mevcuttur.
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
