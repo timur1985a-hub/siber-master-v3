@@ -4,7 +4,17 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 
-# --- 1. SİBER HAFIZA VE LİSANS MOTORU (SABİT - DOKUNULMAZ) ---
+# --- 0. GOOGLE DOĞRULAMA (SABİT ÇAPA - GÖRÜNMEZ) ---
+st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
+st.markdown("""
+    <div style="display:none;">
+        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
+        <p>google-site-verification: google8ffdf1f7bdb7adf3.html</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# --- 1. SİBER HAFIZA VE LİSANS MOTORU (DOKUNULMAZ) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -25,7 +35,6 @@ def get_vault():
 VAULT = get_vault()
 
 # --- 2. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
-st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -48,7 +57,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 3. BİRLEŞİK ANALİZ MOTORU ---
+# --- 3. BİRLEŞİK ANALİZ VE KARAR MOTORU ---
 def siber_fetch(endpoint, params):
     try:
         r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
@@ -68,6 +77,7 @@ def h2h_muhakeme_90(id1, id2):
             else: s["x"] += 1
             if (hg + ag) > 2.5: s["u"] += 1
             if hg > 0 and ag > 0: s["kg"] += 1
+    if n == 0: return None
     res = {"MS 1": (s["h"]/n)*100, "MS X": (s["x"]/n)*100, "MS 2": (s["a"]/n)*100, "KG VAR": (s["kg"]/n)*100, "2.5 ÜST": (s["u"]/n)*100, "2.5 ALT": (1 - s["u"]/n)*100}
     basarili = {k: v for k, v in res.items() if v >= 90}
     return {"KARAR": max(basarili, key=basarili.get), "GUVEN": int(max(basarili.values()))} if basarili else None
@@ -90,7 +100,6 @@ def canli_muhakeme(fixture_id, h_name, a_name):
 # --- 4. GİRİŞ PANELİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
-    # [Paket Kutuları ve Giriş Şablonu - Değişmez]
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
         <div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div>
@@ -120,21 +129,19 @@ else:
         st.markdown(f"### 🛡️ YETKİ: {st.session_state['role'].upper()}")
         if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
 
-    st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
     
     target_date = st.date_input("Analiz Günü:", datetime.now())
-    if st.button("🚀 SİBER MUHAKEMEYİ BAŞLAT (GLOBAL + CANLI)"):
-        with st.spinner("Tüm Dünya Taranıyor..."):
-            # Hem Canlı Hem Bülten Verisini Aynı Anda Çek
+    if st.button("🚀 DÜNYAYI TARA VE KARAR VER (GLOBAL + CANLI)", use_container_width=True):
+        with st.spinner("Yapay Zeka Tüm Verileri İşliyor..."):
             fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
             
             for m in fikstur:
                 status = m['fixture']['status']['short']
                 h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
-                utc_time = datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00'))
-                tr_time = (utc_time + timedelta(hours=3)).strftime('%H:%M')
+                tr_time = (datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00')) + timedelta(hours=3)).strftime('%H:%M')
                 
-                # --- CANLI MAÇ ANALİZİ ---
+                # --- CANLI ANALİZ ---
                 if status in ["1H", "HT", "2H", "ET", "P"]:
                     hakimiyet, tavsiye = canli_muhakeme(m['fixture']['id'], h_name, a_name) or ("📡 Veri Alınıyor", "BEKLEMEDE")
                     st.markdown(f"""<div class='card' style='border-left-color: #ff4b4b;'>
@@ -146,7 +153,7 @@ else:
                         <p style='text-align:center; font-weight:bold; color:#58a6ff;'>🏆 Y.Z. ÖNERİSİ: {tavsiye}</p>
                     </div>""", unsafe_allow_html=True)
 
-                # --- BAŞLAMAMIŞ MAÇ ANALİZİ (%90+) ---
+                # --- %90+ BÜLTEN ANALİZİ ---
                 elif status in ["NS", "TBD"]:
                     res = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
                     if res:
