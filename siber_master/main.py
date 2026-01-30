@@ -9,8 +9,7 @@ import random
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7" 
-ADMIN_PASS = "1937timurR&"
-WA_LINK = "https://wa.me/905414516774?text=Merhaba,%20Siber%20Akıl%20erişim%20anahtarı%20istiyorum."
+WA_LINK = "https://wa.me/905414516774?text=Merhaba,%20Siber%20Akıl%20erişim%20anahtarı%20hakkında%20bilgi%20almak%20istiyorum."
 
 @st.cache_resource
 def get_final_vault():
@@ -25,7 +24,7 @@ def get_final_vault():
 
 VAULT = get_final_vault()
 
-# ================= 2. TASARIM KATMANI (ULTRA PRO) =================
+# ================= 2. TASARIM KATMANI (PREMIUM) =================
 def apply_ui():
     st.markdown(f"""
         <style>
@@ -33,32 +32,26 @@ def apply_ui():
         .stApp {{ background: #020617; color: #f1f5f9; }}
         header {{ visibility: hidden; }}
         
-        /* Profesyonel Kartlar */
-        .glass-card {{ 
+        /* Paket Kartları Tasarımı */
+        .package-container {{ display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }}
+        .package-card {{ 
             background: rgba(30, 41, 59, 0.5); 
-            border: 1px solid rgba(56, 189, 248, 0.2); 
-            border-radius: 15px; padding: 20px; margin-bottom: 15px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3); 
+            border-radius: 12px; padding: 15px; text-align: center; width: 140px;
         }}
+        .package-card b {{ color: #38bdf8; font-size: 1.1rem; }}
         
-        .sync-btn {{
-            background: linear-gradient(90deg, #0ea5e9, #2563eb);
-            color: white; border-radius: 10px; padding: 10px;
-            text-align: center; font-weight: bold; cursor: pointer;
-            border: none; width: 100%; margin-bottom: 20px;
-        }}
-        
-        .emir-box {{ 
-            background: rgba(74, 222, 128, 0.1); 
-            border: 1px solid #4ade80; 
-            color: #4ade80; padding: 10px; border-radius: 8px;
-            text-align: center; font-weight: bold; margin-top: 10px;
-        }}
-
+        .wa-section {{ text-align: center; margin: 20px 0; }}
         .wa-btn {{ 
-            display: block; background: #25d366; color: white !important; 
-            text-align: center; padding: 12px; border-radius: 10px; 
-            text-decoration: none; font-weight: bold; margin: 15px 0;
+            background: linear-gradient(90deg, #25d366, #128c7e); 
+            color: white !important; padding: 15px 30px; border-radius: 12px; 
+            text-decoration: none; font-weight: bold; display: inline-block;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }}
+        
+        .glass-card {{ 
+            background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(56, 189, 248, 0.1); 
+            border-radius: 15px; padding: 20px; margin-bottom: 15px;
         }}
         </style>
     """, unsafe_allow_html=True)
@@ -66,106 +59,90 @@ def apply_ui():
 st.set_page_config(page_title="Siber Akıl V3", layout="wide")
 apply_ui()
 
-# ================= 3. OTURUM YÖNETİMİ (KESİNTİSİZ) =================
+# ================= 3. OTURUM YÖNETİMİ =================
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
-def logout():
-    st.session_state.update({"auth": False, "role": None})
-    st.rerun()
-
-# ================= 4. GİRİŞ VE ANA PANEL =================
+# ================= 4. GİRİŞ EKRANI (PAKETLER + WA) =================
 if not st.session_state["auth"]:
-    # KURUMSAL GİRİŞ EKRANI
-    st.markdown("<h1 style='text-align: center; color: #38bdf8;'>🛡️ SİBER AKIL</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94a3b8;'>Yapay Zeka Destekli Stratejik Karar Destek Mekanizması</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #38bdf8; margin-bottom:0;'>🛡️ SİBER AKIL: ZAFER MİMARI</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94a3b8; margin-bottom:25px;'>Yapay Zeka Destekli Karar Mekanizması</p>", unsafe_allow_html=True)
     
-    st.markdown(f'<a href="{WA_LINK}" class="wa-btn">🔐 KURUMSAL ERİŞİM TALEP ET</a>', unsafe_allow_html=True)
+    # PAKETLER
+    st.markdown("""
+    <div class='package-container'>
+        <div class='package-card'><small>30 GÜN</small><br><b>700 TL</b></div>
+        <div class='package-card'><small>90 GÜN</small><br><b>2.000 TL</b></div>
+        <div class='package-card'><small>180 GÜN</small><br><b>5.000 TL</b></div>
+        <div class='package-card'><small>SINIRSIZ</small><br><b>15.000 TL</b></div>
+    </div>
+    """, unsafe_allow_html=True)
 
+    # WHATSAPP LİSANS BUTONU
+    st.markdown(f"""
+    <div class='wa-section'>
+        <a href='{WA_LINK}' class='wa-btn'>🔓 LİSANS ALMAK İÇİN İLETİŞİME GEÇİN</a>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # GİRİŞ FORMU
     with st.container():
-        u_lic = st.text_input("Sistem Erişim Anahtarı:", type="password", placeholder="SBR-XXXX-TM")
-        if st.button("SİSTEME SIZ"):
-            if u_lic in VAULT:
-                st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
-                st.rerun()
-            else: st.error("Erişim Reddedildi: Geçersiz Parametre.")
+        col_l, col_r = st.columns([1, 1])
+        with col_l:
+            u_lic = st.text_input("Erişim Anahtarı:", type="password", placeholder="SBR-XXXX-TM")
+        with col_r:
+            st.write("##")
+            if st.button("SİSTEME GİRİŞ YAP"):
+                if u_lic in VAULT:
+                    st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
+                    st.rerun()
+                else: st.error("Erişim Reddedildi.")
+
 else:
-    # LİSANS SÜRE KONTROLÜ
+    # ================= 5. ANA PANEL (GİRİŞ SONRASI) =================
     if datetime.now() > st.session_state["exp"]:
-        st.error("Erişim Süresi Doldu."); logout()
+        st.session_state.update({"auth": False}); st.rerun()
 
-    # YAN MENÜ: FİLTRELEME VE DURUM
     with st.sidebar:
-        st.markdown(f"<h2 style='color:#38bdf8;'>📊 KONTROL PANELİ</h2>", unsafe_allow_html=True)
-        # GÜVEN ENDEKSİ AYARI (İSTEDİĞİN ÖZELLİK)
-        trust_threshold = st.slider("Güven Endeksi Eşiği (%)", 50, 98, 80)
-        
+        st.markdown(f"<h2 style='color:#38bdf8;'>📊 AYARLAR</h2>", unsafe_allow_html=True)
+        # GÜVEN ENDEKSİ FİLTRESİ
+        trust_val = st.slider("Güven Endeksi Eşiği (%)", 50, 98, 85)
         st.divider()
-        st.markdown(f"**Lisans:** {st.session_state['key'][:10]}...")
-        st.markdown(f"**Kalan:** {(st.session_state['exp'] - datetime.now()).days} Gün")
-        if st.button("🔴 SİSTEMDEN AYRIL"): logout()
+        st.write(f"**Lisans:** {st.session_state['key'][:10]}...")
+        st.write(f"**Kalan:** {(st.session_state['exp'] - datetime.now()).days} Gün")
+        if st.button("🔴 ÇIKIŞ YAP"): st.session_state.update({"auth": False}); st.rerun()
 
-    # ANA PANEL
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.markdown("<h2 style='color:#f8fafc;'>📡 VERİ ANALİZ HATTI</h2>", unsafe_allow_html=True)
-    with col2:
-        # VERİ GÜNCELLEME BUTONU (İSTEDİĞİN ÖZELLİK)
-        if st.button("🔄 SİSTEMİ SENKRONİZE ET"):
-            with st.spinner("API Verileri Yenileniyor..."):
-                time.sleep(1)
-                st.rerun()
+    # ÜST BAR VE GÜNCELLEME BUTONU
+    c1, c2 = st.columns([3, 1])
+    with c1: st.markdown("<h2 style='color:#f8fafc; margin:0;'>📡 ANALİZ VE SİNYAL HATTI</h2>", unsafe_allow_html=True)
+    with c2: 
+        if st.button("🔄 VERİLERİ GÜNCELLE"): st.rerun()
 
-    t_live, t_pre = st.tabs(["🔴 CANLI MUHAKEME", "⏳ BÜLTEN PROJEKSİYONU"])
+    t_live, t_pre = st.tabs(["🔴 CANLI ANALİZ", "⏳ BÜLTEN TAHMİN"])
 
     try:
         headers = {"x-apisports-key": API_KEY, "User-Agent": "Mozilla/5.0"}
-        
         with t_live:
-            # Canlı Veri Çekme
             resp = requests.get(f"{BASE_URL}/fixtures?live=all", headers=headers).json()
-            live_fixtures = resp.get("response", [])
-            
-            if not live_fixtures:
-                st.info("Şu an kriterlere uygun aktif sinyal bulunmuyor.")
-            
-            for f in live_fixtures:
-                # Güven skoru simülasyonu (Gerçek datadan beslenir)
-                puan = random.randint(55, 98)
-                
-                # Sadece seçilen Güven Endeksi üzerindeki maçları göster
-                if puan >= trust_threshold:
+            for f in resp.get("response", []):
+                conf = random.randint(55, 99)
+                if conf >= trust_val:
                     st.markdown(f"""
                     <div class='glass-card'>
                         <div style='display:flex; justify-content:space-between;'>
                             <span style='color:#38bdf8;'>{f['fixture']['status']['elapsed']}' | {f['league']['name']}</span>
-                            <span style='color:#4ade80; font-weight:bold;'>GÜVEN: %{puan}</span>
+                            <b style='color:#4ade80;'>%{conf} GÜVEN</b>
                         </div>
                         <h3 style='text-align:center;'>{f['teams']['home']['name']} {f['goals']['home']} - {f['goals']['away']} {f['teams']['away']['name']}</h3>
-                        <div class='emir-box'>
-                            {"🔥 YÜKSEK BASKI: AKSİYON ALIN" if puan > 85 else "⏳ ANALİZ DEVAM EDİYOR"}
-                        </div>
                     </div>
                     """, unsafe_allow_html=True)
-
+                    
         with t_pre:
-            # Bülten verisi
             tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
             resp_t = requests.get(f"{BASE_URL}/fixtures?date={tomorrow}", headers=headers).json()
-            
-            for f in resp_t.get("response", [])[:15]:
-                puan = random.randint(60, 99)
-                if puan >= trust_threshold:
-                    st.markdown(f"""
-                    <div class='glass-card'>
-                        <div style='display:flex; justify-content:space-between;'>
-                            <span style='color:#94a3b8;'>Yarın {f['fixture']['date'][11:16]}</span>
-                            <span style='color:#38bdf8;'>ENDERS: %{puan}</span>
-                        </div>
-                        <p style='margin:10px 0;'><b>{f['teams']['home']['name']} vs {f['teams']['away']['name']}</b></p>
-                        <small style='color:#4ade80;'>Tavsiye: 2.5 ÜST / KG VAR</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-    except Exception as e:
-        st.error("Veri Senkronizasyon Hatası.")
+            for f in resp_t.get("response", [])[:20]:
+                conf = random.randint(60, 99)
+                if conf >= trust_val:
+                    st.markdown(f"<div class='glass-card'><b>{f['teams']['home']['name']} vs {f['teams']['away']['name']}</b><br>Güven: %{conf}</div>", unsafe_allow_html=True)
+    except:
+        st.error("Veri alınamadı.")
