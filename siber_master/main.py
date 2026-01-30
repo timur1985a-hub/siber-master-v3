@@ -5,28 +5,27 @@ from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. GİZLİ SEO VE GOOGLE DOĞRULAMA (KURAL: ARAYÜZÜ ETKİLEMEZ) ---
+# --- 1. SEO VE GİZLİ DOĞRULAMA (KURAL: TERTEMİZ ARAYÜZ) ---
 st.set_page_config(
     page_title="Yapay Zeka Maç Tahmin | %90+ Güvenli Analiz | Siber Radar",
     page_icon="🎯",
     layout="wide"
 )
 
-# SEO etiketleri kullanıcıya görünmez, sadece botlar okur (Kirlilik giderildi)
+# Google botlarını hızlandırmak ve etiketi anında göstermek için arka plan katmanı
 st.markdown(f"""
     <style>
-        .hidden-seo-layer {{ display: none !important; visibility: hidden; }}
+        .google-verify-hidden {{ display: none !important; }}
     </style>
-    <div class="hidden-seo-layer">
+    <div class="google-verify-hidden">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
         <meta name="robots" content="index, follow" />
-        <meta name="description" content="Siber Radar V250: Yapay zeka destekli %90+ güvenli maç tahminleri.">
         <link rel="canonical" href="https://yapayzekamactahmin.streamlit.app/" />
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (KURAL: SABİT ÇEKİRDEK) ---
+# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -46,7 +45,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 3. DEĞİŞMEZ TASARIM (KURAL: MİLİM OYNAMADI) ---
+# --- 3. DEĞİŞMEZ TASARIM (MİLİM DOKUNULMADI) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -68,7 +67,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (KURAL: DOKUNULMAZ) ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -97,6 +96,6 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
-    # --- 5. ANA PANEL VE ANALİZ (KURAL: YETKİLER KORUNDU) ---
+    # --- 5. ANA PANEL ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("Siber Radar Analiz Motoru ve SEO Otoritesi Aktif.")
+    st.info("🎯 Siber Radar SEO Motoru Arka Planda Aktif.")
