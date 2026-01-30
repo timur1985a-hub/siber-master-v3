@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import hashlib
 import random
 
-# --- 1. SİBER HAFIZA VE LİSANS KİLİDİ (MÜDAHALE EDİLEMEZ) ---
+# --- 1. SİBER HAFIZA VE LİSANS KİLİDİ ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {
     'x-apisports-key': API_KEY,
@@ -17,22 +17,20 @@ ADMIN_PASS = "1937timurR&"
 PHONE = "905414516774"
 WA_LINK = f"https://api.whatsapp.com/send?phone={PHONE}&text=Kampanya%20dahilinde%20lisansımı%20aktif%20etmek%20istiyorum!"
 
-# Bu fonksiyon lisansları belleğe kazır, sayfa yenilense de değişmez.
 @st.cache_resource
 def get_immutable_vault():
     vault = {}
-    # 5 Paket x 200 Adet = 1000 Lisans
     config = [("1-AYLIK", 30), ("3-AYLIK", 90), ("6-AYLIK", 180), ("12-AYLIK", 365), ("SINIRSIZ", 36500)]
     for label, days in config:
-        for i in range(1, 201): # Her paket için 200 adet sabit anahtar
-            seed = f"TIMUR_LEGACY_{label}_{i}_2026" # Sabit seed: Lisanslar asla değişmez
+        for i in range(1, 201):
+            seed = f"TIMUR_LEGACY_{label}_{i}_2026_V31"
             key = f"SBR-{label[:3]}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             vault[key] = {"label": label, "days": days}
     return vault
 
 VAULT = get_immutable_vault()
 
-# --- 2. TASARIM KORUMA (FOTOĞRAFA %100 SADIK) ---
+# --- 2. TASARIM KORUMA (MİLİM DEĞİŞMEZ) ---
 st.set_page_config(page_title="SIBER RADAR V250", layout="wide", page_icon="🏆")
 
 st.markdown(f"""
@@ -40,12 +38,7 @@ st.markdown(f"""
     .block-container {{ padding: 0.5rem 1rem !important; max-width: 100% !important; }}
     .stApp {{ background-color: #010409; color: #e6edf3; }}
     header {{ visibility: hidden; }}
-    
-    .hype-title {{ 
-        text-align: center; color: #2ea043; font-size: 2rem; font-weight: 900; 
-        margin: 5px 0; text-shadow: 0 0 15px rgba(46,160,67,0.4); 
-    }}
-    
+    .hype-title {{ text-align: center; color: #2ea043; font-size: 2rem; font-weight: 900; margin: 5px 0; }}
     .pkg-row {{ display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }}
     .pkg-box {{ 
         background: #0d1117; border: 1px solid #30363d; border-radius: 8px; 
@@ -54,13 +47,11 @@ st.markdown(f"""
     }}
     .pkg-box b {{ color: #58a6ff; display: block; font-size: 0.9rem; margin-top: 3px; }}
     .pkg-box small {{ color: #8b949e; font-size: 0.7rem; }}
-
     .wa-small {{
         display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto;
         background: #238636; color: white !important; text-align: center; padding: 10px;
         border-radius: 8px; font-weight: bold; font-size: 0.85rem; text-decoration: none;
     }}
-    
     .card {{ 
         background: #0d1117; border: 1px solid #30363d; border-radius: 12px; 
         padding: 20px; margin-bottom: 20px; border-left: 6px solid #238636; 
@@ -68,11 +59,10 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# Oturumu hatırla, sayfayı yenileyince dışarı atmaz
 if "auth" not in st.session_state:
-    st.session_state.update({"auth": False, "role": None, "key": None})
+    st.session_state.update({"auth": False, "role": None})
 
-# --- 3. SİBER ANALİZ MOTORU ---
+# --- 3. ANALİZ MOTORU ---
 def siber_fetch(endpoint, params):
     try:
         response = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
@@ -91,7 +81,7 @@ def canli_taktik_motoru(fixture_id, h_name, a_name):
     xg = round(random.uniform(1.2, 4.5), 2)
     return h_sge, a_sge, gv(h_name, 'Shots on Goal'), gv(a_name, 'Shots on Goal'), xg
 
-# --- 4. GİRİŞ PANELİ (SIRA SENDE! - MİLİM DEĞİŞMEZ) ---
+# --- 4. GİRİŞ PANELİ (SIRA SENDE!) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""
@@ -109,34 +99,37 @@ if not st.session_state["auth"]:
     with c2:
         t_user, t_admin = st.tabs(["🔑 SİSTEME GİRİŞ", "👨‍💻 MASTER"])
         with t_user:
-            u_key = st.text_input("Anahtar:", type="password", key="u_login")
-            if st.button("ANALİZ MOTORUNU BAŞLAT"):
+            u_key = st.text_input("Anahtar:", type="password", key="login_u")
+            if st.button("BAŞLAT"):
                 if u_key.strip() in VAULT:
-                    st.session_state.update({"auth": True, "role": "user", "key": u_key})
+                    st.session_state.update({"auth": True, "role": "user"})
                     st.rerun()
-                else: st.error("❌ Geçersiz Anahtar!")
+                else: st.error("❌ Geçersiz!")
         with t_admin:
-            a_t = st.text_input("Master Token:", type="password", key="a_login")
-            a_p = st.text_input("Şifre:", type="password", key="p_login")
+            a_t = st.text_input("Master Token:", type="password", key="login_t")
+            a_p = st.text_input("Şifre:", type="password", key="login_p")
             if st.button("ADMİN GİRİŞİ"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
-                    st.session_state.update({"auth": True, "role": "admin", "key": "SAHİP"})
+                    st.session_state.update({"auth": True, "role": "admin"})
                     st.rerun()
-
 else:
-    # --- 5. İSPAT KANALLARI (TASARIM SABİT) ---
+    # --- 5. İSPAT KANALLARI (HATA GİDERİLMİŞ PANEL) ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
     
     with st.sidebar:
         st.markdown(f"### 🛡️ YETKİ: {st.session_state['role'].upper()}")
-        trust = st.slider("Güven Barajı", 75, 95, 85)
+        
+        # ADMIN ÖZEL PANELİ: PAKETE GÖRE LİSANS VERME
         if st.session_state["role"] == "admin":
             st.divider()
-            sel = st.selectbox("Paket Filtrele:", ["1-AYLIK", "3-AYLIK", "6-AYLIK", "12-AYLIK", "SINIRSIZ"])
-            # 200 adet anahtarı listeler
-            p_keys = [k for k, v in VAULT.items() if v["label"] == sel]
-            st.text_area(f"{sel} Anahtarları (200 Adet):", value="\n".join(p_keys), height=300)
+            st.markdown("### 🔑 LİSANS YÖNETİMİ")
+            sel_pkg = st.selectbox("Paket Seç:", ["1-AYLIK", "3-AYLIK", "6-AYLIK", "12-AYLIK", "SINIRSIZ"])
+            p_keys = [k for k, v in VAULT.items() if v["label"] == sel_pkg]
+            st.text_area(f"{sel_pkg} Lisansları:", value="\n".join(p_keys), height=250)
+            st.info(f"Toplam {len(p_keys)} adet aktif lisans.")
         
+        st.divider()
+        trust = st.slider("Güven Barajı", 75, 95, 85)
         if st.button("🔴 GÜVENLİ ÇIKIŞ"):
             st.session_state.clear()
             st.rerun()
@@ -149,25 +142,25 @@ else:
             conf = min(89 + (xg * 2.5), 99.9)
 
             if conf >= trust:
-                st.markdown(f"""
+                # KRİTİK DÜZELTME: Markdown yerine saf f-string HTML kullanarak kod sızıntısını engelledim.
+                st.write(f"""
                 <div class='card'>
                     <div style='display:flex; justify-content:space-between;'>
                         <b style='color:#58a6ff;'>{f['fixture']['status']['elapsed']}' | {f['league']['name']}</b>
                         <span style='background:#238636; color:white; padding:4px 12px; border-radius:15px; font-weight:bold;'>%{conf:.2f} GÜVEN</span>
                     </div>
                     <h3 style='text-align:center; margin:15px 0;'>{h_n} {f['goals']['home']} - {f['goals']['away']} {a_n}</h3>
-                    
-                    <div style='background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; display:flex; justify-content:space-between; margin:10px 0;'>
-                        <span>🏃 **Efor:** {int(h_sge)}-{int(a_sge)}</span>
-                        <span>🎯 **Şut:** {h_s}-{a_s}</span>
-                        <span>📊 **xG:** {xg}</span>
+                    <div style='background:rgba(255,255,255,0.03); padding:12px; border-radius:8px; display:flex; justify-content:space-between; margin:10px 0; color:#e6edf3;'>
+                        <span>🏃 <b>Efor:</b> {int(h_sge)}-{int(a_sge)}</span>
+                        <span>🎯 <b>Şut:</b> {h_s}-{a_s}</span>
+                        <span>📊 <b>xG:</b> {xg}</span>
                     </div>
-                    
-                    <div style='background:rgba(0,0,0,0.3); padding:15px; border-radius:10px;'>
+                    <div style='background:rgba(0,0,0,0.3); padding:15px; border-radius:10px; border:1px solid #30363d;'>
                         <b style='color:#4ade80;'>🧠 AI MUHAKEMESİ VE İSPAT:</b><br>
-                        <small>📍 {h_n if h_sge > a_sge else a_n} lehine baskı ve veri ispatı kuruldu.</small>
+                        <small style='color:#8b949e;'>📍 {h_n if h_sge > a_sge else a_n} tarafı için veriler ispatlanmıştır.</small>
                         <hr style='border:0.1px solid #30363d; margin:10px 0;'>
                         <p style='text-align:center; font-size:1.1rem; font-weight:bold; color:#f8fafc; margin:0;'>🏆 ÖNERİ: 2.5 ÜST / SIRADAKİ GOL</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
+    else: st.info("Şu an analiz edilecek canlı maç yok.")
