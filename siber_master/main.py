@@ -1,39 +1,38 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 import json
 
-# --- 1. MASTER SEO & DOUBLE ANALYTICS (PRENSİP: GİZLİ ENJEKSİYON) ---
+# --- 1. GOOGLE ETİKETİ ENJEKSİYONU (PRENSİP: HEAD ÖĞESİNİN HEMEN SONRASI) ---
+# Google'ın istediği G-9KHTP6QZY8 kodunu en tepeye, botların göreceği yere çiviledim.
+components.html(
+    f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){{dataLayer.push(arguments);}}
+      gtag('js', new Date());
+      gtag('config', 'G-9KHTP6QZY8');
+    </script>
+    """,
+    height=0,
+)
+
 st.set_page_config(
     page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
     page_icon="🎯",
     layout="wide"
 )
 
-# Çift Etiket Entegrasyonu (G-9KHTP6QZY8 & GT-MJSXTWTN)
-st.markdown(f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=GT-MJSXTWTN"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){{dataLayer.push(arguments);}}
-      gtag('js', new Date());
-      gtag('config', 'G-9KHTP6QZY8');
-      gtag('config', 'GT-MJSXTWTN');
-    </script>
-    
-    <style>
-        .siber-ghost-layer {{ 
-            position: absolute; top: -1000px; left: -1000px; 
-            height: 0; width: 0; overflow: hidden;
-        }}
-    </style>
-    <div class="siber-ghost-layer">
-        <p>Verification IDs: G-9KHTP6QZY8, GT-MJSXTWTN</p>
+# SEO ve Doğrulama Katmanı (Arka Planda)
+st.markdown("""
+    <div style="display:none;">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
         <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
+        <meta name="robots" content="index, follow" />
     </div>
 """, unsafe_allow_html=True)
 
@@ -77,7 +76,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -106,6 +105,5 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
-    # --- 5. ANA PANEL ---
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 Çift Katmanlı Google Etiketleri (G-9KHTP6QZY8 & GT-MJSXTWTN) Gizli Modda Aktif.")
+    st.info("🎯 Head Katmanı Doğrulaması Aktif.")
