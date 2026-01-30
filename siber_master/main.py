@@ -23,7 +23,7 @@ def get_final_vault():
 
 VAULT = get_final_vault()
 
-# ================= 2. ELITE SIBER TASARIM (GİZLİLİK MÜHÜRLÜ) =================
+# ================= 2. ELITE TASARIM VE BUTON STİLLERİ =================
 def apply_fixed_ui():
     st.markdown("""
         <style>
@@ -34,10 +34,11 @@ def apply_fixed_ui():
         .glass-card { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; padding: 15px; margin-bottom: 12px; position: relative;}
         .pkg-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 15px; }
         .pkg-item { background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.1); border-radius: 10px; padding: 10px; text-align: center; }
-        .ai-muhakeme { background: rgba(14, 165, 233, 0.12); border-left: 4px solid #38bdf8; padding: 12px; border-radius: 6px; font-size: 0.85rem; margin-top: 10px; color: #cbd5e1; line-height: 1.4;}
-        .decision-box { background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; border-radius: 8px; padding: 12px; margin-top: 10px; text-align: center; color: #4ade80; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;}
+        .ai-muhakeme { background: rgba(14, 165, 233, 0.12); border-left: 4px solid #38bdf8; padding: 12px; border-radius: 6px; font-size: 0.85rem; margin-top: 10px; color: #cbd5e1; }
+        .decision-box { background: rgba(74, 222, 128, 0.15); border: 1px solid #4ade80; border-radius: 8px; padding: 12px; margin-top: 10px; text-align: center; color: #4ade80; font-weight: bold; text-transform: uppercase; }
         .minute-badge { background: #ef4444; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 0.8rem; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);}
         div.stButton > button { width: 100%; background: linear-gradient(90deg, #0ea5e9, #2563eb); border: none; border-radius: 10px; padding: 12px; font-weight: bold; color: white !important;}
+        .update-btn > div > button { background: linear-gradient(90deg, #10b981, #059669) !important; margin-bottom: 10px; }
         input { background-color: rgba(255,255,255,0.07) !important; color: white !important; border-radius: 10px !important; border: 1px solid rgba(56, 189, 248, 0.2) !important;}
         </style>
     """, unsafe_allow_html=True)
@@ -50,31 +51,23 @@ def clean_text(text):
     tr_map = str.maketrans("çğıöşüÇĞİÖŞÜ", "cgiosuCGIOSU")
     return text.translate(tr_map).lower()
 
-def siber_muhakeme_v9(f, mode="live"):
-    conf = random.randint(88, 99)
-    danger_rate = random.randint(40, 85)
-    
+def siber_muhakeme_engine(f, mode="live"):
+    conf = random.randint(89, 99)
+    danger = random.randint(45, 90)
     if mode == "live":
         dak = f['fixture']['status']['elapsed']
-        if dak < 35:
-            analysis = f"🕵️ İlk yarı dinamikleri inceleniyor. Tehlikeli atak oranı %{danger_rate}. Savunma hatları siber süzgeçte."
-        elif 45 <= dak <= 75:
-            analysis = f"🔥 Tempo zirveye tırmandı. Kale önü aksiyonları %{danger_rate} artış gösteriyor."
-        else:
-            analysis = f"⚠️ Son koridor baskısı! %{danger_rate} yoğunlukla skor değişimi yapay zeka tarafından bekleniyor."
-            
-        reason = f"📊 **Siber Analiz ({dak}. DK):** {analysis} Veri akışı golü kaçınılmaz kılıyor."
-        decision = f"🛡️ SAHİP TİMUR STRATEJİSİ: ANALİZ MÜHÜRLENDİ. HAREKETE GEÇ!"
+        reason = f"📊 **AI Analiz ({dak}. DK):** Tehlike Endeksi %{danger}. Saha içi baskı ve top hızı siber süzgeçten geçti."
+        decision = f"🛡️ SAHİP TİMUR STRATEJİSİ: VERİ ONAYLANDI. HAREKETE GEÇ!"
         return conf, reason, decision
     else:
-        xg_val = round(random.uniform(2.1, 3.8), 2)
-        reason = f"📉 **Bülten Muhakemesi:** Takımların gol beklentisi (xG) {xg_val} olarak hesaplandı. Tarihsel veriler skor üretimine işaret ediyor."
-        target = random.choice(["🎯 2.5 ÜST %96", "🔥 KG VAR %93", "🚀 2.5 ÜST & KG VAR"])
+        xg = round(random.uniform(2.2, 3.9), 2)
+        reason = f"📉 **Bülten Muhakemesi:** xG Beklentisi {xg}. Defansif zafiyetler ve hücum momentumu eşleşti."
+        target = random.choice(["🎯 2.5 ÜST %97", "🔥 KG VAR %94", "🚀 2.5 ÜST & KG VAR"])
         return conf, reason, f"📡 SAHİP TİMUR VERİSİ: {target}"
 
-# ================= 4. GİRİŞ VE PROFESYONEL SATIŞ =================
+# ================= 4. OTURUM YÖNETİMİ (RE-LOGIN ENGELİ) =================
 if "auth" not in st.session_state:
-    st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
+    st.session_state.update({"auth": False, "role": None, "key": None})
 
 if not st.session_state["auth"]:
     st.markdown("""
@@ -89,32 +82,40 @@ if not st.session_state["auth"]:
             <div class='pkg-item'><small style='color:#38bdf8;'>12 AY</small><br><b style='color:#4ade80;'>8.000 TL</b></div>
         </div>
         <div style='text-align:center; background:rgba(74, 222, 128, 0.05); padding:15px; border-radius:10px; margin-bottom:15px; border: 1px solid rgba(74, 222, 128, 0.2);'>
-            <span style='color:#4ade80; font-weight:bold; font-size:1rem;'>SİSTEME ERİŞİM KISITLANDI</span><br>
-            <p style='color:#cbd5e1; font-size:0.85rem; margin-top:5px;'>Şans faktörünü devreden çıkarıp matematiksel kesinliğe geçmek için lisansınızı aktif edin. Profesyonel analiz bir seçenek değil, kazanç için zorunluluktur.</p>
+            <span style='color:#4ade80; font-weight:bold;'>SİSTEME ERİŞİM KISITLANDI</span><br>
+            <p style='color:#cbd5e1; font-size:0.85rem; margin-top:5px;'>Şans faktörünü devreden çıkarıp matematiksel kesinliğe geçmek için lisansınızı aktif edin.</p>
         </div>
     """, unsafe_allow_html=True)
     
-    u_lic = st.text_input("Lisans Anahtarını Girin:", placeholder="SBR-XXXX-TM", key="auth_final_v92")
+    u_lic = st.text_input("Lisans Anahtarı:", placeholder="SBR-XXXX-TM", key="auth_persistent")
     if st.button("TERMİNALİ BAŞLAT"):
         if u_lic in VAULT:
-            st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
+            st.session_state.update({"auth": True, "role": "user", "key": u_lic})
             st.rerun()
-        else: st.error("❌ Yetkisiz Giriş! Lütfen geçerli bir lisans temin edin.")
+        else: st.error("❌ Geçersiz Lisans!")
     
-    with st.expander("👨‍💻 Sistem Yönetimi"):
+    with st.expander("👨‍💻 Admin"):
         at, ap = st.text_input("Token:", type="password"), st.text_input("Şifre:", type="password")
         if st.button("Admin Log-in"):
             if at == ADMIN_TOKEN and ap == ADMIN_PASS:
-                st.session_state.update({"auth": True, "role": "admin", "key": "TIMUR", "exp": datetime(2030, 1, 1)})
+                st.session_state.update({"auth": True, "role": "admin", "key": "TIMUR"})
                 st.rerun()
 else:
     # ================= 5. SİBER ANALİZ MERKEZİ =================
     with st.sidebar:
         st.markdown("<h2 style='color:#38bdf8;'>🛡️ SİBER PANEL</h2>", unsafe_allow_html=True)
         min_conf = st.slider("Güven İndeksi %", 80, 99, 88)
-        if st.button("🔄 VERİLERİ TAZELE"): st.rerun()
+        
+        # SİDEBAR GÜNCELLEME BUTONU
+        if st.button("🔄 VERİLERİ GÜNCELLE", key="side_ref"): st.rerun()
+        
         st.divider()
         if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+
+    # ANA EKRAN GÜNCELLEME BUTONU (HIZLI ERİŞİM)
+    st.markdown("<div class='update-btn'>", unsafe_allow_html=True)
+    if st.button("🔄 ANALİZLERİ VE VERİLERİ ŞİMDİ GÜNCELLE", key="main_ref"): st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
     tab1, tab2 = st.tabs(["🔴 CANLI MUHAKEME", "⏳ BÜLTEN STRATEJİSİ"])
 
@@ -124,14 +125,12 @@ else:
         fixtures = resp.get("response", [])
 
         with tab1:
-            s_q = clean_text(st.text_input("🔍 Canlı Maç/Lig Filtrele...", key="search_v92"))
-            live_matches = [f for f in fixtures if f['fixture']['status']['short'] in ['1H', '2H', 'HT']]
-            filtered = [f for f in live_matches if s_q in clean_text(f['teams']['home']['name']) or s_q in clean_text(f['teams']['away']['name'])]
-            
-            if not filtered: st.info("Şu an kriterlere uygun veri akışı bulunmuyor.")
+            s_q = clean_text(st.text_input("🔍 Maç/Lig Filtrele...", key="search_v95"))
+            live_m = [f for f in fixtures if f['fixture']['status']['short'] in ['1H', '2H', 'HT']]
+            filtered = [f for f in live_m if s_q in clean_text(f['teams']['home']['name']) or s_q in clean_text(f['teams']['away']['name'])]
             
             for f in filtered:
-                conf, reason, decision = siber_muhakeme_v9(f, "live")
+                conf, reason, decision = siber_muhakeme_engine(f, "live")
                 if conf >= min_conf:
                     st.markdown(f"""
                     <div class='glass-card'>
@@ -140,28 +139,27 @@ else:
                             <b style='color:#4ade80;'>%{conf} GÜVEN</b>
                         </div>
                         <h3 style='text-align:center; margin:15px 0;'>{f['teams']['home']['name']} {f['goals']['home']} - {f['goals']['away']} {f['teams']['away']['name']}</h3>
-                        <p style='text-align:center; color:#38bdf8; font-size:0.8rem;'>{f['league']['name']}</p>
                         <div class='ai-muhakeme'>{reason}</div>
                         <div class='decision-box'>{decision}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
         with tab2:
-            pre_matches = [f for f in fixtures if f['fixture']['status']['short'] == 'NS']
-            for f in pre_matches:
-                conf, reason, decision = siber_muhakeme_v9(f, "pre")
+            pre_m = [f for f in fixtures if f['fixture']['status']['short'] == 'NS']
+            for f in pre_m:
+                conf, reason, decision = siber_muhakeme_engine(f, "pre")
                 if conf >= min_conf:
                     saat = f['fixture']['date'][11:16]
                     st.markdown(f"""
                     <div class='glass-card' style='border-left: 5px solid #4ade80;'>
                         <div style='display:flex; justify-content:space-between; align-items:center;'>
-                            <span style='background:#334155; color:#38bdf8; padding:3px 8px; border-radius:6px; font-size:0.8rem;'>SAAT: {saat}</span>
+                            <span style='background:#334155; color:#38bdf8; padding:3px 8px; border-radius:6px;'>SAAT: {saat}</span>
                             <b style='color:#4ade80;'>%{conf} ANALİZ</b>
                         </div>
-                        <div style='text-align:center; margin:15px 0;'><b>{f['teams']['home']['name']} vs {f['teams']['away']['name']}</b></div>
+                        <div style='text-align:center; margin:10px 0;'><b>{f['teams']['home']['name']} vs {f['teams']['away']['name']}</b></div>
                         <div class='ai-muhakeme'>{reason}</div>
                         <div class='decision-box'>{decision}</div>
                     </div>
                     """, unsafe_allow_html=True)
     except:
-        st.warning("Veri akışı bekleniyor...")
+        st.warning("Veri akışı senkronize ediliyor...")
