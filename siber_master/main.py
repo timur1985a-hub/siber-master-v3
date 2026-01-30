@@ -1,18 +1,17 @@
 import streamlit as st
 import requests
-import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 
-# --- 0. GOOGLE DOĞRULAMA (SABİT - GÖRÜNMEZ) ---
-st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
-st.markdown("""
-    <div style="display:none;">
-        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
-    </div>
-""", unsafe_allow_html=True)
+# --- 0. VERSİYON KONTROL (BULUTU GÜNCELLEMEYE ZORLAR) ---
+VERSION = "2.5.1-FORCE-SYNC" 
 
-# --- 1. SİBER HAFIZA VE API MOTORU ---
+st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
+
+# Google Doğrulama (Görünmez)
+st.markdown(f'<div style="display:none;">google-site-verification: google8ffdf1f7bdb7adf3.html</div>', unsafe_allow_html=True)
+
+# --- 1. SİBER HAFIZA VE LİSANS ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -32,7 +31,28 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM ŞABLONU ---
+# --- 2. GLOBAL YAN PANEL (GİRİŞ ÖNCESİ VE SONRASI SABİT) ---
+with st.sidebar:
+    st.markdown(f"### 🚀 SİSTEM V{VERSION}")
+    st.info("Eğer 'Takım A' görüyorsanız aşağıdaki butona basın.")
+    
+    if st.button("🧹 TÜM SİSTEMİ TEMİZLE", use_container_width=True):
+        st.cache_data.clear()
+        st.cache_resource.clear()
+        st.success("Bulut hafızası boşaltıldı!")
+        st.rerun()
+        
+    if st.button("♻️ VERİLERİ ÇEK / GÜNCELLE", use_container_width=True):
+        st.rerun()
+    
+    st.divider()
+    if st.session_state.get("auth"):
+        st.success(f"YETKİ: {st.session_state['role'].upper()}")
+        if st.button("🔴 ÇIKIŞ YAP"):
+            st.session_state.clear()
+            st.rerun()
+
+# --- 3. TASARIM VE STİL (DEĞİŞMEZ) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -43,7 +63,6 @@ st.markdown("""
         background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; 
         width: calc(18% - 10px); min-width: 120px; text-align: center; border-top: 3px solid #2ea043;
     }
-    .pkg-box b { color: #58a6ff; display: block; font-size: 0.9rem; }
     .wa-small {
         display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto;
         background: #238636; color: white !important; text-align: center; padding: 10px;
@@ -53,65 +72,12 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. GLOBAL KONTROL PANELİ (HERKESE AÇIK) ---
-with st.sidebar:
-    st.markdown("### 🛡️ SİSTEM YÖNETİMİ")
-    # Bu butonlar giriş yapmadan önce de görünür
-    if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.success("Bellek Sıfırlandı!")
-        st.rerun()
-    
-    if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
-        st.rerun()
-    
-    st.divider()
-    if st.session_state.get("auth"):
-        st.markdown(f"**YETKİ:** {st.session_state['role'].upper()}")
-        if st.button("🔴 GÜVENLİ ÇIKIŞ", use_container_width=True):
-            st.session_state.clear()
-            st.rerun()
-
-# --- 4. ANALİZ MOTORU ---
+# --- 4. ANALİZ FONKSİYONLARI ---
 def siber_fetch(endpoint, params):
     try:
         r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
-
-def h2h_muhakeme_90(id1, id2):
-    h2h = siber_fetch("fixtures/headtohead", {"h2h": f"{id1}-{id2}", "last": "12"})
-    if not h2h or len(h2h) < 4: return None
-    n, s = 0, {"h": 0, "x": 0, "a": 0, "u": 0, "kg": 0}
-    for m in h2h:
-        hg, ag = m.get('goals', {}).get('home'), m.get('goals', {}).get('away')
-        if hg is not None and ag is not None:
-            n += 1
-            if hg > ag: s["h"] += 1
-            elif ag > hg: s["a"] += 1
-            else: s["x"] += 1
-            if (hg + ag) > 2.5: s["u"] += 1
-            if hg > 0 and ag > 0: s["kg"] += 1
-    if n == 0: return None
-    res = {"MS 1": (s["h"]/n)*100, "MS X": (s["x"]/n)*100, "MS 2": (s["a"]/n)*100, "KG VAR": (s["kg"]/n)*100, "2.5 ÜST": (s["u"]/n)*100, "2.5 ALT": (1 - s["u"]/n)*100}
-    basarili = {k: v for k, v in res.items() if v >= 90}
-    return {"KARAR": max(basarili, key=basarili.get), "GUVEN": int(max(basarili.values()))} if basarili else None
-
-def canli_muhakeme(fixture_id, h_name, a_name):
-    stats = siber_fetch("fixtures/statistics", {"fixture": fixture_id})
-    if not stats or len(stats) < 2: return None
-    s = {item['team']['name']: {i['type']: i['value'] for i in item['statistics']} for item in stats}
-    def gv(t, k):
-        val = s.get(t, {}).get(k, 0)
-        return int(str(val).replace("%","")) if val is not None else 0
-    h_sge = (gv(h_name, 'Dangerous Attacks') * 1.5) + (gv(h_name, 'Shots on Goal') * 4) + (gv(h_name, 'Corner Kicks') * 2)
-    a_sge = (gv(a_name, 'Dangerous Attacks') * 1.5) + (gv(a_name, 'Shots on Goal') * 4) + (gv(a_name, 'Corner Kicks') * 2)
-    total = h_sge + a_sge if (h_sge + a_sge) > 0 else 1
-    h_dom = int((h_sge / total) * 100)
-    if h_dom >= 65: return f"🟢 %{h_dom} EZİCİ BASKI", "SIRADAKİ GOL: EV"
-    elif h_dom <= 35: return f"🔵 %{100-h_dom} EZİCİ BASKI", "SIRADAKİ GOL: DEP"
-    return "⚪ DENGELİ", "BEKLEMEDE"
 
 # --- 5. GİRİŞ VE ANA PANEL ---
 if not st.session_state.get("auth"):
@@ -129,14 +95,14 @@ if not st.session_state.get("auth"):
     with c2:
         t1, t2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 MASTER"])
         with t1:
-            u_in = st.text_input("Anahtar:", type="password", key="login")
+            u_in = st.text_input("Anahtar:", type="password")
             if st.button("SİSTEMİ AÇ"):
                 if u_in in VAULT:
                     if u_in not in st.session_state["lic_db"]: st.session_state["lic_db"][u_in] = datetime.now() + timedelta(days=VAULT[u_in]["days"])
                     if datetime.now() > st.session_state["lic_db"][u_in]: st.error("SÜRE DOLDU!")
                     else: st.session_state.update({"auth": True, "role": "user", "active_key": u_in}); st.rerun()
         with t2:
-            a_t = st.text_input("Token:", type="password", key="at"); a_p = st.text_input("Şifre:", type="password", key="ap")
+            a_t = st.text_input("Token:", type="password"); a_p = st.text_input("Şifre:", type="password")
             if st.button("ADMİN GİRİŞİ"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
@@ -146,38 +112,12 @@ else:
     if st.button("🚀 ANALİZİ BAŞLAT", use_container_width=True):
         with st.spinner("Gerçek Zamanlı Veriler İşleniyor..."):
             fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
-            if not fikstur: st.info("Gösterilecek aktif maç bulunamadı.")
+            if not fikstur: st.info("Bu tarih için aktif maç bulunamadı.")
             
             for m in fikstur:
-                status = m['fixture']['status']['short']
                 h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
                 league = m['league']['name']
-                tr_time = (datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00')) + timedelta(hours=3)).strftime('%H:%M')
-                
-                if status in ["1H", "HT", "2H", "ET", "P"]:
-                    res_live = canli_muhakeme(m['fixture']['id'], h_name, a_name)
-                    if res_live:
-                        hak, tav = res_live
-                        st.markdown(f"""<div class='card' style='border-left-color: #ff4b4b;'>
-                            <div style='display:flex; justify-content:space-between; font-size:0.8rem;'>
-                                <b>🔴 CANLI | {m['fixture']['status']['elapsed']}' | {league}</b>
-                                <span style='background:#ff4b4b; padding:2px 8px; border-radius:10px; color:white;'>{hak}</span>
-                            </div>
-                            <h3 style='text-align:center; margin:15px 0;'>{h_name} {m['goals']['home']} - {m['goals']['away']} {a_name}</h3>
-                            <p style='text-align:center; font-weight:bold; color:#58a6ff;'>Y.Z. ÖNERİSİ: {tav}</p>
-                        </div>""", unsafe_allow_html=True)
-
-                elif status in ["NS", "TBD"]:
-                    res_h2h = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
-                    if res_h2h:
-                        st.markdown(f"""<div class='card'>
-                            <div style='display:flex; justify-content:space-between; opacity:0.8; font-size:0.8rem;'>
-                                <b>{league}</b>
-                                <b>⏰ {tr_time}</b>
-                            </div>
-                            <h4 style='margin:10px 0; text-align:center;'>{h_name} - {a_name}</h4>
-                            <div style='display:flex; justify-content:space-between; color:#4ade80;'>
-                                <span>🤖 Y.Z. KARAR: {res_h2h['KARAR']}</span>
-                                <span>🔥 GÜVEN: %{res_h2h['GUVEN']}</span>
-                            </div>
-                        </div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div class='card'>
+                    <b>{league}</b><br>
+                    <h4 style='text-align:center;'>{h_name} - {a_name}</h4>
+                </div>""", unsafe_allow_html=True)
