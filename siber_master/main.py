@@ -65,39 +65,32 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+# --- 3. YARDIMCI FONKSİYONLAR ---
 def to_tsi(utc_str):
-    utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
-    return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+    try:
+        utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
+        return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+    except: return "00:00"
 
-@st.cache_data(ttl=3600)
-def get_marquee_html():
+def fetch_data():
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
-        res = r.json().get('response', [])
-        html_str = ""
-        for m in res[:30]:
-            home, away = m['teams']['home']['name'], m['teams']['away']['name']
-            html_str += f"<span class='match-badge'>⚽ {home} <span>VS</span> {away}</span>"
-        return html_str if html_str else "<span class='match-badge'>🚀 AI BUGÜNÜN FIRSATLARINI ANALİZ EDİYOR...</span>"
-    except: return "<span class='match-badge'>⚠️ VERİ AKIŞI BAŞLATILIYOR...</span>"
+        return r.json().get('response', [])
+    except: return []
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
 
-# --- 3. GİRİŞ ÖNCESİ (ASIL PAZARLAMA PANELİ) ---
+# --- 4. GİRİŞ ÖNCESİ (ASIL PAZARLAMA PANELİ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
-    m_html = get_marquee_html()
+    # Kayan yazı verisi
+    m_data = fetch_data()[:25]
+    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
+    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><b>10.000 TL</b></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 2, 1])
@@ -114,7 +107,7 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 
 else:
-    # --- 4. GİRİŞ SONRASI (ASIL İÇ PANEL) ---
+    # --- 5. GİRİŞ SONRASI (ASIL İÇ PANEL - BUTONLAR BURADA) ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur. Yazılım hakkındaki görüş ve önerilerinizi lütfen bize bildirin.</div>", unsafe_allow_html=True)
     
@@ -130,14 +123,16 @@ else:
 
     if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
         res_area = st.container()
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
-        matches = r.json().get('response', [])
+        matches = fetch_data()
         
         if matches:
+            count = 0
             for i, m in enumerate(matches):
                 is_live = m['fixture']['status']['short'] in ['1H', '2H', 'HT']
                 score = 80 + (i % 15) if is_live else 90 + (i % 10)
+                
                 if (is_live and score >= 80) or (not is_live and score >= 90):
+                    count += 1
                     with res_area:
                         card_style = "live-decision" if is_live else ""
                         score_style = "live" if is_live else ""
@@ -150,6 +145,7 @@ else:
                                 <span style='color:#2ea043; font-weight:bold;'>YAPAY ZEKA KARARI:</span> KG VAR & 2.5 ÜST<br>
                             </div>
                         """, unsafe_allow_html=True)
-        else: st.warning("Veri akışı yok.")
+            st.success(f"✅ Tarama Tamamlandı. {count} sinyal listelendi.")
+        else: st.warning("Veri akışı şu an kapalı.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
