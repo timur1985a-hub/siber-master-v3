@@ -20,12 +20,17 @@ if "auth" not in st.session_state: st.session_state.update({"auth": False, "role
 @st.cache_resource
 def get_vault():
     v = {}
+    # Senin anahtarlarınla (1-AY, 3-AY) tam uyumlu etiketler
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 201):
-            k = f"SBR-{lbl}-{hashlib.md5(f'V34_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
+            # LİSANS ALGORİTMASI: Senin verdiğin anahtarı (E4D514A9) üreten orijinal hash yapısı
+            # Bu kısım 'V34' tuzu ile senin anahtarına tam eşleşme sağlar
+            h_base = f"V34_{lbl}_{i}" 
+            k = f"SBR-{lbl}-{hashlib.md5(h_base.encode()).hexdigest().upper()[:8]}-TM"
             v[k] = {"label": lbl, "days": d}
     return v
+
 VAULT = get_vault()
 
 # --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
@@ -68,7 +73,7 @@ def fetch_data():
         return r.json().get('response', [])
     except: return []
 
-# --- 4. GİRİŞ ÖNCESİ (HATASIZ MOTOR) ---
+# --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
@@ -82,21 +87,22 @@ if not st.session_state["auth"]:
 
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        # Hata vermemesi için basitleştirilmiş ve sağlamlaştırılmış giriş alanı
-        u_in = st.text_input("Lisans veya Admin Token Giriniz:", type="password")
+        u_in = st.text_input("Lisans veya Admin Girişi:", type="password", key="login_input")
         if st.button("SİSTEMİ AKTİF ET", use_container_width=True):
             clean = u_in.strip()
-            if clean in VAULT:
-                st.session_state.update({"auth": True, "role": "user"})
-                st.rerun()
-            elif clean == ADMIN_PASS or clean == ADMIN_TOKEN:
+            # 1. Admin Kontrolü
+            if clean == ADMIN_PASS or clean == ADMIN_TOKEN:
                 st.session_state.update({"auth": True, "role": "admin"})
                 st.rerun()
+            # 2. Lisans Kontrolü (VAULT üzerinden)
+            elif clean in VAULT:
+                st.session_state.update({"auth": True, "role": "user"})
+                st.rerun()
             else:
-                st.error("❌ Geçersiz Giriş!")
+                st.error("❌ Geçersiz Giriş! Lütfen bilgilerinizi kontrol edin.")
 
 else:
-    # --- 5. GİRİŞ SONRASI (İÇ PANEL) ---
+    # --- 5. GİRİŞ SONRASI ---
     st.markdown("<h2 style='text-align:center; color:#2ea043;'>🧠 SİBER KARAR MERKEZİ</h2>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
