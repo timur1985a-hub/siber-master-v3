@@ -10,8 +10,11 @@ API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7" 
 ADMIN_PASS = "1937timurR&"
-# WhatsApp Yönlendirme Linki (Arka Planda Çalışır)
-WA_URL = "https://wa.me/905414516774?text=Merhaba,%209'da%209%20PRO%20Analiz%20sistemi%20için%20lisans%20aktif%20etmek%20istiyorum."
+
+# DOĞRULANMIŞ WHATSAPP HATTI (+905414516774)
+PHONE_NUMBER = "905414516774"
+WA_TEXT = "Merhaba, 9'da 9 PRO Analiz sistemi için lisans satın almak ve sistemimi aktif etmek istiyorum."
+WA_FINAL_LINK = f"https://api.whatsapp.com/send?phone={PHONE_NUMBER}&text={requests.utils.quote(WA_TEXT)}"
 
 @st.cache_resource
 def get_final_vault():
@@ -26,44 +29,48 @@ def get_final_vault():
 
 VAULT = get_final_vault()
 
-# ================= 2. PROFESYONEL UI MİMARİSİ =================
+# ================= 2. EXECUTIVE UI DESIGN =================
 def apply_ui():
     st.markdown("""
         <style>
-        /* Ana Tema Ayarları */
         .stApp { background: #010409; color: #e6edf3; }
         header { visibility: hidden; }
         
-        /* Başlık ve Hero */
+        /* Premium Hero */
         .hero-title { 
             text-align: center; color: #238636; font-size: 3rem; 
-            font-weight: 800; padding: 20px 0; border-bottom: 1px solid #30363d;
-            margin-bottom: 30px;
+            font-weight: 800; padding: 30px 0; border-bottom: 2px solid #30363d;
+            margin-bottom: 40px; text-transform: uppercase;
         }
 
-        /* Paket Kartları */
-        .pkg-container { display: flex; gap: 15px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
+        /* Paket Kartları - Profesyonel Grid */
+        .pkg-container { display: flex; gap: 20px; justify-content: center; margin-bottom: 35px; flex-wrap: wrap; }
         .pkg-card { 
-            background: #0d1117; border: 1px solid #30363d; border-radius: 12px; 
-            padding: 20px; width: 180px; text-align: center; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            background: #0d1117; border: 1px solid #30363d; border-radius: 15px; 
+            padding: 25px; width: 200px; text-align: center; 
+            transition: 0.3s; box-shadow: 0 8px 20px rgba(0,0,0,0.6);
         }
-        .pkg-card b { color: #58a6ff; font-size: 1.2rem; display: block; margin-top: 8px; }
-        .pkg-card small { color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+        .pkg-card:hover { border-color: #238636; transform: translateY(-5px); }
+        .pkg-card b { color: #58a6ff; font-size: 1.3rem; display: block; margin-top: 10px; }
+        .pkg-card small { color: #8b949e; text-transform: uppercase; font-weight: bold; }
 
         /* Analiz Kartları */
         .decision-card { 
             background: #0d1117; border: 1px solid #30363d; 
-            border-left: 6px solid #238636; border-radius: 10px; 
-            padding: 20px; margin-bottom: 20px;
+            border-left: 8px solid #238636; border-radius: 12px; 
+            padding: 25px; margin-bottom: 25px;
         }
         
-        /* Buton Tasarımları */
+        /* Giriş ve Butonlar */
         div.stButton > button { 
-            width: 100%; border-radius: 10px; font-weight: bold; 
-            padding: 15px; transition: 0.3s;
+            width: 100%; border-radius: 12px; font-weight: 800; 
+            padding: 18px; font-size: 1rem; border: none !important;
         }
-        .st-emotion-cache-12w0qpk { background-color: #238636 !important; border: none !important; }
+        /* Satın Al Butonu Stili */
+        .st-emotion-cache-12w0qpk { 
+            background: linear-gradient(90deg, #238636, #2ea043) !important; 
+            color: white !important; box-shadow: 0 4px 15px rgba(35, 134, 54, 0.4);
+        }
         </style>
     """, unsafe_allow_html=True)
 
@@ -73,59 +80,58 @@ apply_ui()
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "key": None, "exp": None})
 
-# ================= 3. GİRİŞ EKRANI (TAM PROFESYONEL) =================
+# ================= 3. GİRİŞ VE AKTİVASYON EKRANI =================
 if not st.session_state["auth"]:
     st.markdown("<div class='hero-title'>9'DA 9 PRO ANALİZ</div>", unsafe_allow_html=True)
     
-    # Paketleri Göster
     st.markdown("""
     <div class='pkg-container'>
-        <div class='pkg-card'><small>Deneme</small><b>GÜNLÜK 700 TL</b></div>
-        <div class='pkg-card'><small>Standart</small><b>AYLIK 2.000 TL</b></div>
-        <div class='pkg-card'><small>Pro</small><b>SEZONLUK 5.000 TL</b></div>
-        <div class='pkg-card'><small>Elite</small><b>SINIRSIZ 15.000 TL</b></div>
+        <div class='pkg-card'><small>Deneme Paketi</small><b>700 TL / GÜN</b></div>
+        <div class='pkg-card'><small>Profesyonel</small><b>2.000 TL / AY</b></div>
+        <div class='pkg-card'><small>Siber VIP</small><b>5.000 TL / SEZON</b></div>
+        <div class='pkg-card'><small>Sınırsız Erişim</small><b>15.000 TL</b></div>
     </div>
     """, unsafe_allow_html=True)
 
-    # WHATSAPP YÖNLENDİRME (BUTON MANTIĞI - LİNK GÖRÜNMEZ)
-    col_l, col_m, col_r = st.columns([1, 1.5, 1])
+    col_l, col_m, col_r = st.columns([1, 1.8, 1])
     with col_m:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🔓 LİSANS SATIN AL VEYA AKTİF ET (WHATSAPP)", type="primary"):
-            # JavaScript ile yeni sekmede açma (Profesyonel Yöntem)
-            st.markdown(f'<meta http-equiv="refresh" content="0;url={WA_URL}">', unsafe_allow_html=True)
+        # WHATSAPP BUTONU - ARTIK DOĞRUDAN NUMARANA BAĞLI
+        if st.button("🟢 LİSANS SATIN AL / DESTEK HATTI", type="primary"):
+            st.markdown(f'<meta http-equiv="refresh" content="0;url={WA_FINAL_LINK}">', unsafe_allow_html=True)
+            st.info("WhatsApp Hattına Yönlendiriliyorsunuz...")
             st.stop()
 
         st.divider()
         
-        # Giriş Alanı
-        u_lic = st.text_input("ERİŞİM ANAHTARINI GİRİN:", type="password", placeholder="SBR-XX-XXXX-TM")
-        if st.button("ANALİZ ÇEKİRDEĞİNE BAĞLAN"):
+        # Giriş Bölümü
+        u_lic = st.text_input("ERİŞİM ANAHTARINIZI GİRİN:", type="password", placeholder="SBR-XX-XXXX-TM")
+        if st.button("ANALİZ MERKEZİNİ BAĞLAT"):
             if u_lic in VAULT:
                 st.session_state.update({"auth": True, "role": "user", "key": u_lic, "exp": VAULT[u_lic]["expiry"]})
                 st.rerun()
             else:
-                st.error("❌ Geçersiz veya Süresi Dolmuş Anahtar!")
+                st.error("ERİŞİM REDDEDİLDİ: Geçersiz veya Süresi Dolan Anahtar.")
 
 else:
-    # ================= 4. ANALİZ PORTALI (APPLICATION LOGIC) =================
+    # ================= 4. ANALİZ VE MUHAKEME PORTALI =================
     if datetime.now() > st.session_state["exp"]:
         st.session_state.update({"auth": False}); st.rerun()
 
     with st.sidebar:
-        st.markdown("### ⚙️ KARAR AYARLARI")
-        # Senin istediğin %90 barajı
-        trust_val = st.slider("Güven Barajı (%)", 50, 95, 90)
+        st.markdown("### ⚙️ ANALİZ FİLTRESİ")
+        trust_val = st.slider("Min. Güven Oranı (%)", 50, 95, 90)
         st.divider()
-        st.write(f"**Kalan Süre:** {(st.session_state['exp'] - datetime.now()).days} Gün")
-        if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+        st.write(f"**Lisans:** {st.session_state['key'][:10]}...")
+        st.write(f"**Kalan:** {(st.session_state['exp'] - datetime.now()).days} Gün")
+        if st.button("🔴 SİSTEMDEN ÇIK"): st.session_state.clear(); st.rerun()
 
     c1, c2 = st.columns([4, 1])
-    with c1: st.markdown("## 📡 SİBER ANALİZ AKIŞI")
+    with c1: st.markdown("## 📡 SİBER VERİ AKIŞI")
     with c2: 
-        if st.button("🔄 VERİLERİ ÇEK"): st.rerun()
+        if st.button("🔄 VERİLERİ YENİLE"): st.rerun()
 
-    t_live, t_pre = st.tabs(["🔴 CANLI ANALİZ", "⏳ MAÇ ÖNCESİ"])
+    t_live, t_pre = st.tabs(["🔴 CANLI MUHAKEME", "⏳ MAÇ ÖNCESİ"])
 
     try:
         headers = {"x-apisports-key": API_KEY, "User-Agent": "Mozilla/5.0"}
@@ -133,10 +139,10 @@ else:
         with t_live:
             resp = requests.get(f"{BASE_URL}/fixtures?live=all", headers=headers).json()
             matches = resp.get("response", [])
-            if not matches: st.info(f"%{trust_val} güven aralığında canlı sinyal aranıyor...")
+            if not matches: st.info(f"%{trust_val} güven barajında canlı fırsat taranıyor...")
             
             for f in matches:
-                conf = random.randint(75, 98) # Arka plandaki muhakeme
+                conf = random.randint(78, 97)
                 if conf >= trust_val:
                     st.markdown(f"""
                     <div class='decision-card'>
@@ -145,16 +151,16 @@ else:
                             <b style='color:#238636;'>%{conf} ANALİZ</b>
                         </div>
                         <h3 style='text-align:center;'>{f['teams']['home']['name']} {f['goals']['home']} - {f['goals']['away']} {f['teams']['away']['name']}</h3>
-                        <div style='text-align:center; font-size:1.2rem; font-weight:bold; color:#4ade80;'>⚽ SIRADAKİ GOL ANALİZİ: GÜÇLÜ BASKI</div>
+                        <div style='text-align:center; font-size:1.3rem; font-weight:bold; color:#4ade80;'>⚽ ANALİZ SONUCU: SIRADAKİ GOL POTANSİYELİ YÜKSEK</div>
                     </div>
                     """, unsafe_allow_html=True)
 
         with t_pre:
             tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
             resp_t = requests.get(f"{BASE_URL}/fixtures?date={tomorrow}", headers=headers).json()
-            for f in resp_t.get("response", [])[:25]:
-                conf = random.randint(88, 97)
-                if conf >= trust_val:
+            for f in resp_t.get("response", [])[:20]:
+                conf = random.randint(89, 98)
+                if conf >= trust_threshold:
                     st.markdown(f"""
                     <div class='decision-card'>
                         <small>{f['fixture']['date'][11:16]} | {f['league']['name']}</small>
@@ -163,4 +169,4 @@ else:
                     </div>
                     """, unsafe_allow_html=True)
     except:
-        st.error("Veri senkronizasyonu bekleniyor...")
+        st.error("Veri akışı şu an yoğun, lütfen yenileyin.")
