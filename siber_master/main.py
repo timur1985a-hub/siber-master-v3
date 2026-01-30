@@ -1,15 +1,17 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import requests
-import pandas as pd
-from datetime import datetime, timedelta
 import hashlib
-import json
+from datetime import datetime, timedelta
 
-# --- 1. GOOGLE ETİKETİ ENJEKSİYONU (PRENSİP: HEAD ÖĞESİNİN HEMEN SONRASI) ---
-# Google'ın istediği G-9KHTP6QZY8 kodunu en tepeye, botların göreceği yere çiviledim.
-components.html(
-    f"""
+# --- 1. KESİN DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
+st.set_page_config(
+    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250 | Analiz Motoru",
+    page_icon="🎯",
+    layout="wide"
+)
+
+# Yeni DNS TXT Kodun ve Analytics Tek Bir Gizli Katmanda
+st.markdown(f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -17,27 +19,21 @@ components.html(
       gtag('js', new Date());
       gtag('config', 'G-9KHTP6QZY8');
     </script>
-    """,
-    height=0,
-)
-
-st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
-    page_icon="🎯",
-    layout="wide"
-)
-
-# SEO ve Doğrulama Katmanı (Arka Planda)
-st.markdown("""
+    
     <div style="display:none;">
+        <p>google-site-verification=JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg</p>
+        
+        <article>
+            <h1>Siber Radar V250: Yapay Zeka Destekli Tahmin Motoru</h1>
+            <p>Siber Radar V250, futbol analizinde yeni bir çağ açıyor. Yapay zeka algoritmalarımız 
+            %90+ güvenilirlikle maç tahminleri üretir ve canlı verilerle banko analizler sunar.</p>
+        </article>
+        <meta name="google-site-verification" content="JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg" />
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
-        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
-        <meta name="robots" content="index, follow" />
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
-API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
+# --- 2. SİBER HAFIZA VE LİSANS MOTORU (DOKUNULMAZ ÇEKİRDEK) ---
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
@@ -76,7 +72,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 4. GİRİŞ VE MASTER SEKMELERİ ---
+# --- 4. GİRİŞ VE MASTER SEKMELERİ (DOKUNULMAZ) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -106,4 +102,3 @@ if not st.session_state["auth"]:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 Head Katmanı Doğrulaması Aktif.")
