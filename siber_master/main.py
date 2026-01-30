@@ -6,37 +6,35 @@ import hashlib
 import time
 import pytz
 
-# --- 1. SİBER HAFIZA VE ADMİN KİMLİĞİ (DOKUNULMAZ) ---
+# --- 1. SİBER HAFIZA VE ADMİN KİMLİĞİ (DEĞİŞMEZ ÇEKİRDEK) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
 
-# ADMİN KİMLİĞİ (SENİN İSTEDİĞİN TANIMA DİSİPLİNİ)
+# ADMİN BİLGİLERİ (KODUN KALBİNE MÜHÜRLÜ)
 ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7"
 ADMIN_PASS = "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# --- LİSANS TANIMA DİSİPLİNİ (ADMİN ŞİFRESİ GİBİ SABİT) ---
-# Burada lisanslar tıpkı Admin şifresi gibi kodun içine mühürlenmiştir.
-# Senin paylaştığın 'SBR-1-AY-E4D514A9-TM' formatı artık bu listede bir kimliktir.
+# Dinamik ve Kalıcı Lisans Hafızası
+if "lic_db" not in st.session_state:
+    st.session_state["lic_db"] = {}
+
 @st.cache_resource
-def get_auth_vault():
+def get_vault():
+    """Lisansları Admin Şifresi Disiplininde Kodun İçine Sabitler"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 101):
-            # Admin şifresi üretim mantığıyla birebir aynı disiplin:
+            # Senin SBR-1-AY-E4D5... formatını üreten sarsılmaz algoritma
             k = f"SBR-{lbl}-{hashlib.md5(f'V34_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
-            v[k] = {"label": lbl, "days": d}
+            v[k] = {"label": lbl, "days": d, "expire": None}
     return v
 
-AUTH_VAULT = get_auth_vault()
-
-# Dinamik lisanslar için ek alan (Admin panelinden üretilenler için)
-if "extra_lic" not in st.session_state:
-    st.session_state["extra_lic"] = {}
+VAULT = get_vault()
 
 # --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
 st.markdown("""
@@ -53,6 +51,7 @@ st.markdown("""
         border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace;
         box-shadow: inset 0px 0px 5px rgba(248, 81, 73, 0.3); font-size: 1rem;
     }
+    .match-badge span { color: #e6edf3; margin: 0 10px; opacity: 0.6; }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
     .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; }
@@ -81,7 +80,7 @@ def fetch_data():
         return r.json().get('response', [])
     except: return []
 
-if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
+if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None})
 
 # --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
@@ -101,13 +100,26 @@ if not st.session_state["auth"]:
         with t1:
             u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login")
             if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-                # ADMİN GİRİŞİNDEKİ AYNI KESKİN TANIMA MANTIĞI:
                 key = u_in.strip()
-                if key in AUTH_VAULT or key in st.session_state["extra_lic"]:
-                    st.session_state.update({"auth": True, "role": "user"})
-                    st.rerun()
+                target = VAULT.get(key) or st.session_state["lic_db"].get(key)
+                
+                if target:
+                    now = datetime.now()
+                    if target.get("expire"):
+                        if now > target["expire"]:
+                            st.error("❌ LİSANSINIZIN SÜRESİ DOLDU!")
+                        else:
+                            st.session_state.update({"auth": True, "role": "user", "current_user": key})
+                            st.rerun()
+                    else:
+                        # İlk girişte süreyi başlat ve mühürle
+                        expire_date = now + timedelta(days=target["days"])
+                        st.session_state["lic_db"][key] = target
+                        st.session_state["lic_db"][key]["expire"] = expire_date
+                        st.session_state.update({"auth": True, "role": "user", "current_user": key})
+                        st.rerun()
                 else:
-                    st.error("❌ Lisans Kimliği Doğrulanamadı!")
+                    st.error("❌ Geçersiz Lisans!")
 
         with t2:
             a_t = st.text_input("Admin Token:", type="password", key="a_token")
@@ -118,18 +130,18 @@ if not st.session_state["auth"]:
                     st.rerun()
                 else:
                     st.error("❌ Admin Kimliği Reddedildi!")
-
 else:
     # --- 5. GİRİŞ SONRASI ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 LİSANS ÜRET VE KODU MÜHÜRLE", expanded=True):
+        with st.expander("🎫 YENİ LİSANS ÜRET VE MÜHÜRLE", expanded=True):
             p_choice = st.selectbox("Paket", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            p_days = {"1-AY": 30, "3-AY": 90, "6-AY": 180, "12-AY": 365, "SINIRSIZ": 36500}[p_choice]
             if st.button("⚡ SİSTEME KAYDET"):
                 new_key = f"SBR-{p_choice}-{hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:8]}-TM"
-                st.session_state["extra_lic"][new_key] = True
+                st.session_state["lic_db"][new_key] = {"label": p_choice, "days": p_days, "expire": None}
                 st.code(new_key)
-                st.success("Lisans tıpkı Admin şifresi gibi sisteme mühürlendi.")
+                st.success("Yeni lisans Admin yetkisiyle sisteme mühürlendi.")
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
         st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur.</div>", unsafe_allow_html=True)
