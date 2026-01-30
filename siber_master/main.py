@@ -3,13 +3,13 @@ import requests
 from datetime import datetime, timedelta
 import hashlib
 
-# --- 0. VERSİYON KONTROL (BULUTU GÜNCELLEMEYE ZORLAR) ---
-VERSION = "2.5.1-FORCE-SYNC" 
+# --- 0. VERSİYON KONTROL ---
+VERSION = "2.5.3-MOBILE-FIX" 
 
 st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
 
 # Google Doğrulama (Görünmez)
-st.markdown(f'<div style="display:none;">google-site-verification: google8ffdf1f7bdb7adf3.html</div>', unsafe_allow_html=True)
+st.markdown("""<div style="display:none;"><meta name="google-site-verification" content="8ffdf1f7bdb7adf3" /></div>""", unsafe_allow_html=True)
 
 # --- 1. SİBER HAFIZA VE LİSANS ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
@@ -31,28 +31,7 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. GLOBAL YAN PANEL (GİRİŞ ÖNCESİ VE SONRASI SABİT) ---
-with st.sidebar:
-    st.markdown(f"### 🚀 SİSTEM V{VERSION}")
-    st.info("Eğer 'Takım A' görüyorsanız aşağıdaki butona basın.")
-    
-    if st.button("🧹 TÜM SİSTEMİ TEMİZLE", use_container_width=True):
-        st.cache_data.clear()
-        st.cache_resource.clear()
-        st.success("Bulut hafızası boşaltıldı!")
-        st.rerun()
-        
-    if st.button("♻️ VERİLERİ ÇEK / GÜNCELLE", use_container_width=True):
-        st.rerun()
-    
-    st.divider()
-    if st.session_state.get("auth"):
-        st.success(f"YETKİ: {st.session_state['role'].upper()}")
-        if st.button("🔴 ÇIKIŞ YAP"):
-            st.session_state.clear()
-            st.rerun()
-
-# --- 3. TASARIM VE STİL (DEĞİŞMEZ) ---
+# --- 2. TASARIM ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -72,14 +51,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 4. ANALİZ FONKSİYONLARI ---
-def siber_fetch(endpoint, params):
-    try:
-        r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
-        return r.json().get('response', []) if r.status_code == 200 else []
-    except: return []
-
-# --- 5. GİRİŞ VE ANA PANEL ---
+# --- 3. GİRİŞ VE ANA KONTROL PANELİ (ORTA BÖLÜM) ---
 if not st.session_state.get("auth"):
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
@@ -91,33 +63,28 @@ if not st.session_state.get("auth"):
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🟢 LİSANS AL / WHATSAPP</a>", unsafe_allow_html=True)
 
+    # BUTONLARI BURAYA (MOBİLDE HERKESİN GÖRECEĞİ YERE) ALDIM
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("🧹 BELLEĞİ SİL", use_container_width=True):
+            st.cache_data.clear()
+            st.cache_resource.clear()
+            st.rerun()
+    with col_b:
+        if st.button("♻️ GÜNCELLE", use_container_width=True):
+            st.rerun()
+
+    st.divider()
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        t1, t2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 MASTER"])
-        with t1:
-            u_in = st.text_input("Anahtar:", type="password")
-            if st.button("SİSTEMİ AÇ"):
-                if u_in in VAULT:
-                    if u_in not in st.session_state["lic_db"]: st.session_state["lic_db"][u_in] = datetime.now() + timedelta(days=VAULT[u_in]["days"])
-                    if datetime.now() > st.session_state["lic_db"][u_in]: st.error("SÜRE DOLDU!")
-                    else: st.session_state.update({"auth": True, "role": "user", "active_key": u_in}); st.rerun()
-        with t2:
-            a_t = st.text_input("Token:", type="password"); a_p = st.text_input("Şifre:", type="password")
-            if st.button("ADMİN GİRİŞİ"):
-                if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
+        u_in = st.text_input("Anahtar:", type="password")
+        if st.button("SİSTEMİ AÇ", use_container_width=True):
+            if u_in in VAULT or u_in == ADMIN_PASS:
+                st.session_state["auth"] = True
+                st.rerun()
 else:
+    # Uygulama İçeriği (Giriş Yapılınca Burası Görünür)
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
-    target_date = st.date_input("Analiz Tarihi:", datetime.now())
-    
-    if st.button("🚀 ANALİZİ BAŞLAT", use_container_width=True):
-        with st.spinner("Gerçek Zamanlı Veriler İşleniyor..."):
-            fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
-            if not fikstur: st.info("Bu tarih için aktif maç bulunamadı.")
-            
-            for m in fikstur:
-                h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
-                league = m['league']['name']
-                st.markdown(f"""<div class='card'>
-                    <b>{league}</b><br>
-                    <h4 style='text-align:center;'>{h_name} - {a_name}</h4>
-                </div>""", unsafe_allow_html=True)
+    if st.button("🔴 ÇIKIŞ YAP"):
+        st.session_state.clear()
+        st.rerun()
