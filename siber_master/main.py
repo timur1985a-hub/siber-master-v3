@@ -1,18 +1,12 @@
 import streamlit as st
 import requests
-import hashlib
+import pandas as pd
 from datetime import datetime, timedelta
+import hashlib
 
-# --- 0. GOOGLE DOĞRULAMA (DOSYA İMZASI) ---
+# --- 1. SİBER HAFIZA VE API MOTORU (DOKUNULMAZ) ---
 st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
-st.markdown("""
-    <div style="display:none;">
-        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
-        <p>google-site-verification: google8ffdf1f7bdb7adf3.html</p>
-    </div>
-""", unsafe_allow_html=True)
 
-# --- 1. SİBER HAFIZA VE API (DOKUNULMAZ) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -53,7 +47,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. GLOBAL YAN PANEL (BUTONLAR BURADA SABİT) ---
+# --- 3. GLOBAL YAN PANEL (BELLEK VE GÜNCELLEME) ---
 with st.sidebar:
     st.markdown("### 🛡️ SİSTEM YÖNETİMİ")
     if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
@@ -64,12 +58,15 @@ with st.sidebar:
         st.rerun()
     st.divider()
     if st.session_state.get("auth"):
-        if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.success(f"YETKİ: {st.session_state['role'].upper()}")
+        if st.button("🔴 ÇIKIŞ"):
             st.session_state.clear()
             st.rerun()
 
-# --- 4. GİRİŞ PANELİ ---
-if not st.session_state.get("auth"):
+if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
+
+# --- 4. GİRİŞ PANELİ (SABİT ŞABLON) ---
+if not st.session_state["auth"]:
     st.markdown("<div class='hype-title'>SIRA SENDE! 💸</div>", unsafe_allow_html=True)
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
@@ -82,12 +79,20 @@ if not st.session_state.get("auth"):
 
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        u_in = st.text_input("Anahtar:", type="password", key="log_in")
-        if st.button("SİSTEMİ AÇ", use_container_width=True):
-            if u_in in VAULT or u_in == ADMIN_PASS:
-                st.session_state["auth"] = True
-                st.rerun()
+        t1, t2 = st.tabs(["🔑 GİRİŞ", "👨‍💻 MASTER"])
+        with t1:
+            u_in = st.text_input("Anahtar:", type="password", key="user_login")
+            if st.button("SİSTEMİ AÇ"):
+                if u_in in VAULT:
+                    if u_in not in st.session_state["lic_db"]: st.session_state["lic_db"][u_in] = datetime.now() + timedelta(days=VAULT[u_in]["days"])
+                    if datetime.now() > st.session_state["lic_db"][u_in]: st.error("SÜRE DOLDU!")
+                    else: st.session_state.update({"auth": True, "role": "user", "active_key": u_in}); st.rerun()
+        with t2:
+            a_t = st.text_input("Token:", type="password", key="admin_token")
+            a_p = st.text_input("Şifre:", type="password", key="admin_pass")
+            if st.button("ADMİN GİRİŞİ"):
+                if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
     # --- 5. ANALİZ MERKEZİ ---
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
-    st.info("Sistem hazır. Sol menüden güncellemeleri yönetebilirsiniz.")
+    st.success("Sistem hazır. Verileri çekmek için lütfen kriterleri seçin.")
