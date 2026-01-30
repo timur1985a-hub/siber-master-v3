@@ -3,14 +3,14 @@ import requests
 import hashlib
 from datetime import datetime, timedelta
 
-# --- 1. KRİTİK GOOGLE DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
+# --- 1. KRİTİK DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
 st.set_page_config(
     page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
     page_icon="🎯",
     layout="wide"
 )
 
-# Sağladığın H1Ify... kodunu botların kaçıramayacağı en üst noktaya ekledim.
+# Google Botlarını içeri çeken ve sahipliği kanıtlayan katman
 st.markdown(f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
     <script>
@@ -22,12 +22,13 @@ st.markdown(f"""
     
     <div style="display:none;">
         <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
-        <meta name="google-site-verification" content="JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg" />
+        <meta name="google-site-verification" content="8ffdf1f7bdb7adf3" />
         
         <article>
             <h1>Yapay Zeka Maç Tahmin Sistemi - Siber Radar V250</h1>
-            <p>Siber Radar V250, en gelişmiş veri analizi ve yapay zeka algoritmalarıyla donatılmış bir iddaa tahmin motorudur. 
+            <p>Siber Radar V250, 2026 yılının en gelişmiş veri analizi ve yapay zeka algoritmalarıyla donatılmış bir iddaa tahmin motorudur. 
             Maç istatistiklerini, takım form durumlarını ve canlı verileri saniyeler içinde işleyerek profesyonel analizler sunar.</p>
+            <p>Anahtar Kelimeler: yapay zeka maç tahmin, iddaa analiz motoru, siber radar v250, banko kuponlar.</p>
         </article>
     </div>
 """, unsafe_allow_html=True)
@@ -101,4 +102,3 @@ if not st.session_state["auth"]:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
-    st.info("🎯 SEO Makalesi ve HTML Meta Doğrulaması Aktif.")
