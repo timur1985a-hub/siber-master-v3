@@ -9,7 +9,7 @@ import pytz
 # --- 1. SİBER HAFIZA VE ADMİN KİMLİĞİ (DEĞİŞMEZ ÇEKİRDEK) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
-# ADMIN VE API TANIMLARI (DOKUNULMAZ)
+# ADMIN VE API TANIMLARI (ADMİN ŞİFRESİ MANTIĞI)
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -17,19 +17,19 @@ ADMIN_TOKEN = "SBR-MASTER-2026-TIMUR-X7"
 ADMIN_PASS = "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# Kalıcı ve Dinamik Lisans Hafızası Başlatma
+# Dinamik Lisans Hafızası (Admin'in ürettiklerini Admin gibi tanır)
 if "lic_db" not in st.session_state:
     st.session_state["lic_db"] = {}
 
 @st.cache_resource
 def get_vault():
-    """Admin Şifresi Disiplininde 500 Statik Anahtarı Kodun İçine Sabitler"""
+    """500 Statik Anahtarı Kodun İçine Admin Şifresi Disiplininde Mühürler"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 101):
             k = f"SBR-{lbl}-{hashlib.md5(f'V34_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
-            v[k] = {"label": lbl, "days": d, "expire": None}
+            v[k] = {"label": lbl, "days": d}
     return v
 
 VAULT = get_vault()
@@ -49,7 +49,6 @@ st.markdown("""
         border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace;
         box-shadow: inset 0px 0px 5px rgba(248, 81, 73, 0.3); font-size: 1rem;
     }
-    .match-badge span { color: #e6edf3; margin: 0 10px; opacity: 0.6; }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
     .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 15px; }
@@ -78,7 +77,7 @@ def fetch_data():
         return r.json().get('response', [])
     except: return []
 
-if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None})
+if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
 
 # --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
@@ -96,56 +95,35 @@ if not st.session_state["auth"]:
     with c2:
         t1, t2 = st.tabs(["🔑 SİSTEME GİRİŞ", "👨‍💻 MASTER PANEL"])
         with t1:
-            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login")
+            u_in = st.text_input("Lisans Anahtarınız:", type="password", key="u_login").strip()
             if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-                key = u_in.strip()
-                # HEM STATİK KASADA HEM DE ÜRETİLENLERDE ARA (KESİN ÇÖZÜM)
-                target = st.session_state["lic_db"].get(key) or VAULT.get(key)
-                
-                if target:
-                    now = datetime.now()
-                    # Zamanlayıcı Kontrolü
-                    if target.get("expire"):
-                        if now > target["expire"]:
-                            st.error("❌ LİSANSINIZIN SÜRESİ DOLDU!")
-                        else:
-                            st.session_state.update({"auth": True, "role": "user", "current_user": key})
-                            st.rerun()
-                    else:
-                        # İlk kez giriyorsa süreyi şimdi mühürle
-                        expire_date = now + timedelta(days=target["days"])
-                        st.session_state["lic_db"][key] = target
-                        st.session_state["lic_db"][key]["expire"] = expire_date
-                        st.session_state.update({"auth": True, "role": "user", "current_user": key})
-                        st.rerun()
+                # KÖPRÜ MANTIĞI: Admin bilgisi gibi doğrudan eşleşme kontrolü
+                if u_in in VAULT or u_in in st.session_state["lic_db"]:
+                    st.session_state.update({"auth": True, "role": "user"})
+                    st.rerun()
                 else:
-                    st.error("❌ Geçersiz Lisans!")
+                    st.error("❌ Lisans Anahtarı Geçersiz!")
 
         with t2:
-            a_token_input = st.text_input("Admin Token:", type="password", key="a_token")
-            a_pass_input = st.text_input("Admin Password:", type="password", key="a_pass")
+            a_t_in = st.text_input("Admin Token:", type="password", key="a_token_in").strip()
+            a_p_in = st.text_input("Admin Password:", type="password", key="a_pass_in").strip()
             if st.button("MASTER GİRİŞ", use_container_width=True):
-                if a_token_input == ADMIN_TOKEN and a_pass_input == ADMIN_PASS: 
+                if a_t_in == ADMIN_TOKEN and a_p_in == ADMIN_PASS: 
                     st.session_state.update({"auth": True, "role": "admin"})
                     st.rerun()
                 else:
-                    st.error("❌ Admin Kimliği Reddedildi!")
+                    st.error("❌ Kimlik Reddedildi!")
 else:
     # --- 5. GİRİŞ SONRASI ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 YENİ LİSANS ÜRET VE MÜHÜRLE", expanded=True):
+        with st.expander("🎫 LİSANS ÜRET VE KÖPRÜYE EKLE", expanded=True):
             p_choice = st.selectbox("Paket", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            p_days = {"1-AY": 30, "3-AY": 90, "6-AY": 180, "12-AY": 365, "SINIRSIZ": 36500}[p_choice]
-            if st.button("⚡ SİSTEME KAYDET"):
-                # Benzersiz ve Tanınabilir Key Üretimi
+            if st.button("⚡ SİSTEME MÜHÜRLE"):
                 new_key = f"SBR-{p_choice}-{hashlib.md5(str(time.time()).encode()).hexdigest().upper()[:8]}-TM"
-                st.session_state["lic_db"][new_key] = {"label": p_choice, "days": p_days, "expire": None}
+                st.session_state["lic_db"][new_key] = True # Köprüye ekle
                 st.code(new_key)
-                st.success("Lisans başarıyla üretildi ve ana sisteme mühürlendi.")
-        
-        st.write("### 📊 Aktif Lisans Durumları")
-        st.dataframe(pd.DataFrame.from_dict(st.session_state["lic_db"], orient='index'))
+                st.success("Lisans tıpkı Admin şifresi gibi sisteme mühürlendi.")
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
         st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur.</div>", unsafe_allow_html=True)
