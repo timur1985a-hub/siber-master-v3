@@ -27,22 +27,42 @@ def get_vault():
     return v
 VAULT = get_vault()
 
-# --- 2. DEĞİŞMEZ TASARIM VE GÜNCELLENMİŞ KIRMIZI KAYAN YAZI CSS ---
+# --- 2. DEĞİŞMEZ TASARIM VE ETKİLEYİCİ NEON CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     
-    /* Kayan Yazı: KIRMIZI ve YAVAŞ AKIŞ (90s) */
+    /* Yeni Nesil Neon Kayan Yazı Tasarımı */
     .marquee-container {
-        background: #0d1117; border: 1px solid #f85149; color: #f85149;
-        padding: 12px 0; margin-bottom: 20px; overflow: hidden; white-space: nowrap; border-radius: 8px;
+        background: rgba(13, 17, 23, 0.9);
+        border-top: 2px solid #f85149;
+        border-bottom: 2px solid #f85149;
+        box-shadow: 0px 0px 15px rgba(248, 81, 73, 0.2);
+        padding: 15px 0;
+        margin-bottom: 25px;
+        overflow: hidden;
+        white-space: nowrap;
     }
     .marquee-text {
-        display: inline-block; padding-left: 100%; 
-        animation: marquee 90s linear infinite; /* 30s'den 90s'ye çıkarıldı: Daha Yavaş */
-        font-weight: 900; font-family: 'Courier New', monospace; font-size: 1.1rem;
+        display: inline-block;
+        padding-left: 100%;
+        animation: marquee 100s linear infinite;
     }
+    .match-badge {
+        background: #161b22;
+        color: #f85149;
+        border: 1px solid #f85149;
+        padding: 5px 15px;
+        border-radius: 50px;
+        margin-right: 30px;
+        font-weight: 900;
+        font-family: 'Courier New', monospace;
+        box-shadow: inset 0px 0px 5px rgba(248, 81, 73, 0.3);
+        font-size: 1rem;
+    }
+    .match-badge span { color: #e6edf3; margin: 0 10px; opacity: 0.6; }
+
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
@@ -58,13 +78,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=3600)
-def get_marquee_data():
+def get_marquee_html():
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
         res = r.json().get('response', [])
-        matches = [f" 🔴 {m['teams']['home']['name']} vs {m['teams']['away']['name']} 🔴 " for m in res[:30]]
-        return " --- ".join(matches) if matches else "📊 Yapay Zeka bugün için dev fırsatları analiz ediyor..."
-    except: return "⚠️ Global veri akışı taranıyor..."
+        html_str = ""
+        for m in res[:30]:
+            home = m['teams']['home']['name']
+            away = m['teams']['away']['name']
+            html_str += f"<span class='match-badge'>⚽ {home} <span>VS</span> {away}</span>"
+        return html_str if html_str else "<span class='match-badge'>🚀 AI BUGÜNÜN FIRSATLARINI ANALİZ EDİYOR...</span>"
+    except: return "<span class='match-badge'>⚠️ VERİ AKIŞI BAŞLATILIYOR...</span>"
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None})
 
@@ -73,8 +97,8 @@ if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ DÜNYANIN EN GÜÇLÜ YAPAY ZEKASI %90+ BAŞARIYLA SENİ BEKLİYOR!</div>", unsafe_allow_html=True)
     
-    m_content = get_marquee_data()
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>🚀 ANALİZ EDİLEN MAÇLAR: {m_content}</div></div>", unsafe_allow_html=True)
+    m_html = get_marquee_html()
+    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div>
@@ -100,20 +124,19 @@ if not st.session_state["auth"]:
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 
 else:
-    # --- 4. GİRİŞ SONRASI (BUTONLAR İÇERİDE GİZLİ) ---
+    # --- 4. GİRİŞ SONRASI (BUTONLAR İÇERİDE GÜVENDE) ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown("<div class='owner-info'>Bu yazılımın sahibi Timur'dur. Yazılım hakkındaki görüş ve önerilerinizi lütfen bize bildirin.</div>", unsafe_allow_html=True)
     
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🧹 BELLEĞİ TEMİZLE", use_container_width=True):
-            st.cache_data.clear(); st.cache_resource.clear(); st.success("Bellek boşaltıldı."); st.rerun()
+            st.cache_data.clear(); st.cache_resource.clear(); st.success("Temizlendi."); st.rerun()
     with col_b:
         if st.button("♻️ VERİLERİ GÜNCELLE", use_container_width=True):
             st.cache_data.clear(); st.rerun()
 
     st.divider()
     if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
-        st.info("AI Stratejik Taraması aktif hale getirildi.")
-    
+        st.info("AI Stratejik Taraması başladı...")
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
