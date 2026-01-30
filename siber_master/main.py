@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 
-# --- 0. GOOGLE DOĞRULAMA (SABİT ÇAPA - GÖRÜNMEZ) ---
+# --- 0. GOOGLE DOĞRULAMA (GÖRÜNMEZ ÇAPA) ---
 st.set_page_config(page_title="SIBER RADAR V250", layout="wide")
 st.markdown("""
     <div style="display:none;">
@@ -14,7 +14,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# --- 1. SİBER HAFIZA VE LİSANS MOTORU (DOKUNULMAZ) ---
+# --- 1. SİBER HAFIZA VE API SİSTEMİ (DOKUNULMAZ) ---
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -57,7 +57,7 @@ st.markdown("""
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "active_key": None})
 
-# --- 3. BİRLEŞİK ANALİZ VE KARAR MOTORU ---
+# --- 3. ANALİZ MOTORU ---
 def siber_fetch(endpoint, params):
     try:
         r = requests.get(f"{BASE_URL}/{endpoint}", headers=HEADERS, params=params, timeout=12)
@@ -124,39 +124,47 @@ if not st.session_state["auth"]:
             if st.button("ADMİN GİRİŞİ"):
                 if a_t == ADMIN_TOKEN and a_p == ADMIN_PASS: st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
-    # --- 5. BİRLEŞİK KOMUTA PANELİ ---
+    # --- 5. BİRLEŞİK ANALİZ PANELİ (GERÇEK VERİ MODU) ---
     with st.sidebar:
-        st.markdown(f"### 🛡️ YETKİ: {st.session_state['role'].upper()}")
         if st.button("🔴 ÇIKIŞ"): st.session_state.clear(); st.rerun()
 
     st.markdown("<h1 style='text-align:center;'>🎯 SİBER RADAR V250</h1>", unsafe_allow_html=True)
     
     target_date = st.date_input("Analiz Günü:", datetime.now())
-    if st.button("🚀 DÜNYAYI TARA VE KARAR VER (GLOBAL + CANLI)", use_container_width=True):
-        with st.spinner("Yapay Zeka Tüm Verileri İşliyor..."):
+    if st.button("🚀 DÜNYAYI TARA (MAÇ ÖNCESİ & CANLI HAKİMİYET)", use_container_width=True):
+        with st.spinner("Yapay Zeka Tüm Ligleri ve Canlı Verileri Süzüyor..."):
+            # API'den gelen gerçek veri
             fikstur = siber_fetch("fixtures", {"date": target_date.strftime("%Y-%m-%d")})
+            
+            if not fikstur:
+                st.info("Bu tarih için aktif maç verisi bulunamadı.")
             
             for m in fikstur:
                 status = m['fixture']['status']['short']
-                h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
+                # TAKIM İSİMLERİ DOĞRUDAN API'DEN ALINIYOR
+                h_name = m['teams']['home']['name']
+                a_name = m['teams']['away']['name']
                 tr_time = (datetime.fromisoformat(m['fixture']['date'].replace('Z', '+00:00')) + timedelta(hours=3)).strftime('%H:%M')
                 
-                # --- CANLI ANALİZ ---
+                # SADECE VERİ VARSA KART OLUŞTUR
                 if status in ["1H", "HT", "2H", "ET", "P"]:
-                    hakimiyet, tavsiye = canli_muhakeme(m['fixture']['id'], h_name, a_name) or ("📡 Veri Alınıyor", "BEKLEMEDE")
-                    st.markdown(f"""<div class='card' style='border-left-color: #ff4b4b;'>
-                        <div style='display:flex; justify-content:space-between;'>
-                            <b>🔴 CANLI | {m['fixture']['status']['elapsed']}' | {m['league']['name']}</b>
-                            <span style='background:#ff4b4b; padding:2px 8px; border-radius:10px;'>{hakimiyet}</span>
-                        </div>
-                        <h3 style='text-align:center;'>{h_name} {m['goals']['home']} - {m['goals']['away']} {a_name}</h3>
-                        <p style='text-align:center; font-weight:bold; color:#58a6ff;'>🏆 Y.Z. ÖNERİSİ: {tavsiye}</p>
-                    </div>""", unsafe_allow_html=True)
+                    # CANLI ANALİZ
+                    res_live = canli_muhakeme(m['fixture']['id'], h_name, a_name)
+                    if res_live:
+                        hakimiyet, tavsiye = res_live
+                        st.markdown(f"""<div class='card' style='border-left-color: #ff4b4b;'>
+                            <div style='display:flex; justify-content:space-between;'>
+                                <b>🔴 CANLI | {m['fixture']['status']['elapsed']}' | {m['league']['name']}</b>
+                                <span style='background:#ff4b4b; padding:2px 8px; border-radius:10px;'>{hakimiyet}</span>
+                            </div>
+                            <h3 style='text-align:center;'>{h_name} {m['goals']['home']} - {m['goals']['away']} {a_name}</h3>
+                            <p style='text-align:center; font-weight:bold; color:#58a6ff;'>🏆 Y.Z. ÖNERİSİ: {tavsiye}</p>
+                        </div>""", unsafe_allow_html=True)
 
-                # --- %90+ BÜLTEN ANALİZİ ---
                 elif status in ["NS", "TBD"]:
-                    res = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
-                    if res:
+                    # BAŞLAMAMIŞ MAÇLAR %90+
+                    res_h2h = h2h_muhakeme_90(m['teams']['home']['id'], m['teams']['away']['id'])
+                    if res_h2h:
                         st.markdown(f"""<div class='card'>
                             <div style='display:flex; justify-content:space-between; opacity:0.8;'>
                                 <b>{m['league']['name']}</b>
@@ -164,7 +172,7 @@ else:
                             </div>
                             <h4 style='margin:10px 0; text-align:center;'>{h_name} - {a_name}</h4>
                             <div style='display:flex; justify-content:space-between; color:#4ade80;'>
-                                <span>🤖 Y.Z. KARAR: {res['KARAR']}</span>
-                                <span>🔥 GÜVEN: %{res['GUVEN']}</span>
+                                <span>🤖 Y.Z. KARAR: {res_h2h['KARAR']}</span>
+                                <span>🔥 GÜVEN: %{res_h2h['GUVEN']}</span>
                             </div>
                         </div>""", unsafe_allow_html=True)
