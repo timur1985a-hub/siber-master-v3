@@ -3,14 +3,14 @@ import requests
 import hashlib
 from datetime import datetime, timedelta
 
-# --- 1. KESİN DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
+# --- 1. KRİTİK GOOGLE DOĞRULAMA & SEO (PRENSİP: GİZLİ VE OTORİTER) ---
 st.set_page_config(
-    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250 | Analiz Motoru",
+    page_title="Yapay Zeka Maç Tahmin | Siber Radar V250",
     page_icon="🎯",
     layout="wide"
 )
 
-# Yeni DNS TXT Kodun ve Analytics Tek Bir Gizli Katmanda
+# Sağladığın H1Ify... kodunu botların kaçıramayacağı en üst noktaya ekledim.
 st.markdown(f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-9KHTP6QZY8"></script>
     <script>
@@ -21,19 +21,18 @@ st.markdown(f"""
     </script>
     
     <div style="display:none;">
-        <p>google-site-verification=JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg</p>
+        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="google-site-verification" content="JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg" />
         
         <article>
-            <h1>Siber Radar V250: Yapay Zeka Destekli Tahmin Motoru</h1>
-            <p>Siber Radar V250, futbol analizinde yeni bir çağ açıyor. Yapay zeka algoritmalarımız 
-            %90+ güvenilirlikle maç tahminleri üretir ve canlı verilerle banko analizler sunar.</p>
+            <h1>Yapay Zeka Maç Tahmin Sistemi - Siber Radar V250</h1>
+            <p>Siber Radar V250, en gelişmiş veri analizi ve yapay zeka algoritmalarıyla donatılmış bir iddaa tahmin motorudur. 
+            Maç istatistiklerini, takım form durumlarını ve canlı verileri saniyeler içinde işleyerek profesyonel analizler sunar.</p>
         </article>
-        <meta name="google-site-verification" content="JvYf1wUbyeJZiAwgBjJRArZT_NV0GTLvsY1F4J3UATg" />
-        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
     </div>
 """, unsafe_allow_html=True)
 
-# --- 2. SİBER HAFIZA VE LİSANS MOTORU (DOKUNULMAZ ÇEKİRDEK) ---
+# --- 2. SİBER HAFIZA VE LİSANS MOTORU (SABİT ÇEKİRDEK) ---
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
@@ -102,3 +101,4 @@ if not st.session_state["auth"]:
                     st.session_state.update({"auth": True, "role": "admin"}); st.rerun()
 else:
     st.markdown("<h1 style='text-align:center;'>İSPAT KANALLARI</h1>", unsafe_allow_html=True)
+    st.info("🎯 SEO Makalesi ve HTML Meta Doğrulaması Aktif.")
