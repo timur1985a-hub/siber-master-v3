@@ -16,11 +16,13 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
+    """2000 ADET ZAMAN AYARLI KALICI TOKEN ÜRETİM MERKEZİ"""
     v = {}
+    # Paket Tanımları: (Etiket, Gün Sayısı)
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
-        for i in range(1, 201):
-            seed = f"V16_FIXED_SEED_{lbl}_{i}"
+        for i in range(1, 401): # Her paketten 400 adet = Toplam 2000
+            seed = f"V16_FIXED_SEED_{lbl}_{i}_TIMUR_2026"
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
             v[token] = {"pass": pas, "label": lbl, "days": d}
@@ -34,7 +36,7 @@ if "auth" not in st.session_state:
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
-    # Query params kontrolü
+    # URL'den Otomatik Tanıma
     q_t = st.query_params.get("s_t")
     q_p = st.query_params.get("s_p")
     if q_t and q_p:
@@ -123,9 +125,16 @@ if not st.session_state["auth"]:
                 st.rerun()
             else: st.error("❌ Geçersiz Kimlik!")
 else:
-    # --- 5. PANEL ---
+    # --- 5. ADMİN: LİSANS ÜRETİM MERKEZİ ---
+    if st.session_state["role"] == "admin":
+        with st.expander("🔑 SİBER MASTER LİSANS KASASI (2000 TOKEN)", expanded=False):
+            st.info("Bu alan sadece Admin girişinde görünür. Tokenları kopyalayıp müşterilere iletebilirsin.")
+            admin_data = [{"TOKEN": k, "ŞİFRE": v["pass"], "PAKET": v["label"]} for k, v in CORE_VAULT.items()]
+            st.dataframe(pd.DataFrame(admin_data), use_container_width=True, height=400)
+
+    # --- 6. ANA PANEL ---
     st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     search_q = st.text_input("🔍 Nesine Maçını Buraya Yaz (Takım Adı):", placeholder="Örn: Fenerbahçe, Liverpool...").strip().lower()
     
@@ -153,15 +162,10 @@ else:
         confidence_puan = int(60 + (xg_total * 10) + (att_density * 5))
         if confidence_puan > 99: confidence_puan = 99
 
-        siber_tercih = "📊 ANALİZ BEKLENİYOR"
-        color = "#8b949e"
-        
-        if confidence_puan >= 90:
-            siber_tercih, color = "💎 SİBER TERCİH: KG VAR & 2.5 ÜST", "#2ea043"
-        elif confidence_puan >= 80:
-            siber_tercih, color = "⚔️ STRATEJİK: SIRADAKİ GOL (EV)", "#f1e05a"
-        else:
-            siber_tercih, color = "🚫 GÜVENLİK PASI (DÜŞÜK VERİ)", "#f85149"
+        siber_tercih, color = "📊 ANALİZ BEKLENİYOR", "#8b949e"
+        if confidence_puan >= 90: siber_tercih, color = "💎 SİBER TERCİH: KG VAR & 2.5 ÜST", "#2ea043"
+        elif confidence_puan >= 80: siber_tercih, color = "⚔️ STRATEJİK: SIRADAKİ GOL (EV)", "#f1e05a"
+        else: siber_tercih, color = "🚫 GÜVENLİK PASI (DÜŞÜK VERİ)", "#f85149"
 
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
