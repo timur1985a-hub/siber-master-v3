@@ -46,8 +46,7 @@ st.markdown("""
     .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; }
     .match-badge {
         background: #161b22; color: #f85149; border: 1px solid #f85149; padding: 5px 15px;
-        border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace;
-        box-shadow: inset 0px 0px 5px rgba(248, 81, 73, 0.3); font-size: 1rem;
+        border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace; font-size: 1rem;
     }
     @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
@@ -60,7 +59,7 @@ st.markdown("""
     .wa-small { display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto; background: #238636; color: white !important; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; text-decoration: none; }
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
-    .tsi-time { color: #f1e05a; font-family: monospace; font-weight: bold; }
+    .tsi-time { color: #f1e05a !important; font-family: 'Courier New', monospace; font-weight: 900; background: rgba(241, 224, 90, 0.15); padding: 2px 8px; border-radius: 4px; border: 0.5px solid rgba(241, 224, 90, 0.3); }
     .live-minute { color: #f1e05a; font-family: monospace; font-weight: 900; border: 1px solid #f1e05a; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
     .live-dot { height: 8px; width: 8px; background-color: #f85149; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
     .stat-row { display: flex; align-items: center; font-size: 0.85rem; color: #8b949e; margin-top: 5px; font-family: monospace; }
@@ -73,29 +72,30 @@ st.markdown("""
 # --- 3. YARDIMCI FONKSİYONLAR ---
 def to_tsi(utc_str):
     try:
-        utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
-        return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+        # UTC -> TSI (+3) Dönüşümü
+        utc_dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return utc_dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
     except: return "00:00"
 
 def fetch_data():
     try:
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d"), "timezone": "UTC"}, timeout=10)
-        # --- API KALAN İSTEK SAYACI ---
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")}, timeout=10)
+        # API Kalan İstek Sayacı Güncelleme
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         if r.status_code == 200:
-            all_data = r.json().get('response', [])
-            return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL', 'PST']]
+            res = r.json().get('response', [])
+            return [m for m in res if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL', 'PST']]
         return []
     except: return []
 
-# --- 4. GİRİŞ KONTROLÜ ---
+# --- 4. GİRİŞ PROKOTOLÜ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
     m_data = fetch_data()[:15]
     if m_data:
-        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
     st.markdown("""<div class='pkg-row'>
@@ -115,12 +115,12 @@ if not st.session_state["auth"]:
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
-            else: st.error("❌ Yetkisiz Giriş!")
+            else: st.error("❌ Geçersiz Siber Kimlik!")
 else:
-    # --- 5. PANEL (API GÖSTERGELİ) ---
-    st.markdown(f"<div class='internal-welcome'>{'ADMİN MASTER PANEL' if st.session_state['role'] == 'admin' else 'YAPAY ZEKAYA HOŞ GELDİNİZ'}</div>", unsafe_allow_html=True)
-    # Kalan İstek Burada Gösteriliyor
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan Hak: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    # --- 5. ANA KONTROL PANELİ ---
+    st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
+    # API Sayacı ve Oturum Bilgisi En Üstte
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
 
     cx, cy = st.columns(2)
     with cx: 
@@ -128,31 +128,26 @@ else:
     with cy:
         if st.button("♻️ UPDATE"): st.cache_data.clear(); st.session_state["stored_matches"] = fetch_data(); st.rerun()
 
-    st.divider()
     if st.button("🚀 STRATEJİK TARAMAYI BAŞLAT", use_container_width=True):
-        st.cache_data.clear(); st.session_state["stored_matches"] = fetch_data()
+        st.session_state["stored_matches"] = fetch_data()
 
     for i, m in enumerate(st.session_state.get("stored_matches", [])):
         status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed']
         is_live = status in ['1H', '2H', 'HT', 'LIVE']
-        xg_h, xg_a = round(0.4 + (i % 5) * 0.35, 2), round(0.2 + (i % 3) * 0.45, 2)
-        rc_v = 60 + (i % 35)
         dak_html = f"<span class='live-minute'>{status if status=='HT' else f'⏱️ {elap}\''}</span>" if is_live else ""
-        l_clr, l_txt = ("#f85149", "GÜVENLİ CANLI") if is_live else ("#2ea043", "YAPAY ZEKA TAHMİNİ")
-        msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | SIRADAKİ GOL" if is_live else "🚀 ANALİZ: 1.5 ÜST / MS 1X"
-
+        
         st.markdown(f"""
             <div class='decision-card'>
                 <div class='ai-score'>%{90 + (i % 6)}</div>
                 <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ TSI: {to_tsi(m['fixture']['date'])}</span> {dak_html}
                 <br><span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
                 <div style='margin-top:10px; padding:8px; background:rgba(48,54,61,0.3); border-radius:6px;'>
-                    <div class='stat-row'><span class='stat-label'>SİBER xG:</span><span class='stat-val'>H: {xg_h} / A: {xg_a}</span></div>
-                    <div class='stat-row'><span class='stat-label'>RCS (HÜCUM GÜCÜ):</span><span class='stat-val'>%{rc_v}</span></div>
+                    <div class='stat-row'><span class='stat-label'>SİBER xG:</span><span class='stat-val'>H: {round(0.4+(i%5)*0.3,2)} / A: {round(0.2+(i%3)*0.4,2)}</span></div>
+                    <div class='stat-row'><span class='stat-label'>RCS (HÜCUM GÜCÜ):</span><span class='stat-val'>%{60+(i%35)}</span></div>
                     <div class='stat-row'><span class='stat-label'>MOMENTUM:</span><span class='stat-val' style='color:#2ea043;'>POZİTİF</span></div>
                 </div>
                 <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                <span style='color:{l_clr}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""}{l_txt}:</span> {msg}
+                <span style='color:{"#f85149" if is_live else "#2ea043"}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""} ANALİZ:</span> {f"GOL BEKLENTİSİ: {m['goals']['home']}-{m['goals']['away']} | CANLI" if is_live else "STRATEJİK VERİMLİLİK ONAYLANDI."}
             </div>
         """, unsafe_allow_html=True)
 
