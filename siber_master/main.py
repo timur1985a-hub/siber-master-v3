@@ -30,12 +30,17 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Session State Başlatma
+# KRİTİK DENETİM: Tüm anahtarların en başta tanımlandığından emin olunuyor
 if "auth" not in st.session_state:
-    st.session_state.update({
-        "auth": False, "role": None, "current_user": None, 
-        "stored_matches": [], "last_sync": "Veri Yok"
-    })
+    st.session_state["auth"] = False
+if "role" not in st.session_state:
+    st.session_state["role"] = None
+if "current_user" not in st.session_state:
+    st.session_state["current_user"] = None
+if "stored_matches" not in st.session_state:
+    st.session_state["stored_matches"] = []
+if "last_sync" not in st.session_state:
+    st.session_state["last_sync"] = "Veri Yok"
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
@@ -79,10 +84,8 @@ def to_tsi(utc_str):
     except: return "00:00"
 
 def fetch_data_now():
-    """Bypass Cache - Doğrudan API sorgusu"""
     try:
         current_date = datetime.now().strftime("%Y-%m-%d")
-        # Rastgele parametre ekleyerek sunucu önbelleğini bozuyoruz
         r = requests.get(
             f"{BASE_URL}/fixtures", 
             headers=HEADERS, 
@@ -134,7 +137,8 @@ if not st.session_state["auth"]:
 else:
     # --- 5. PANEL ---
     st.markdown(f"<div class='internal-welcome'>TIMUR AI STRATEGIC SYSTEM</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif | 🛰️ Son Senkronizasyon: {st.session_state['last_sync']}</div>", unsafe_allow_html=True)
+    # GÜVENLİ ERİŞİM: last_sync artık KeyError vermez
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif | 🛰️ Son Senkronizasyon: {st.session_state.get('last_sync', 'Veri Bekleniyor...')}</div>", unsafe_allow_html=True)
 
     cx, cy = st.columns(2)
     with cx: 
@@ -149,7 +153,6 @@ else:
     st.divider()
     search_q = st.text_input("🔍 ARA:", placeholder="Takım/Lig...").lower()
 
-    # Eğer panel boşsa otomatik çek
     if not st.session_state["stored_matches"]: fetch_data_now()
 
     matches = st.session_state["stored_matches"]
@@ -161,7 +164,6 @@ else:
             elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             
-            # --- DERİN ANALİZ (DOKUNULMAZ) ---
             xg_h = round(0.4 + (i % 5) * 0.35, 2)
             xg_a = round(0.2 + (i % 3) * 0.45, 2)
             rcs_val = 60 + (i % 35)
