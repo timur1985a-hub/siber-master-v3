@@ -9,7 +9,6 @@ import pytz
 # --- 1. SİBER HAFIZA VE API MOTORU (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
-# ADMİN VE SİSTEM BİLGİLERİ (BURAYA GÖMÜLDÜ)
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -18,25 +17,18 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
-    """
-    1000 ADET ANAHTARI KODUN İÇİNE MÜHÜRLER. 
-    Admin bilgileri nerede saklanıyorsa, bu fonksiyon da o güvenli alandadır.
-    """
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 201):
-            # Statik Seed: Bu seed değişmediği sürece tokenlar asla değişmez.
             seed = f"FIXED_VAULT_2026_{lbl}_{i}"
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"P_{seed}".encode()).hexdigest().upper()[:6]
             v[token] = {"pass": pas, "label": lbl, "days": d}
     return v
 
-# 1000 Anahtar sistemin mermerine kazındı
 CORE_VAULT = get_hardcoded_vault()
 
-# Kullanıcıların aktivasyon ve session durumlarını takip eden session_state
 if "auth" not in st.session_state:
     st.session_state.update({"auth": False, "role": None, "current_user": None, "activations": {}})
 
@@ -67,6 +59,8 @@ st.markdown("""
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
     .tsi-time { color: #f1e05a; font-family: monospace; font-weight: bold; }
+    /* Arama Çubuğu Neon Stili */
+    .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -79,11 +73,10 @@ def to_tsi(utc_str):
 
 def fetch_data():
     try:
-        # Nesine öncelikli lig taraması
         nesine_leagues = "203,39,140,135,78,61,2,3,137,88"
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d"), "ids": nesine_leagues})
         res = r.json().get('response', [])
-        if not res: # Eğer o liglerde maç yoksa her şeyi getir
+        if not res:
             r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
             res = r.json().get('response', [])
         return res
@@ -108,18 +101,14 @@ if not st.session_state["auth"]:
         login_pass = st.text_input("Şifre:", type="password", key="l_pass").strip()
         
         if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            # 1. ADMİN KONTROLÜ (HARDCODED)
             if login_token == ADMIN_TOKEN and login_pass == ADMIN_PASS:
                 st.session_state.update({"auth": True, "role": "admin"})
                 st.rerun()
-            
-            # 2. 1000 TOKEN KONTROLÜ (HARDCODED VAULT)
             elif login_token in CORE_VAULT:
                 if CORE_VAULT[login_token]["pass"] == login_pass:
                     now = datetime.now()
                     if login_token not in st.session_state["activations"]:
                         st.session_state["activations"][login_token] = now + timedelta(days=CORE_VAULT[login_token]["days"])
-                    
                     if now > st.session_state["activations"][login_token]:
                         st.error("❌ LİSANS SÜRENİZ DOLMUŞTUR! LÜTFEN YENİLEYİN.")
                     else:
@@ -132,21 +121,17 @@ else:
     # --- 5. GİRİŞ SONRASI ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        st.markdown("<div class='owner-info'>1000 Adet Mühürlü Anahtar Yönetiliyor...</div>", unsafe_allow_html=True)
-        
         with st.expander("🎫 PAKETLERE GÖRE ANAHTARLARI AL", expanded=True):
             pkg_choice = st.selectbox("Paket Seç", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             view_data = {k: v for k, v in CORE_VAULT.items() if v["label"] == pkg_choice}
             st.dataframe(pd.DataFrame.from_dict(view_data, orient='index'), use_container_width=True)
-            st.info("💡 Yukarıdaki Token ve Şifreyi kopyalayıp müşterine ver. İlk girişinde süresi başlar.")
             
     else:
         curr_token = st.session_state["current_user"]
         expire_time = st.session_state["activations"][curr_token]
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Lisansınız şu tarihe kadar aktif: {expire_time.strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='owner-info'>🛡️ Lisans Sonu: {expire_time.strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
 
-    # --- SİBER KONTROLLER (UPDATE & CLEAR) ---
     col_x, col_y = st.columns(2)
     with col_x:
         if st.button("🧹 CLEAR"): st.cache_data.clear(); st.rerun()
@@ -155,19 +140,33 @@ else:
 
     st.divider()
 
+    # --- SİBER ARAMA MOTORU ---
+    search_query = st.text_input("🔍 MAÇ VEYA LİG ARA (NESİNE FİLTRESİ):", placeholder="Örn: Galatasaray, Premier League...").lower()
+
     if st.button("🚀 KUSURSUZ NESİNE TARAMASINI BAŞLAT", use_container_width=True):
-        matches = fetch_data()
-        if matches:
-            for i, m in enumerate(matches):
-                score = 85 + (i % 12)
-                st.markdown(f"""
-                    <div class='decision-card'>
-                        <div class='ai-score'>%{score}</div>
-                        <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span><br>
-                        <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
-                        <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                        <span style='color:#2ea043; font-weight:bold;'>SİBER KARAR:</span> NESİNE KG VAR / ÜST
-                    </div>
-                """, unsafe_allow_html=True)
+        all_matches = fetch_data()
+        if all_matches:
+            # Arama filtresini uygula
+            filtered_matches = [
+                m for m in all_matches 
+                if search_query in m['teams']['home']['name'].lower() or 
+                   search_query in m['teams']['away']['name'].lower() or 
+                   search_query in m['league']['name'].lower()
+            ]
+
+            if filtered_matches:
+                for i, m in enumerate(filtered_matches):
+                    score = 85 + (i % 12)
+                    st.markdown(f"""
+                        <div class='decision-card'>
+                            <div class='ai-score'>%{score}</div>
+                            <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span><br>
+                            <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
+                            <hr style='border:0.1px solid #30363d; margin:10px 0;'>
+                            <span style='color:#2ea043; font-weight:bold;'>SİBER ANALİZ:</span> NESİNE KG VAR / ÜST
+                        </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.warning(f"⚠️ '{search_query}' araması için bugün Nesine bülteninde maç bulunamadı.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
