@@ -35,7 +35,6 @@ if "auth" not in st.session_state:
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
-    # URL'den Otomatik Tanıma
     q_t = st.query_params.get("s_t")
     q_p = st.query_params.get("s_p")
     if q_t and q_p:
@@ -111,16 +110,18 @@ if not st.session_state["auth"]:
         <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
+    
     _, c2, _ = st.columns([1, 2, 1])
     with c2:
-        # TARAYICI YÖNLENDİRMESİ İÇİN FORM YAPISI (Şifre Kaydetme Uyarısı Tetikler)
-        with st.form("siber_giris_formu", clear_on_submit=False):
-            l_t = st.text_input("Giriş Tokeni:", type="password", help="Lisans tokeninizi girin").strip()
-            l_p = st.text_input("Şifre:", type="password", help="Lisans şifrenizi girin").strip()
-            remember = st.checkbox("Beni Tanı (URL'ye Mühürle)")
-            submit_btn = st.form_submit_button("YAPAY ZEKAYI AKTİF ET", use_container_width=True)
+        # ŞİFRE KAYDETME TEKLİFİ İÇİN KESİN FORM YAPISI
+        with st.form("siber_auth_form", clear_on_submit=False):
+            # Tarayıcılar 'type="password"' olan alanları form içinde gördüğünde kaydetmeyi teklif eder.
+            l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token_f").strip()
+            l_p = st.text_input("Şifre:", type="password", key="l_pass_f").strip()
+            remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)")
+            submit = st.form_submit_button("YAPAY ZEKAYI AKTİF ET", use_container_width=True)
             
-            if submit_btn:
+            if submit:
                 if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                     if remember:
                         st.query_params.update({"s_t": l_t, "s_p": l_p})
@@ -132,7 +133,7 @@ else:
     # --- 5. ADMİN: LİSANS ÜRETİM MERKEZİ ---
     if st.session_state["role"] == "admin":
         with st.expander("🔑 SİBER MASTER LİSANS KASASI (2000 TOKEN)", expanded=False):
-            st.info("Bu alan sadece Admin girişinde görünür. Tokenları kopyalayıp müşterilere iletebilirsin.")
+            st.info("Bu alan sadece Admin girişinde görünür.")
             admin_data = [{"TOKEN": k, "ŞİFRE": v["pass"], "PAKET": v["label"]} for k, v in CORE_VAULT.items()]
             st.dataframe(pd.DataFrame(admin_data), use_container_width=True, height=400)
 
