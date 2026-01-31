@@ -29,11 +29,10 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Session State Başlatma (Hata Almamak İçin Kontrollü)
+# Session State Hazırlığı
 if "auth" not in st.session_state: st.session_state["auth"] = False
-if "role" not in st.session_state: st.session_state["role"] = None
-if "current_user" not in st.session_state: st.session_state["current_user"] = None
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
+if "last_update" not in st.session_state: st.session_state["last_update"] = "Henüz Güncellenmedi"
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
@@ -78,22 +77,30 @@ def to_tsi(utc_str):
         return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
     except: return "00:00"
 
-def fetch_data():
+def force_fetch():
+    """Önbelleği baypas ederek taze veri çeken siber motor."""
     try:
-        # User-Agent ve Header kullanımı mühürlüdür.
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
-        all_data = r.json().get('response', [])
-        # Biten maçlar hariç listeleme
-        return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
-    except: return []
+        # Zaman damgası ekleyerek API'nin ve Streamlit'in eski veriyi vermesini engelliyoruz
+        ts = datetime.now().strftime("%Y-%m-%d")
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": ts}, timeout=10)
+        data = r.json().get('response', [])
+        # Bitenleri filtrele
+        clean_data = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
+        st.session_state["stored_matches"] = clean_data
+        st.session_state["last_update"] = datetime.now().strftime("%H:%M:%S")
+        return True
+    except Exception as e:
+        st.error(f"Bağlantı Hatası: {str(e)}")
+        return False
 
 # --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
-    # Marquee (Kayan Yazı) için hızlı veri çekme
-    m_data = fetch_data()[:15]
+    # Marquee (Kayan Yazı) - Her zaman taze çekilmeli
+    if not st.session_state["stored_matches"]: force_fetch()
+    m_data = st.session_state["stored_matches"][:15]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
@@ -126,27 +133,25 @@ else:
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']} | Son Güncelleme: {st.session_state['last_update']}</div>", unsafe_allow_html=True)
 
     cx, cy = st.columns(2)
     with cx: 
-        # Temizle butonu oturumdaki her şeyi sıfırlar
         if st.button("🧹 CLEAR"): 
             st.session_state["stored_matches"] = []
             st.rerun()
     with cy:
-        # GÜNCELLE BUTONU: Verileri API'den tazeleyip session_state'e mühürler
+        # ZORUNLU GÜNCELLEME (API'YE TEKRAR GİDER)
         if st.button("♻️ UPDATE"): 
-            st.session_state["stored_matches"] = fetch_data()
+            force_fetch()
             st.rerun()
 
     st.divider()
     search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
 
-    # Maçları her zaman stored_matches üzerinden yönetiyoruz
+    # Otomatik İlk Yükleme
     if not st.session_state["stored_matches"]:
-         with st.spinner("Siber Hafıza Güncelleniyor..."):
-             st.session_state["stored_matches"] = fetch_data()
+        force_fetch()
 
     matches = st.session_state["stored_matches"]
     filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
@@ -157,7 +162,7 @@ else:
             elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             
-            # --- GELİŞMİŞ SİBER ANALİZ KATMANLARI ---
+            # --- GELİŞMİŞ SİBER ANALİZ (Mühürlü) ---
             xg_h = round(0.4 + (i % 5) * 0.35, 2)
             xg_a = round(0.2 + (i % 3) * 0.45, 2)
             rcs_val = 60 + (i % 35)
@@ -193,6 +198,6 @@ else:
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.info("🔍 Şu an kriterlere uygun aktif maç bulunamadı veya hafıza boş.")
+        st.warning("⚠️ Şifrelenmiş veri alınamadı. Lütfen UPDATE butonuna basın.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
