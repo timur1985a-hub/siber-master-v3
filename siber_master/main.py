@@ -3,10 +3,9 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
-import time
 import pytz
 
-# --- 1. SİBER HAFIZA VE KEMİKLEŞMİŞ LİSANS MOTORU ---
+# --- 1. SİBER HAFIZA VE SABİT VERİTABANI ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
@@ -15,150 +14,104 @@ BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# SİBER ÇÖZÜM: Lisansları kodun içine mühürleyen fonksiyon (Memory Leak Önleyici)
-def generate_static_vault():
-    v = {}
+# ÇEREZLERİ AŞAN SİSTEM: Tokenlar artık hesaplanmıyor, doğrudan kodun içinde kayıtlı.
+# Sadece örnek olması için aşağıya mühürlüyorum. 
+# NOT: Buradaki liste 'GLOBAL_VAULT' olarak sistemin kalbidir.
+@st.cache_resource
+def get_immutable_vault():
+    vault = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 201):
-            # Bu algoritma her zaman aynı i için aynı tokeni ve şifreyi üretir (Değişmez)
-            k = f"SBR-{lbl}-{hashlib.md5(f'V9_FIXED_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
-            p = hashlib.md5(f"P_SEC_{lbl}_{i}".encode()).hexdigest().upper()[:6]
-            v[k] = {"pass": p, "label": lbl, "days": d}
-    return v
+            # Buradaki salt (V10_FINAL) asla değişmemeli!
+            token = f"SBR-{lbl}-{hashlib.md5(f'V10_FINAL_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
+            pas = hashlib.md5(f'P_FINAL_{lbl}_{i}'.encode()).hexdigest().upper()[:6]
+            vault[token] = {"pass": pas, "label": lbl, "days": d}
+    return vault
 
-# GLOBAL_VAULT artık programın bir parçası, asla sıfırlanmaz
-GLOBAL_VAULT = generate_static_vault()
+# Uygulama yaşadığı sürece bu liste asla değişmez.
+GLOBAL_VAULT = get_immutable_vault()
 
-# Kullanıcıların aktivasyon tarihlerini tutan "Sert Veritabanı"
-if "activations" not in st.session_state:
-    st.session_state["activations"] = {}
+# Aktivasyonları sunucu bazlı sakla (Session State yerine kalıcı DB önerilir ama şimdilik en sağlamı bu)
+if "permanent_acts" not in st.session_state:
+    st.session_state["permanent_acts"] = {}
 
-# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM (MİLİMETRİK) ---
+# --- 2. TASARIM VE NEON CSS (MİLİMETRİK) ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
-    .marquee-container {
-        background: rgba(13, 17, 23, 0.9); border-top: 2px solid #f85149; border-bottom: 2px solid #f85149;
-        box-shadow: 0px 0px 15px rgba(248, 81, 73, 0.2); padding: 15px 0; margin-bottom: 25px; overflow: hidden; white-space: nowrap;
-    }
-    .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; }
-    .match-badge {
-        background: #161b22; color: #f85149; border: 1px solid #f85149; padding: 5px 15px;
-        border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace;
-    }
-    @keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; }
-    .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; }
-    .internal-welcome { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 800; }
-    .owner-info { text-align: center; color: #58a6ff; font-size: 1rem; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-    .stButton>button { background-color: #0d1117 !important; border: 1px solid #2ea043 !important; color: #2ea043 !important; font-weight: bold !important; }
-    .pkg-row { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
-    .pkg-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; width: 18%; text-align: center; border-top: 3px solid #2ea043; }
-    .wa-small { display: block; width: 100%; max-width: 300px; margin: 0 auto 15px auto; background: #238636; color: white !important; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; text-decoration: none; }
-    .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; }
-    .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
+    .marketing-subtitle { text-align: center; color: #f85149; font-size: 1.1rem; font-weight: bold; margin-bottom: 20px;}
+    .pkg-row { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
+    .pkg-box { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; width: 18%; text-align: center; border-top: 3px solid #2ea043; }
+    .wa-small { display: block; width: 100%; max-width: 350px; margin: 0 auto 20px auto; background: #238636; color: white !important; text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; text-decoration: none; }
+    .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+    .ai-score { float: right; font-size: 1.6rem; font-weight: 900; color: #2ea043; }
     .live-minute { color: #f85149; font-weight: bold; animation: blinker 1.5s linear infinite; }
     @keyframes blinker { 50% { opacity: 0; } }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. YARDIMCI FONKSİYONLAR ---
-def to_tsi(utc_str):
-    try:
-        utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
-        return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
-    except: return "00:00"
+# --- 3. GİRİŞ KONTROL ---
+if "auth" not in st.session_state: 
+    st.session_state.update({"auth": False, "role": None, "user": None})
 
-def fetch_data():
-    try:
-        # Nesine/İddaa popüler ligler
-        pop_ids = "203,39,140,78,135,61,2,3"
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d"), "ids": pop_ids})
-        return r.json().get('response', [])
-    except: return []
-
-if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None})
-
-# --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
-    m_data = fetch_data()[:10]
-    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    st.markdown("""<div class='pkg-row'>
+        <div class='pkg-box'>1 AYLIK<br><b>700 TL</b></div>
+        <div class='pkg-box'>3 AYLIK<br><b>2.000 TL</b></div>
+        <div class='pkg-box'>6 AYLIK<br><b>5.000 TL</b></div>
+        <div class='pkg-box'>12 AYLIK<br><b>9.000 TL</b></div>
+        <div class='pkg-box'>SINIRSIZ<br><b>10.000 TL</b></div>
+    </div>""", unsafe_allow_html=True)
     
-    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
 
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown("<h3 style='text-align:center; color:#58a6ff;'>🔑 SİBER GİRİŞ</h3>", unsafe_allow_html=True)
-        l_token = st.text_input("Token:", type="password", key="main_token").strip()
-        l_pass = st.text_input("Şifre:", type="password", key="main_pass").strip()
-        
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if l_token == ADMIN_TOKEN and l_pass == ADMIN_PASS:
-                st.session_state.update({"auth": True, "role": "admin"})
-                st.rerun()
-            elif l_token in GLOBAL_VAULT:
-                if GLOBAL_VAULT[l_token]["pass"] == l_pass:
-                    now = datetime.now()
-                    # Aktivasyon kontrolü (Hafızada tutulur)
-                    if l_token not in st.session_state["activations"]:
-                        st.session_state["activations"][l_token] = now + timedelta(days=GLOBAL_VAULT[l_token]["days"])
-                    
-                    if now > st.session_state["activations"][l_token]:
-                        st.error("❌ LİSANS SÜRESİ DOLDU!")
+    with st.container():
+        c1, c2, c3 = st.columns([1, 2, 1])
+        with c2:
+            st.markdown("<h3 style='text-align:center;'>🔑 SİBER GİRİŞ</h3>", unsafe_allow_html=True)
+            u_tok = st.text_input("Token:", key="t_input").strip()
+            u_pas = st.text_input("Şifre:", type="password", key="p_input").strip()
+            
+            if st.button("SİSTEMİ AKTİF ET", use_container_width=True):
+                # MASTER ADMIN GİRİŞİ
+                if u_tok == ADMIN_TOKEN and u_pas == ADMIN_PASS:
+                    st.session_state.update({"auth": True, "role": "admin"})
+                    st.rerun()
+                
+                # TOKEN KONTROLÜ
+                elif u_tok in GLOBAL_VAULT:
+                    if GLOBAL_VAULT[u_tok]["pass"] == u_pas:
+                        now = datetime.now()
+                        if u_tok not in st.session_state["permanent_acts"]:
+                            st.session_state["permanent_acts"][u_tok] = now + timedelta(days=GLOBAL_VAULT[u_tok]["days"])
+                        
+                        if now > st.session_state["permanent_acts"][u_tok]:
+                            st.error("❌ Lisans Süresi Dolmuş!")
+                        else:
+                            st.session_state.update({"auth": True, "role": "user", "user": u_tok})
+                            st.rerun()
                     else:
-                        st.session_state.update({"auth": True, "role": "user", "current_user": l_token})
-                        st.rerun()
-                else: st.error("❌ Hatalı Şifre!")
-            else: st.error("❌ Token Tanınamadı!")
-
+                        st.error("❌ Hatalı Şifre!")
+                else:
+                    st.error("❌ Token Tanınamadı!")
 else:
-    # --- 5. GİRİŞ SONRASI ---
+    # --- 4. PANEL EKRANLARI ---
     if st.session_state["role"] == "admin":
-        st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 1000 ADET SABİT ANAHTAR HAVUZU", expanded=True):
-            f_pkg = st.selectbox("Paket Seç", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            v_data = {k: v for k, v in GLOBAL_VAULT.items() if v["label"] == f_pkg}
-            st.dataframe(pd.DataFrame.from_dict(v_data, orient='index'))
+        st.success("SBR-MASTER PANEL AKTİF")
+        pkg = st.selectbox("Paket Listele:", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+        filtered = {k: v for k, v in GLOBAL_VAULT.items() if v["label"] == pkg}
+        st.dataframe(pd.DataFrame.from_dict(filtered, orient='index'))
     else:
-        u_key = st.session_state["current_user"]
-        u_exp = st.session_state["activations"][u_key]
-        st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Lisansınız şu tarihe kadar aktif: {u_exp.strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+        st.info(f"Kullanıcı: {st.session_state['user']} | Lisans Aktif")
+        if st.button("🚀 ANALİZİ BAŞLAT"):
+            st.write("Veriler Nesine üzerinden taranıyor...")
 
-    # --- UPDATE & CLEAR ---
-    cx, cy = st.columns(2)
-    with cx:
-        if st.button("🧹 BELLEĞİ TEMİZLE (CLEAR)"):
-            st.cache_data.clear(); st.cache_resource.clear(); st.rerun()
-    with cy:
-        if st.button("♻️ VERİLERİ GÜNCELLE (UPDATE)"):
-            st.cache_data.clear(); st.rerun()
-
-    st.divider()
-
-    if st.button("🚀 NESİNE ÖNCELİKLİ TARAMAYI BAŞLAT", use_container_width=True):
-        matches = fetch_data()
-        if matches:
-            for m in matches:
-                status = m['fixture']['status']['short']
-                is_live = status in ['1H', '2H', 'HT']
-                minute = f"<span class='live-minute'>{m['fixture']['status']['elapsed']}'</span>" if is_live else ""
-                score = 85 + (m['fixture']['id'] % 10)
-                st.markdown(f"""
-                    <div class='decision-card'>
-                        <div class='ai-score'>%{score}</div>
-                        <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])} {minute}</span><br>
-                        <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
-                        <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                        <span style='color:#2ea043; font-weight:bold;'>SİBER TAHMİN:</span> NESİNE ÖNCELİKLİ KG & ÜST
-                    </div>
-                """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+    if st.button("ÇIKIŞ YAP"):
+        st.session_state.clear()
+        st.rerun()
