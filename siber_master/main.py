@@ -75,11 +75,26 @@ def to_tsi(utc_str):
     except: return "00:00"
 
 def secure_fetch():
-    """Update butonunu %100 taze veriye zorlayan siber motor."""
+    """Update butonunu %100 taze veriye zorlayan motor."""
     try:
         current_date = datetime.now().strftime("%Y-%m-%d")
-        ts = int(time.time()) # Önbelleği baypas etmek için benzersiz kimlik
+        ts = int(time.time())
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": current_date, "refresh": ts}, timeout=15)
         if r.status_code == 200:
             data = r.json().get('response', [])
-            valid_matches = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CAN
+            # Hatasız listeleme mantığı
+            valid_matches = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
+            st.session_state["stored_matches"] = valid_matches
+            st.session_state["last_update"] = datetime.now(pytz.timezone("Europe/Istanbul")).strftime("%H:%M:%S")
+            return True
+    except: pass
+    return False
+
+# --- 4. GİRİŞ ÖNCESİ (VİTRİN VE LOGIN) ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    
+    if not st.session_state["stored_matches"]: secure_fetch()
+    m_data = st.session_state["stored_matches"][:15]
+    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams
