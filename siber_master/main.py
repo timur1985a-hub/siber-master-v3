@@ -18,10 +18,9 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 def get_hardcoded_vault():
     """2000 ADET ZAMAN AYARLI KALICI TOKEN ÜRETİM MERKEZİ"""
     v = {}
-    # Paket Tanımları: (Etiket, Gün Sayısı)
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
-        for i in range(1, 401): # Her paketten 400 adet = Toplam 2000
+        for i in range(1, 401): 
             seed = f"V16_FIXED_SEED_{lbl}_{i}_TIMUR_2026"
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
@@ -36,9 +35,8 @@ if "auth" not in st.session_state:
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
-    # URL'den Otomatik Tanıma
-    q_t = st.query_params.get("s_t")
-    q_p = st.query_params.get("s_p")
+    q_t = st.query_params.get("s_t", "")
+    q_p = st.query_params.get("s_p", "")
     if q_t and q_p:
         if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
@@ -112,15 +110,23 @@ if not st.session_state["auth"]:
         <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
+    
+    # URL'den mevcut datayı çekip kutulara yerleştirme
+    saved_t = st.query_params.get("s_t", "")
+    saved_p = st.query_params.get("s_p", "")
+
     _, c2, _ = st.columns([1, 2, 1])
     with c2:
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)")
+        l_t = st.text_input("Giriş Tokeni:", value=saved_t, type="password", key="l_token").strip()
+        l_p = st.text_input("Şifre:", value=saved_p, type="password", key="l_pass").strip()
+        remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)", value=True if saved_t else False)
+        
         if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                 if remember:
                     st.query_params.update({"s_t": l_t, "s_p": l_p})
+                else:
+                    st.query_params.clear()
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
             else: st.error("❌ Geçersiz Kimlik!")
