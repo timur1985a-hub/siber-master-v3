@@ -89,4 +89,60 @@ def fetch_siber_data():
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"live": "all"}, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         if r.status_code == 200:
-            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL
+            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL']]
+        return []
+    except: return []
+
+# --- 4. GİRİŞ VE PANEL ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    m_data = fetch_siber_data()[:15]
+    if m_data:
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
+        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    st.markdown("""<div class='pkg-row'>
+        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
+        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
+        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
+        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
+        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
+    </div>""", unsafe_allow_html=True)
+    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
+    _, c2, _ = st.columns([1, 2, 1])
+    with c2:
+        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
+        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
+        rem_me = st.checkbox("Beni Tanı (Hızlı Giriş)")
+        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
+            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
+                if rem_me:
+                    st.query_params.update({"s_token": l_t, "s_pass": l_p})
+                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
+                st.rerun()
+            else: st.error("❌ Geçersiz Kimlik!")
+else:
+    # --- 5. PANEL ---
+    st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    
+    # --- SİBER ARAMA KÖPRÜSÜ ---
+    search_query = st.text_input("🔍 Nesine Maçını Sorgula (Takım Adı):", placeholder="Örn: Galatasaray").strip().lower()
+
+    cx, cy = st.columns(2)
+    with cx: 
+        if st.button("🧹 CLEAR"): st.session_state["stored_matches"] = []; st.rerun()
+    with cy:
+        if st.button("♻️ UPDATE"): st.session_state["stored_matches"] = fetch_siber_data(); st.rerun()
+
+    if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
+        st.session_state["stored_matches"] = fetch_siber_data()
+
+    # Veri Süzme Mantığı
+    raw_data = st.session_state.get("stored_matches", [])
+    display_matches = raw_data
+    if search_query:
+        display_matches = [m for m in raw_data if search_query in m['teams']['home']['name'].lower() or search_query in m['teams']['away']['name'].lower()]
+
+    for i, m in enumerate(display_matches):
+        status, elap = m['fixture']['status']['short'], m['fixture']['
