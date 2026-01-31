@@ -29,14 +29,21 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- BENI TANI MEKANIZMASI (OTOMATIK GIRIS) ---
+# --- HAFIZA SENKRONİZASYONU ---
+# Sayfa yenilendiğinde URL'den verileri alıp session_state'e mühürler
+if "remember_t" not in st.session_state:
+    st.session_state["remember_t"] = st.query_params.get("s_t", "")
+if "remember_p" not in st.session_state:
+    st.session_state["remember_p"] = st.query_params.get("s_p", "")
+
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
-    q_t = st.query_params.get("s_t", "")
-    q_p = st.query_params.get("s_p", "")
+    # Otomatik Giriş Kontrolü
+    q_t = st.session_state["remember_t"]
+    q_p = st.session_state["remember_p"]
     if q_t and q_p:
         if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
@@ -111,22 +118,25 @@ if not st.session_state["auth"]:
     </div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
     
-    # URL'den mevcut datayı çekip kutulara yerleştirme
-    saved_t = st.query_params.get("s_t", "")
-    saved_p = st.query_params.get("s_p", "")
-
     _, c2, _ = st.columns([1, 2, 1])
     with c2:
-        l_t = st.text_input("Giriş Tokeni:", value=saved_t, type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", value=saved_p, type="password", key="l_pass").strip()
-        remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)", value=True if saved_t else False)
+        # Hafızadaki verileri value kısmına ekliyoruz
+        l_t = st.text_input("Giriş Tokeni:", value=st.session_state["remember_t"], type="password", key="l_token").strip()
+        l_p = st.text_input("Şifre:", value=st.session_state["remember_p"], type="password", key="l_pass").strip()
+        
+        remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)", value=True if st.session_state["remember_t"] else False)
         
         if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                 if remember:
                     st.query_params.update({"s_t": l_t, "s_p": l_p})
+                    st.session_state["remember_t"] = l_t
+                    st.session_state["remember_p"] = l_p
                 else:
                     st.query_params.clear()
+                    st.session_state["remember_t"] = ""
+                    st.session_state["remember_p"] = ""
+
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
             else: st.error("❌ Geçersiz Kimlik!")
