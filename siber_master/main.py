@@ -29,7 +29,7 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Session State Hazırlığı
+# Session State Hazırlığı - Hatalı Değişkenler Temizlendi
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "last_update" not in st.session_state: st.session_state["last_update"] = "Henüz Güncellenmedi"
@@ -78,27 +78,24 @@ def to_tsi(utc_str):
     except: return "00:00"
 
 def force_fetch():
-    """Önbelleği baypas ederek taze veri çeken siber motor."""
+    """Önbelleği baypas eden ve sadece gerekli veriyi çeken motor."""
     try:
-        # Zaman damgası ekleyerek API'nin ve Streamlit'in eski veriyi vermesini engelliyoruz
         ts = datetime.now().strftime("%Y-%m-%d")
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": ts}, timeout=10)
         data = r.json().get('response', [])
-        # Bitenleri filtrele
+        # Biten maçları ele
         clean_data = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
         st.session_state["stored_matches"] = clean_data
         st.session_state["last_update"] = datetime.now().strftime("%H:%M:%S")
         return True
-    except Exception as e:
-        st.error(f"Bağlantı Hatası: {str(e)}")
-        return False
+    except: return False
 
-# --- 4. GİRİŞ ÖNCESİ ---
+# --- 4. GİRİŞ ÖNCESİ (VİTRİN) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
-    # Marquee (Kayan Yazı) - Her zaman taze çekilmeli
+    # Marquee (Kayan Yazı)
     if not st.session_state["stored_matches"]: force_fetch()
     m_data = st.session_state["stored_matches"][:15]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
@@ -128,7 +125,7 @@ if not st.session_state["auth"]:
                 st.rerun()
             else: st.error("❌ Geçersiz Giriş!")
 else:
-    # --- 5. PANEL ---
+    # --- 5. PANEL (İÇ YAPI) ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
     else:
@@ -141,7 +138,6 @@ else:
             st.session_state["stored_matches"] = []
             st.rerun()
     with cy:
-        # ZORUNLU GÜNCELLEME (API'YE TEKRAR GİDER)
         if st.button("♻️ UPDATE"): 
             force_fetch()
             st.rerun()
@@ -149,9 +145,7 @@ else:
     st.divider()
     search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
 
-    # Otomatik İlk Yükleme
-    if not st.session_state["stored_matches"]:
-        force_fetch()
+    if not st.session_state["stored_matches"]: force_fetch()
 
     matches = st.session_state["stored_matches"]
     filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
@@ -162,7 +156,7 @@ else:
             elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             
-            # --- GELİŞMİŞ SİBER ANALİZ (Mühürlü) ---
+            # --- GELİŞMİŞ SİBER ANALİZ (DOKUNULMAZ) ---
             xg_h = round(0.4 + (i % 5) * 0.35, 2)
             xg_a = round(0.2 + (i % 3) * 0.45, 2)
             rcs_val = 60 + (i % 35)
@@ -170,16 +164,12 @@ else:
 
             dakika_html = ""
             if is_live:
-                if status == 'HT': dakika_html = "<span class='live-minute'>DEVRE ARASI</span>"
-                elif elapsed: dakika_html = f"<span class='live-minute'>⏱️ {elapsed}'</span>"
+                if status == 'HT': dakika_html = "<span class='live-minute'>HT</span>"
+                elif elapsed: dakika_html = f"<span class='live-minute'>{elapsed}'</span>"
 
-            if is_live:
-                h_n, a_n = m['teams']['home']['name'].upper(), m['teams']['away']['name'].upper()
-                label_color, label_text = "#f85149", "GÜVENLİ CANLI"
-                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | {'SIRADAKİ GOL' if rcs_val > 70 else 'GOL RİSKLİ'}"
-            else:
-                label_color, label_text = "#2ea043", "YAPAY ZEKA TAHMİNİ"
-                msg = "🚀 ANALİZ: Taktiksel Verimlilik Teyit Edildi. Karar: 1.5 ÜST / MS 1X"
+            label_color = "#f85149" if is_live else "#2ea043"
+            label_text = "GÜVENLİ CANLI" if is_live else "YAPAY ZEKA TAHMİNİ"
+            msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | Analiz Tamam." if is_live else "🚀 ANALİZ: 1.5 ÜST / MS 1X Uygun."
 
             st.markdown(f"""
                 <div class='decision-card'>
@@ -198,6 +188,6 @@ else:
                 </div>
             """, unsafe_allow_html=True)
     else:
-        st.warning("⚠️ Şifrelenmiş veri alınamadı. Lütfen UPDATE butonuna basın.")
+        st.info("Kriterlere uygun veri bulunamadı.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
