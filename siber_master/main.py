@@ -62,6 +62,7 @@ st.markdown("""
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
     .tsi-time { color: #f1e05a; font-family: monospace; font-weight: bold; }
+    .live-minute { color: #f1e05a; font-family: monospace; font-weight: 900; border: 1px solid #f1e05a; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
     .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #2ea043 !important; }
     .live-dot { height: 8px; width: 8px; background-color: #f85149; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
@@ -109,7 +110,7 @@ if not st.session_state["auth"]:
             else: st.error("❌ Geçersiz Giriş!")
 
 else:
-    # --- 5. GİRİŞ SONRASI (ANALİZ VE ANALİTİK) ---
+    # --- 5. GİRİŞ SONRASI (SİBER ANALİTİK) ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
         with st.expander("🎫 ANAHTARLARI LİSTELE", expanded=True):
@@ -147,23 +148,25 @@ else:
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             score = 91 + (i % 7) if is_live else 85 + (i % 10)
             
-            # Canlı Dakika Bilgisi Hazırlama
-            dakika_bilgisi = f"[{elapsed}']" if elapsed else ""
-            if status == 'HT': dakika_bilgisi = "[D.A]"
+            # --- DAKİKA GÖSTERGE SİSTEMİ ---
+            dakika_html = ""
+            if is_live:
+                if status == 'HT': dakika_html = "<span class='live-minute'>DEVRE ARASI</span>"
+                elif elapsed: dakika_html = f"<span class='live-minute'>⏱️ {elapsed}'</span>"
 
             if is_live:
-                msg = f"🔥 CANLI {dakika_bilgisi}: {m['goals']['home']}-{m['goals']['away']} | Baskı Yüksek! Karar: SIRADAKİ GOL / ÜST"
-                label_color = "#f85149" # CANLI İÇİN KIRMIZI
+                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | Baskı Yüksek! Karar: SIRADAKİ GOL / ÜST"
+                label_color = "#f85149"
                 label_text = "CANLI TAHMİNİ"
             else:
                 msg = "🚀 ANALİZ: Ofansif Veriler %90 Uyumlu. Karar: KG VAR / 2.5 ÜST"
-                label_color = "#2ea043" # NORMAL İÇİN YEŞİL
+                label_color = "#2ea043"
                 label_text = "YAPAY ZEKA TAHMİNİ"
 
             st.markdown(f"""
                 <div class='decision-card'>
                     <div class='ai-score'>%{score}</div>
-                    <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span>
+                    <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span> {dakika_html}
                     <br>
                     <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
                     <hr style='border:0.1px solid #30363d; margin:10px 0;'>
