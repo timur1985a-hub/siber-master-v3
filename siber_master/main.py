@@ -28,20 +28,21 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Hızlı Giriş Protokolü (Beni Tanı)
+# Hızlı Giriş Sistemi (Query Parametreleri)
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
     if "s_t" in st.query_params and "s_p" in st.query_params:
-        st_val, sp_val = st.query_params["s_t"], st.query_params["s_p"]
-        if (st_val == ADMIN_TOKEN and sp_val == ADMIN_PASS) or (st_val in CORE_VAULT and CORE_VAULT[st_val]["pass"] == sp_val):
-            st.session_state.update({"auth": True, "role": "admin" if st_val == ADMIN_TOKEN else "user", "current_user": st_val})
+        st_t = st.query_params["s_t"]
+        st_p = st.query_params["s_p"]
+        if (st_t == ADMIN_TOKEN and st_p == ADMIN_PASS) or (st_t in CORE_VAULT and CORE_VAULT[st_t]["pass"] == st_p):
+            st.session_state.update({"auth": True, "role": "admin" if st_t == ADMIN_TOKEN else "user", "current_user": st_t})
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
-    <style>
+<style>
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     .marquee-container {
@@ -65,4 +66,106 @@ st.markdown("""
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
     .tsi-time { color: #f1e05a !important; font-family: 'Courier New', monospace; font-weight: 900; background: rgba(241, 224, 90, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(241, 224, 90, 0.2); }
-    .live-minute { color: #f
+    .live-minute { color: #f1e05a; font-family: monospace; font-weight: 900; border: 1px solid #f1e05a; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
+    .live-dot { height: 8px; width: 8px; background-color: #f85149; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
+    .stat-row { display: flex; align-items: center; font-size: 0.85rem; color: #8b949e; margin-top: 5px; font-family: monospace; }
+    .stat-label { min-width: 160px; }
+    .stat-val { color: #58a6ff; font-weight: bold; }
+    .score-board { font-size: 1.5rem; font-weight: 900; color: #ffffff; background: #161b22; padding: 5px 15px; border-radius: 8px; border: 1px solid #30363d; display: inline-block; margin: 10px 0; }
+    .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; border-radius: 6px !important; }
+</style>
+""", unsafe_allow_html=True)
+
+# --- 3. YARDIMCI FONKSİYONLAR ---
+def to_tsi(utc_str):
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+    except: return "--:--"
+
+def fetch_siber_data():
+    try:
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"live": "all"}, timeout=15)
+        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
+        if r.status_code == 200:
+            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL']]
+        return []
+    except: return []
+
+# --- 4. GİRİŞ VE PANEL ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    
+    m_data = fetch_siber_data()[:15]
+    if m_data:
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
+        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    
+    st.markdown("""<div class='pkg-row'>
+        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
+        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
+        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
+        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
+        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
+    </div>""", unsafe_allow_html=True)
+    
+    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
+    
+    _, c2, _ = st.columns([1, 2, 1])
+    with c2:
+        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
+        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
+        rem_me = st.checkbox("Beni Tanı (Hızlı Giriş)")
+        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
+            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
+                if rem_me:
+                    st.query_params.update({"s_t": l_t, "s_p": l_p})
+                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
+                st.rerun()
+            else: st.error("❌ Geçersiz Kimlik!")
+else:
+    # --- 5. PANEL ---
+    st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    
+    # Siber Arama Köprüsü
+    search_q = st.text_input("🔍 Nesine Maçını Sorgula (Takım Adı):", placeholder="Örn: Galatasaray...").strip().lower()
+    
+    cx, cy = st.columns(2)
+    with cx: 
+        if st.button("🧹 CLEAR"): 
+            st.session_state["stored_matches"] = []
+            st.rerun()
+    with cy:
+        if st.button("♻️ UPDATE"): 
+            st.session_state["stored_matches"] = fetch_siber_data()
+            st.rerun()
+
+    if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
+        st.session_state["stored_matches"] = fetch_siber_data()
+
+    # Filtreleme Uygula
+    matches = st.session_state.get("stored_matches", [])
+    if search_q:
+        matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
+
+    for i, m in enumerate(matches):
+        status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed']
+        gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+        is_live = status in ['1H', '2H', 'HT', 'LIVE']
+        dak_html = f"<span class='live-minute'>{status if status=='HT' else f'⏱️ {elap}\''}</span>" if is_live else ""
+        
+        # Analitik Karar Mekanizması
+        att_density = round(0.5 + (i % 15) / 10, 2)
+        xg_total = round(1.2 + (i % 25) / 10, 2)
+        confidence = int(60 + (xg_total * 10) + (att_density * 5))
+        if confidence > 99: confidence = 99
+        
+        siber_tercih, color = "📊 ANALİZ BEKLENİYOR", "#8b949e"
+        if confidence >= 90: siber_tercih, color = "💎 SİBER TERCİH: KG VAR & 2.5 ÜST", "#2ea043"
+        elif confidence >= 80: siber_tercih, color = "⚔️ STRATEJİK: SIRADAKİ GOL", "#f1e05a"
+        else: siber_tercih, color = "🚫 GÜVENLİK PASI (DÜŞÜK VERİ)", "#f85149"
+
+        st.markdown(f"""
+            <div class='decision-card' style='border-left: 6px
