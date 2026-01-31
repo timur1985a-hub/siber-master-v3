@@ -73,7 +73,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. YARDIMCI FONKSİYONLAR ---
+# --- 3. YARDIMCI FONKSİYONLAR VE VERİ MOTORU ---
 def to_tsi(utc_str):
     try:
         utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -86,7 +86,7 @@ def fetch_data_from_api():
         now_utc = datetime.utcnow()
         today = now_utc.strftime("%Y-%m-%d")
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": today, "timezone": "UTC"}, timeout=15)
-        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '0')
+        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         if r.status_code == 200:
             all_data = r.json().get('response', [])
             filtered = []
@@ -100,8 +100,4 @@ def fetch_data_from_api():
         return []
     except: return []
 
-# --- 4. GİRİŞ KONTROLÜ ---
-if not st.session_state.get("auth", False):
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    m_data = fetch_data_from_api()[:15]
-    m_html = "".join([f
+# ---
