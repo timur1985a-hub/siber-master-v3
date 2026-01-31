@@ -75,40 +75,11 @@ def to_tsi(utc_str):
     except: return "00:00"
 
 def secure_fetch():
+    """Update butonunu %100 taze veriye zorlayan siber motor."""
     try:
         current_date = datetime.now().strftime("%Y-%m-%d")
-        ts = int(time.time())
+        ts = int(time.time()) # Önbelleği baypas etmek için benzersiz kimlik
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": current_date, "refresh": ts}, timeout=15)
         if r.status_code == 200:
             data = r.json().get('response', [])
-            valid_matches = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
-            st.session_state["stored_matches"] = valid_matches
-            st.session_state["last_update"] = datetime.now(pytz.timezone("Europe/Istanbul")).strftime("%H:%M:%S")
-            return True
-    except: pass
-    return False
-
-# --- 4. GİRİŞ ÖNCESİ ---
-if not st.session_state["auth"]:
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    
-    if not st.session_state["stored_matches"]: secure_fetch()
-    m_data = st.session_state["stored_matches"][:15]
-    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown("<h3 style='text-align:center; color:#58a6ff;'>🔑 SİBER TERMİNAL GİRİŞİ</h3>", unsafe_allow_html=True)
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
+            valid_matches = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CAN
