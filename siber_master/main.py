@@ -66,6 +66,8 @@ st.markdown("""
     .stat-label { min-width: 160px; }
     .stat-val { color: #58a6ff; font-weight: bold; }
     .score-board { font-size: 1.5rem; font-weight: 900; color: #ffffff; background: #161b22; padding: 5px 15px; border-radius: 8px; border: 1px solid #30363d; display: inline-block; margin: 10px 0; }
+    /* Arama Cubugu Ozellestirme */
+    .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; }
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 """, unsafe_allow_html=True)
@@ -116,6 +118,9 @@ else:
     st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
+    # --- SİBER ARAMA KÖPRÜSÜ (KODU BOZMADAN EKLENDİ) ---
+    search_q = st.text_input("🔍 Nesine Maçını Buraya Yaz (Takım Adı):", placeholder="Örn: Fenerbahçe, Liverpool...").strip().lower()
+    
     cx, cy = st.columns(2)
     with cx: 
         if st.button("🧹 CLEAR"): st.session_state["stored_matches"] = []; st.rerun()
@@ -125,7 +130,12 @@ else:
     if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
         st.session_state["stored_matches"] = fetch_siber_data()
 
-    for i, m in enumerate(st.session_state.get("stored_matches", [])):
+    # Filtreleme Uygula
+    matches = st.session_state.get("stored_matches", [])
+    if search_q:
+        matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
+
+    for i, m in enumerate(matches):
         status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed']
         gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
         is_live = status in ['1H', '2H', 'HT', 'LIVE']
