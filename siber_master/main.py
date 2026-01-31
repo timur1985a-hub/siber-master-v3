@@ -29,21 +29,15 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- HAFIZA KİLİDİ: URL'DEN SESSION'A ZORUNLU AKTARIM ---
-if "l_token" not in st.session_state:
-    st.session_state["l_token"] = st.query_params.get("s_t", "")
-if "l_pass" not in st.session_state:
-    st.session_state["l_pass"] = st.query_params.get("s_p", "")
-
 # --- BENI TANI MEKANIZMASI (OTOMATIK GIRIS) ---
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
-    # URL'den gelen verilerle session state'i güncelle ve otomatik yetkilendir
-    q_t = st.session_state["l_token"]
-    q_p = st.session_state["l_pass"]
+    # URL'den Otomatik Tanıma
+    q_t = st.query_params.get("s_t")
+    q_p = st.query_params.get("s_p")
     if q_t and q_p:
         if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
@@ -119,18 +113,21 @@ if not st.session_state["auth"]:
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
     _, c2, _ = st.columns([1, 2, 1])
     with c2:
-        # Key parametrelerini kullanarak kutuları doğrudan session state'e bağladım
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        remember = st.checkbox("Beni Tanı (Şifreyi Hatırla)", value=True if st.session_state["l_token"] else False)
-        
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
-                if remember:
-                    st.query_params.update({"s_t": l_t, "s_p": l_p})
-                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
-                st.rerun()
-            else: st.error("❌ Geçersiz Kimlik!")
+        # TARAYICI YÖNLENDİRMESİ İÇİN FORM YAPISI (Şifre Kaydetme Uyarısı Tetikler)
+        with st.form("siber_giris_formu", clear_on_submit=False):
+            l_t = st.text_input("Giriş Tokeni:", type="password", help="Lisans tokeninizi girin").strip()
+            l_p = st.text_input("Şifre:", type="password", help="Lisans şifrenizi girin").strip()
+            remember = st.checkbox("Beni Tanı (URL'ye Mühürle)")
+            submit_btn = st.form_submit_button("YAPAY ZEKAYI AKTİF ET", use_container_width=True)
+            
+            if submit_btn:
+                if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
+                    if remember:
+                        st.query_params.update({"s_t": l_t, "s_p": l_p})
+                    st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
+                    st.rerun()
+                else: 
+                    st.error("❌ Geçersiz Kimlik!")
 else:
     # --- 5. ADMİN: LİSANS ÜRETİM MERKEZİ ---
     if st.session_state["role"] == "admin":
