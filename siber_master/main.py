@@ -28,7 +28,7 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Hızlı Giriş Protokolü
+# Hızlı Giriş Protokolü (Beni Tanı)
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
@@ -65,46 +65,4 @@ st.markdown("""
     .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043; padding: 18px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
     .ai-score { float: right; font-size: 1.5rem; font-weight: 900; color: #2ea043; }
     .tsi-time { color: #f1e05a !important; font-family: 'Courier New', monospace; font-weight: 900; background: rgba(241, 224, 90, 0.1); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(241, 224, 90, 0.2); }
-    .live-minute { color: #f1e05a; font-family: monospace; font-weight: 900; border: 1px solid #f1e05a; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
-    .live-dot { height: 8px; width: 8px; background-color: #f85149; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
-    .stat-row { display: flex; align-items: center; font-size: 0.85rem; color: #8b949e; margin-top: 5px; font-family: monospace; }
-    .stat-label { min-width: 160px; }
-    .stat-val { color: #58a6ff; font-weight: bold; }
-    .score-board { font-size: 1.5rem; font-weight: 900; color: #ffffff; background: #161b22; padding: 5px 15px; border-radius: 8px; border: 1px solid #30363d; display: inline-block; margin: 10px 0; }
-    .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; border-radius: 6px !important; }
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 3. YARDIMCI FONKSİYONLAR ---
-def to_tsi(utc_str):
-    try:
-        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
-        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
-    except: return "--:--"
-
-def fetch_siber_data():
-    try:
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"live": "all"}, timeout=15)
-        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
-        if r.status_code == 200:
-            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL']]
-        return []
-    except: return []
-
-# --- 4. GİRİŞ VE PANEL ---
-if not st.session_state["auth"]:
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    m_data = fetch_siber_data()[:15]
-    if m_data:
-        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
-        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
-    st.markdown(f"<a href='{
+    .live-minute { color: #f
