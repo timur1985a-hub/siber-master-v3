@@ -73,7 +73,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. YARDIMCI FONKSİYONLAR VE AKTİF VERİ MOTORU ---
+# --- 3. YARDIMCI FONKSİYONLAR ---
 def to_tsi(utc_str):
     try:
         utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -100,42 +100,8 @@ def fetch_data_from_api():
         return []
     except: return []
 
-# --- 4. GİRİŞ ÖNCESİ ---
+# --- 4. GİRİŞ KONTROLÜ ---
 if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     m_data = fetch_data_from_api()[:15]
-    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if l_t == ADMIN_TOKEN and l_p == ADMIN_PASS:
-                st.session_state.update({"auth": True, "role": "admin"})
-                st.rerun()
-            elif l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p:
-                st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
-                st.rerun()
-            else: st.error("❌ Geçersiz Giriş Protokolü!")
-else:
-    # --- 5. PANEL ---
-    if st.session_state.get("role") == "admin":
-        st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 ANAHTARLARI LİSTELE", expanded=True):
-            pkg = st.selectbox("Paket Seç", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            st.dataframe(pd.DataFrame.from_dict({k:v for k,v in CORE_VAULT.items() if v["label"] == pkg}, orient='index'), use_container_width=True)
-    else:
-        st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        # HATALI SATIRIN DÜZELTİLMİŞ HALİ (MİLLİMETRİK)
-        st.markdown(f"<div class='owner-info'>🛡️ Oturum
+    m_html = "".join([f
