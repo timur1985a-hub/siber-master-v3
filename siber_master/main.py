@@ -93,7 +93,6 @@ def fetch_data_from_api():
             for m in all_data:
                 status = m['fixture']['status']['short']
                 m_date_utc = datetime.strptime(m['fixture']['date'], "%Y-%m-%dT%H:%M:%S+00:00")
-                # Bitmiş ve sahte canlı maçları temizle
                 if status in ['FT', 'AET', 'PEN', 'ABD', 'CANCL', 'PST']: continue
                 if status in ['1H', '2H', 'HT', 'LIVE'] and (now_utc - m_date_utc).total_seconds() > 9000: continue
                 filtered.append(m)
@@ -101,7 +100,7 @@ def fetch_data_from_api():
         return []
     except: return []
 
-# --- 4. GİRİŞ ÖNCESİ (MÜHÜRLÜ GİRİŞ SİSTEMİ) ---
+# --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     m_data = fetch_data_from_api()[:15]
@@ -122,11 +121,9 @@ if not st.session_state.get("auth", False):
         l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
         l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
         if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            # ADMIN MÜHRÜ KONTROLÜ
             if l_t == ADMIN_TOKEN and l_p == ADMIN_PASS:
                 st.session_state.update({"auth": True, "role": "admin"})
                 st.rerun()
-            # KULLANICI LİSANS KONTROLÜ
             elif l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p:
                 st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
                 st.rerun()
@@ -140,4 +137,5 @@ else:
             st.dataframe(pd.DataFrame.from_dict({k:v for k,v in CORE_VAULT.items() if v["label"] == pkg}, orient='index'), use_container_width=True)
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state.get('current
+        # HATALI SATIRIN DÜZELTİLMİŞ HALİ (MİLLİMETRİK)
+        st.markdown(f"<div class='owner-info'>🛡️ Oturum
