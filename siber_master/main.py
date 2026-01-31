@@ -29,11 +29,11 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-if "auth" not in st.session_state:
-    st.session_state.update({
-        "auth": False, "role": None, "current_user": None, 
-        "activations": {}, "stored_matches": []
-    })
+# Session State Başlatma (Hata Almamak İçin Kontrollü)
+if "auth" not in st.session_state: st.session_state["auth"] = False
+if "role" not in st.session_state: st.session_state["role"] = None
+if "current_user" not in st.session_state: st.session_state["current_user"] = None
+if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
@@ -80,20 +80,23 @@ def to_tsi(utc_str):
 
 def fetch_data():
     try:
+        # User-Agent ve Header kullanımı mühürlüdür.
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
         all_data = r.json().get('response', [])
+        # Biten maçlar hariç listeleme
         return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
     except: return []
 
-# --- 4. GİRİŞ ÖNCESİ (ŞABLON KORUMALI) ---
+# --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    
+    # Marquee (Kayan Yazı) için hızlı veri çekme
     m_data = fetch_data()[:15]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
-    # --- GERİ GETİRİLEN PAKET TABLOSU ---
     st.markdown("""<div class='pkg-row'>
         <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
         <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
@@ -118,34 +121,37 @@ if not st.session_state["auth"]:
                 st.rerun()
             else: st.error("❌ Geçersiz Giriş!")
 else:
-    # --- 5. PANEL (GELİŞMİŞ ANALİZLİ) ---
+    # --- 5. PANEL ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 ANAHTARLARI LİSTELE", expanded=True):
-            pkg = st.selectbox("Paket", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            st.dataframe(pd.DataFrame.from_dict({k:v for k,v in CORE_VAULT.items() if v["label"] == pkg}, orient='index'), use_container_width=True)
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']}</div>", unsafe_allow_html=True)
 
     cx, cy = st.columns(2)
     with cx: 
+        # Temizle butonu oturumdaki her şeyi sıfırlar
         if st.button("🧹 CLEAR"): 
-            st.session_state["stored_matches"] = []; st.cache_data.clear(); st.rerun()
+            st.session_state["stored_matches"] = []
+            st.rerun()
     with cy:
+        # GÜNCELLE BUTONU: Verileri API'den tazeleyip session_state'e mühürler
         if st.button("♻️ UPDATE"): 
-            st.cache_data.clear(); st.session_state["stored_matches"] = fetch_data(); st.rerun()
+            st.session_state["stored_matches"] = fetch_data()
+            st.rerun()
 
     st.divider()
     search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
 
-    if st.button("🚀 NESİNE ÖNCELİKLİ TARAMAYI BAŞLAT", use_container_width=True):
-        st.session_state["stored_matches"] = fetch_data()
+    # Maçları her zaman stored_matches üzerinden yönetiyoruz
+    if not st.session_state["stored_matches"]:
+         with st.spinner("Siber Hafıza Güncelleniyor..."):
+             st.session_state["stored_matches"] = fetch_data()
 
-    if st.session_state["stored_matches"]:
-        matches = st.session_state["stored_matches"]
-        filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
-        
+    matches = st.session_state["stored_matches"]
+    filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
+    
+    if filtered:
         for i, m in enumerate(filtered):
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed']
@@ -186,5 +192,7 @@ else:
                     <span style='color:{label_color if is_live else "#e6edf3"};'>{msg}</span>
                 </div>
             """, unsafe_allow_html=True)
+    else:
+        st.info("🔍 Şu an kriterlere uygun aktif maç bulunamadı veya hafıza boş.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
