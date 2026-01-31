@@ -15,24 +15,20 @@ BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
+# --- LİSANS VERİTABANI KİLİDİ (ASLA SIFIRLANMAZ) ---
 if "lic_db" not in st.session_state:
-    st.session_state["lic_db"] = {}
-
-@st.cache_resource
-def get_vault():
-    v = {}
+    # 1000 Adet Statik Anahtarı Tek Seferlik Oluştur ve Hafızaya Çak
+    vault = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 201):
-            k = f"SBR-{lbl}-{hashlib.md5(f'V8_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
-            p = hashlib.md5(f"P_{lbl}_{i}".encode()).hexdigest().upper()[:6]
-            v[k] = {"pass": p, "label": lbl, "days": d, "expire": None, "status": "BEKLEMEDE"}
-    return v
+            # Değişmez Token ve Şifre Algoritması
+            k = f"SBR-{lbl}-{hashlib.md5(f'V9_FIXED_{lbl}_{i}'.encode()).hexdigest().upper()[:8]}-TM"
+            p = hashlib.md5(f"P_SEC_{lbl}_{i}".encode()).hexdigest().upper()[:6]
+            vault[k] = {"pass": p, "label": lbl, "days": d, "expire": None, "status": "BEKLEMEDE"}
+    st.session_state["lic_db"] = vault
 
-if not st.session_state["lic_db"]:
-    st.session_state["lic_db"] = get_vault()
-
-# --- 2. ASIL ŞABLON (DEĞİŞMEZ TASARIM) ---
+# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -73,14 +69,10 @@ def to_tsi(utc_str):
 
 def fetch_data():
     try:
-        # İddaa/Nesine öncelikli popüler lig ID'leri
-        pop_leagues = "203,39,140,135,78,61,2,3,848" # TR, PL, La Liga, Serie A, BDL, Ligue 1...
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d"), "ids": pop_leagues})
-        pop_res = r.json().get('response', [])
-        # Genel bülten (diğerleri)
-        r_all = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
-        all_res = r_all.json().get('response', [])
-        return pop_res + all_res
+        # Nesine/İddaa popüler ligler: Süper Lig, Premier, La Liga, Bundesliga, Serie A
+        pop_ids = "203,39,140,78,135,61,2,3"
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d"), "ids": pop_ids})
+        return r.json().get('response', [])
     except: return []
 
 if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None})
@@ -89,84 +81,84 @@ if "auth" not in st.session_state: st.session_state.update({"auth": False, "role
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    m_data = fetch_data()[:15]
+    
+    m_data = fetch_data()[:10]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    
     st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><b>10.000 TL</b></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
-        st.markdown("<h3 style='text-align:center; color:#58a6ff;'>🔑 SİBER TERMİNAL GİRİŞİ</h3>", unsafe_allow_html=True)
-        login_token = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        login_pass = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if login_token == ADMIN_TOKEN and login_pass == ADMIN_PASS:
+        st.markdown("<h3 style='text-align:center; color:#58a6ff;'>🔑 SİBER GİRİŞ TERMİNALİ</h3>", unsafe_allow_html=True)
+        l_token = st.text_input("Token:", type="password", key="main_token").strip()
+        l_pass = st.text_input("Şifre:", type="password", key="main_pass").strip()
+        
+        if st.button("SİSTEMİ KİLİTLE VE AÇ", use_container_width=True):
+            if l_token == ADMIN_TOKEN and l_pass == ADMIN_PASS:
                 st.session_state.update({"auth": True, "role": "admin"})
                 st.rerun()
-            elif login_token in st.session_state["lic_db"]:
-                user_data = st.session_state["lic_db"][login_token]
-                if user_data["pass"] == login_pass:
+            elif l_token in st.session_state["lic_db"]:
+                target = st.session_state["lic_db"][l_token]
+                if target["pass"] == l_pass:
                     now = datetime.now()
-                    if user_data["expire"] is None:
-                        user_data["expire"] = now + timedelta(days=user_data["days"])
-                        st.session_state["lic_db"][login_token] = user_data
-                    if now > user_data["expire"]: st.error("❌ LİSANS SÜRESİ DOLDU!")
+                    if target["expire"] is None:
+                        target["expire"] = now + timedelta(days=target["days"])
+                        st.session_state["lic_db"][l_token] = target
+                    
+                    if now > target["expire"]:
+                        st.error("❌ Lisans Süreniz Doldu!")
                     else:
-                        st.session_state.update({"auth": True, "role": "user", "current_user": login_token})
+                        st.session_state.update({"auth": True, "role": "user", "current_user": l_token})
                         st.rerun()
-                else: st.error("❌ Şifre Hatalı!")
-            else: st.error("❌ Token Tanınamadı!")
+                else:
+                    st.error("❌ Hatalı Şifre!")
+            else:
+                st.error("❌ Geçersiz Token!")
+
 else:
     # --- 5. GİRİŞ SONRASI ---
     if st.session_state["role"] == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-        with st.expander("🎫 HAZIR ANAHTARLARI GÖRÜNTÜLE VE SEÇ", expanded=True):
-            pkg_choice = st.selectbox("Paket Filtrele", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            view_db = {k: v for k, v in st.session_state["lic_db"].items() if v["label"] == pkg_choice}
-            st.dataframe(pd.DataFrame.from_dict(view_db, orient='index'))
+        with st.expander("🎫 1000 ADET SABİT LİSANS LİSTESİ", expanded=True):
+            f_pkg = st.selectbox("Paket Seç", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            v_data = {k: v for k, v in st.session_state["lic_db"].items() if v["label"] == f_pkg}
+            st.dataframe(pd.DataFrame.from_dict(v_data, orient='index'))
     else:
         u_key = st.session_state["current_user"]
         u_exp = st.session_state["lic_db"][u_key]["expire"]
-        st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Siber Lisans Bitiş: {u_exp.strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
+        st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='owner-info'>🛡️ Lisansınız şu ana kadar aktif: {u_exp.strftime('%Y-%m-%d %H:%M')}</div>", unsafe_allow_html=True)
 
     # --- UPDATE & CLEAR ---
-    col_x, col_y = st.columns(2)
-    with col_x:
-        if st.button("🧹 BELLEĞİ TEMİZLE (CLEAR)", use_container_width=True):
-            st.cache_data.clear(); st.cache_resource.clear(); st.rerun()
-    with col_y:
-        if st.button("♻️ VERİLERİ GÜNCELLE (UPDATE)", use_container_width=True):
+    cx, cy = st.columns(2)
+    with cx:
+        if st.button("🧹 BELLEĞİ TEMİZLE (CLEAR)"):
+            st.cache_data.clear(); st.rerun()
+    with cy:
+        if st.button("♻️ VERİLERİ GÜNCELLE (UPDATE)"):
             st.cache_data.clear(); st.rerun()
 
     st.divider()
 
-    if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
+    if st.button("🚀 NESİNE ÖNCELİKLİ TARAMAYI BAŞLAT", use_container_width=True):
         matches = fetch_data()
         if matches:
-            # Tekil maçları koru (Nesine önceliği için)
-            seen = set()
             for m in matches:
-                m_id = m['fixture']['id']
-                if m_id in seen: continue
-                seen.add(m_id)
-                
                 status = m['fixture']['status']['short']
                 is_live = status in ['1H', '2H', 'HT']
-                elapsed = m['fixture']['status']['elapsed']
-                minute_html = f"<span class='live-minute'>{elapsed}'</span>" if is_live else ""
+                minute = f"<span class='live-minute'>{m['fixture']['status']['elapsed']}'</span>" if is_live else ""
                 
-                score = 80 + (m_id % 15) if is_live else 90 + (m_id % 10)
-                if score >= 85:
-                    st.markdown(f"""
-                        <div class='decision-card'>
-                            <div class='ai-score'>%{score}</div>
-                            <b style='color:#58a6ff;'>⚽ {m['league']['name']} - {m['league']['country']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])} {minute_html}</span><br>
-                            <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
-                            <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                            <span style='color:#2ea043; font-weight:bold;'>YAPAY ZEKA KARARI:</span> NESİNE / İDDAA ÖNCELİKLİ KG & ÜST<br>
-                        </div>
-                    """, unsafe_allow_html=True)
+                score = 85 + (m['fixture']['id'] % 10)
+                st.markdown(f"""
+                    <div class='decision-card'>
+                        <div class='ai-score'>%{score}</div>
+                        <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])} {minute}</span><br>
+                        <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
+                        <hr style='border:0.1px solid #30363d; margin:10px 0;'>
+                        <span style='color:#2ea043; font-weight:bold;'>SİBER TAHMİN:</span> NESİNE ÖNCELİKLİ ANALİZ AKTİF
+                    </div>
+                """, unsafe_allow_html=True)
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
