@@ -15,6 +15,14 @@ BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
+# --- HAFIZA BAŞLATMA (ANA KODA EMNİYET KİLİDİ) ---
+if "auth" not in st.session_state:
+    st.session_state.update({
+        "auth": False, "role": None, "current_user": None, 
+        "activations": {}, "stored_matches": [],
+        "cached_matches": []  # O kırmızı hatayı bitiren anahtar
+    })
+
 @st.cache_resource
 def get_hardcoded_vault():
     v = {}
@@ -28,12 +36,6 @@ def get_hardcoded_vault():
     return v
 
 CORE_VAULT = get_hardcoded_vault()
-
-if "auth" not in st.session_state:
-    st.session_state.update({
-        "auth": False, "role": None, "current_user": None, 
-        "activations": {}, "stored_matches": []
-    })
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
@@ -80,7 +82,6 @@ def fetch_data():
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
         all_data = r.json().get('response', [])
-        # Biten maçları asla gösterme (FT, AET, PEN, ABD)
         return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
     except: return []
 
@@ -135,10 +136,9 @@ else:
             elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             
-            # --- GELİŞMİŞ SİBER ANALİZ KATMANLARI ---
             xg_h = round(0.4 + (i % 5) * 0.35, 2)
             xg_a = round(0.2 + (i % 3) * 0.45, 2)
-            rcs_val = 60 + (i % 35) # Red Zone Control (Puebla hatasını önleyen katman)
+            rcs_val = 60 + (i % 35)
             momentum = "POZİTİF" if (xg_h > 1.1 or xg_a > 1.1) and rcs_val > 75 else "ZAYIF / RİSKLİ"
 
             dakika_html = ""
@@ -149,7 +149,6 @@ else:
             if is_live:
                 h_n, a_n = m['teams']['home']['name'].upper(), m['teams']['away']['name'].upper()
                 label_color, label_text = "#f85149", "GÜVENLİ CANLI"
-                # RCS düşükse baskı olsa bile gol tahmini vermez
                 if rcs_val < 70:
                     msg = f"⚠️ CANLI: {m['goals']['home']}-{m['goals']['away']} | KISIR BASKI (RCS DÜŞÜK) | Karar: GOL RİSKLİ"
                 else:
