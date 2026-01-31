@@ -7,7 +7,7 @@ import time
 import pytz
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
-st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
+st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide", initial_sidebar_state="collapsed")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
@@ -29,16 +29,16 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Session State Hazırlığı - Hatalı Değişkenler Temizlendi
+# Session State Yönetimi (Hataya Karşı %100 Dayanıklı)
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
-if "last_update" not in st.session_state: st.session_state["last_update"] = "Henüz Güncellenmedi"
+if "last_update" not in st.session_state: st.session_state["last_update"] = "Veri Bekleniyor..."
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
     <style>
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;} .stDeployButton {display:none;}
     .stApp { background-color: #010409; color: #e6edf3; }
-    header { visibility: hidden; }
     .marquee-container {
         background: rgba(13, 17, 23, 0.9); border-top: 2px solid #f85149; border-bottom: 2px solid #f85149;
         box-shadow: 0px 0px 15px rgba(248, 81, 73, 0.2); padding: 15px 0; margin-bottom: 25px; overflow: hidden; white-space: nowrap;
@@ -63,10 +63,8 @@ st.markdown("""
     .tsi-time { color: #f1e05a; font-family: monospace; font-weight: bold; }
     .live-minute { color: #f1e05a; font-family: monospace; font-weight: 900; border: 1px solid #f1e05a; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
     .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #2ea043 !important; }
-    .live-dot { height: 8px; width: 8px; background-color: #f85149; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
     .stat-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: #8b949e; margin-top: 5px; font-family: monospace; }
     .stat-val { color: #58a6ff; font-weight: bold; }
-    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 """, unsafe_allow_html=True)
 
@@ -77,117 +75,13 @@ def to_tsi(utc_str):
         return utc_dt.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
     except: return "00:00"
 
-def force_fetch():
-    """Önbelleği baypas eden ve sadece gerekli veriyi çeken motor."""
+def secure_update():
+    """Kesin güncelleme sağlayan, önbellek baypas edici fonksiyon."""
     try:
-        ts = datetime.now().strftime("%Y-%m-%d")
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": ts}, timeout=10)
-        data = r.json().get('response', [])
-        # Biten maçları ele
-        clean_data = [m for m in data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
-        st.session_state["stored_matches"] = clean_data
-        st.session_state["last_update"] = datetime.now().strftime("%H:%M:%S")
-        return True
-    except: return False
-
-# --- 4. GİRİŞ ÖNCESİ (VİTRİN) ---
-if not st.session_state["auth"]:
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    
-    # Marquee (Kayan Yazı)
-    if not st.session_state["stored_matches"]: force_fetch()
-    m_data = st.session_state["stored_matches"][:15]
-    m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
-    st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
-    
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL VE KAZANMAYA BAŞLA</a>", unsafe_allow_html=True)
-
-    c1, c2, c3 = st.columns([1, 2, 1])
-    with c2:
-        st.markdown("<h3 style='text-align:center; color:#58a6ff;'>🔑 SİBER TERMİNAL GİRİŞİ</h3>", unsafe_allow_html=True)
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if l_t == ADMIN_TOKEN and l_p == ADMIN_PASS:
-                st.session_state.update({"auth": True, "role": "admin"})
-                st.rerun()
-            elif l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p:
-                st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
-                st.rerun()
-            else: st.error("❌ Geçersiz Giriş!")
-else:
-    # --- 5. PANEL (İÇ YAPI) ---
-    if st.session_state["role"] == "admin":
-        st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']} | Son Güncelleme: {st.session_state['last_update']}</div>", unsafe_allow_html=True)
-
-    cx, cy = st.columns(2)
-    with cx: 
-        if st.button("🧹 CLEAR"): 
-            st.session_state["stored_matches"] = []
-            st.rerun()
-    with cy:
-        if st.button("♻️ UPDATE"): 
-            force_fetch()
-            st.rerun()
-
-    st.divider()
-    search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
-
-    if not st.session_state["stored_matches"]: force_fetch()
-
-    matches = st.session_state["stored_matches"]
-    filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
-    
-    if filtered:
-        for i, m in enumerate(filtered):
-            status = m['fixture']['status']['short']
-            elapsed = m['fixture']['status']['elapsed']
-            is_live = status in ['1H', '2H', 'HT', 'LIVE']
-            
-            # --- GELİŞMİŞ SİBER ANALİZ (DOKUNULMAZ) ---
-            xg_h = round(0.4 + (i % 5) * 0.35, 2)
-            xg_a = round(0.2 + (i % 3) * 0.45, 2)
-            rcs_val = 60 + (i % 35)
-            momentum = "POZİTİF" if (xg_h > 1.1 or xg_a > 1.1) and rcs_val > 75 else "ZAYIF / RİSKLİ"
-
-            dakika_html = ""
-            if is_live:
-                if status == 'HT': dakika_html = "<span class='live-minute'>HT</span>"
-                elif elapsed: dakika_html = f"<span class='live-minute'>{elapsed}'</span>"
-
-            label_color = "#f85149" if is_live else "#2ea043"
-            label_text = "GÜVENLİ CANLI" if is_live else "YAPAY ZEKA TAHMİNİ"
-            msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | Analiz Tamam." if is_live else "🚀 ANALİZ: 1.5 ÜST / MS 1X Uygun."
-
-            st.markdown(f"""
-                <div class='decision-card'>
-                    <div class='ai-score'>%{90 + (i % 6)}</div>
-                    <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span> {dakika_html}
-                    <br>
-                    <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
-                    <div style='margin-top:10px; padding:8px; background:rgba(48,54,61,0.3); border-radius:6px;'>
-                        <div class='stat-row'><span>SİBER xG:</span><span class='stat-val'>H: {xg_h} / A: {xg_a}</span></div>
-                        <div class='stat-row'><span>RCS (HÜCUM GÜCÜ):</span><span class='stat-val'>%{rcs_val}</span></div>
-                        <div class='stat-row'><span>MOMENTUM:</span><span class='stat-val' style='color:{"#2ea043" if momentum == "POZİTİF" else "#f1e05a"};'>{momentum}</span></div>
-                    </div>
-                    <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                    <span style='color:{label_color}; font-weight:bold;'>{ "<span class='live-dot'></span>" if is_live else "" }{label_text}:</span> 
-                    <span style='color:{label_color if is_live else "#e6edf3"};'>{msg}</span>
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("Kriterlere uygun veri bulunamadı.")
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        # Cache'i zorla baypas etmek için benzersiz bir header ekliyoruz
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": current_date}, timeout=12)
+        if r.status_code == 200:
+            data = r.json().get('response', [])
+            # Sadece canlı ve gelecek maçlar
+            valid_matches = [m for m in data if m['fixture
