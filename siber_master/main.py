@@ -69,7 +69,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. SİBER YAMA: GELİŞMİŞ VERİ YOLLARI ---
+# --- 3. YARDIMCI FONKSİYONLAR ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -78,11 +78,9 @@ def to_tsi(utc_str):
 
 def fetch_siber_data():
     try:
-        # Önbelleksiz, direkt canlı API verisi çekimi
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"live": "all"}, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         if r.status_code == 200:
-            # Biten maçları anında filtrele (FT, AET, PEN dışındakiler)
             return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL']]
         return []
     except: return []
@@ -126,8 +124,7 @@ else:
     if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
         st.session_state["stored_matches"] = fetch_siber_data()
 
-    matches = st.session_state.get("stored_matches", [])
-    for i, m in enumerate(matches):
+    for i, m in enumerate(st.session_state.get("stored_matches", [])):
         status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed']
         is_live = status in ['1H', '2H', 'HT', 'LIVE']
         dak_html = f"<span class='live-minute'>{status if status=='HT' else f'⏱️ {elap}\''}</span>" if is_live else ""
@@ -137,15 +134,17 @@ else:
         xg_a = round(0.4 + (i % 3) * 0.35, 2)
         rcs_val = 70 + (i % 25)
         
-        # Karar Verici Analiz
+        # SİBER KOMUT VE UYARI SİSTEMİ (TÜM SEÇENEKLER)
+        siber_komut = "İZLEMEDE"
         if is_live:
-            label_text = "GÜVENLİ CANLI"
-            label_color = "#f85149"
-            msg = f"🔥 CANLI SKOR: {m['goals']['home']}-{m['goals']['away']} | {'SİBER GOL BEKLENİYOR' if rcs_val > 80 else 'SAVUNMA DİRENCİ VAR'}"
+            if rcs_val > 92: siber_komut = "🔥 ACİL GOL AL (BASKI TAVAN)"
+            elif status == '1H' and elap < 35 and rcs_val > 82: siber_komut = "⏱️ İLK YARI 0.5 ÜST AL"
+            elif rcs_val > 85: siber_komut = "⚽ SIRADAKİ GOLÜ KOVALA"
+            elif xg_h > 1.1 and xg_a > 1.1: siber_komut = "✅ KG VAR / 2.5 ÜST"
+            elif rcs_val > 78: siber_komut = "📊 0.5 ÜST DENENEBİLİR"
+            else: siber_komut = "⚠️ STABİL SEYİR"
         else:
-            label_text = "YAPAY ZEKA TAHMİNİ"
-            label_color = "#2ea043"
-            msg = "STRATEJİK VERİMLİLİK: %94 ONAYLANDI."
+            siber_komut = "PRE-MATCH: MS 1X & 1.5 ÜST"
 
         st.markdown(f"""
             <div class='decision-card'>
@@ -155,10 +154,14 @@ else:
                 <div style='margin-top:10px; padding:8px; background:rgba(48,54,61,0.3); border-radius:6px;'>
                     <div class='stat-row'><span class='stat-label'>SİBER xG:</span><span class='stat-val'>H: {xg_h} / A: {xg_a}</span></div>
                     <div class='stat-row'><span class='stat-label'>RCS (HÜCUM GÜCÜ):</span><span class='stat-val'>%{rcs_val}</span></div>
-                    <div class='stat-row'><span class='stat-label'>MOMENTUM:</span><span class='stat-val' style='color:#2ea043;'>{'YÜKSEK' if rcs_val > 78 else 'ORTA'}</span></div>
+                    <div class='stat-row'><span class='stat-label'>MOMENTUM:</span><span class='stat-val' style='color:#2ea043;'>{'YÜKSEK' if rcs_val > 80 else 'ORTA'}</span></div>
+                    <div class='stat-row' style='border-top:1px solid #30363d; margin-top:8px; padding-top:5px;'>
+                        <span class='stat-label' style='color:#f1e05a; font-weight:900;'>🎯 SİBER ÖNERİ:</span>
+                        <span class='stat-val' style='color:#f1e05a;'>{siber_komut}</span>
+                    </div>
                 </div>
                 <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                <span style='color:{label_color}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""} {label_text}:</span> {msg}
+                <span style='color:{"#f85149" if is_live else "#2ea043"}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""} ANALİZ:</span> {f"SKOR: {m['goals']['home']}-{m['goals']['away']} | SİBER PROTOKOL" if is_live else "STRATEJİK VERİMLİLİK."}
             </div>
         """, unsafe_allow_html=True)
 
