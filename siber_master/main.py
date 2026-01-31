@@ -28,11 +28,17 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
+# Hızlı Giriş Kontrolü
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---"
     })
+    # Sorgu parametrelerinden hatırla protokolünü kontrol et
+    if "s_token" in st.query_params and "s_pass" in st.query_params:
+        s_t, s_p = st.query_params["s_token"], st.query_params["s_pass"]
+        if (s_t == ADMIN_TOKEN and s_p == ADMIN_PASS) or (s_t in CORE_VAULT and CORE_VAULT[s_t]["pass"] == s_p):
+            st.session_state.update({"auth": True, "role": "admin" if s_t == ADMIN_TOKEN else "user", "current_user": s_t})
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
 st.markdown("""
@@ -66,8 +72,7 @@ st.markdown("""
     .stat-label { min-width: 160px; }
     .stat-val { color: #58a6ff; font-weight: bold; }
     .score-board { font-size: 1.5rem; font-weight: 900; color: #ffffff; background: #161b22; padding: 5px 15px; border-radius: 8px; border: 1px solid #30363d; display: inline-block; margin: 10px 0; }
-    /* Arama Cubugu Ozellestirme */
-    .stTextInput>div>div>input { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; }
+    input[type=text] { background-color: #0d1117 !important; color: #58a6ff !important; border: 1px solid #30363d !important; border-radius: 6px !important; }
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 """, unsafe_allow_html=True)
@@ -84,100 +89,4 @@ def fetch_siber_data():
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"live": "all"}, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         if r.status_code == 200:
-            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL']]
-        return []
-    except: return []
-
-# --- 4. GİRİŞ VE PANEL ---
-if not st.session_state["auth"]:
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    m_data = fetch_siber_data()[:15]
-    if m_data:
-        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
-        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    st.markdown("""<div class='pkg-row'>
-        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
-        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
-        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
-        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
-        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
-    </div>""", unsafe_allow_html=True)
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
-    _, c2, _ = st.columns([1, 2, 1])
-    with c2:
-        l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token").strip()
-        l_p = st.text_input("Şifre:", type="password", key="l_pass").strip()
-        if st.button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
-                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
-                st.rerun()
-            else: st.error("❌ Geçersiz Kimlik!")
-else:
-    # --- 5. PANEL ---
-    st.markdown(f"<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API Hakkı: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
-    
-    # --- SİBER ARAMA KÖPRÜSÜ (KODU BOZMADAN EKLENDİ) ---
-    search_q = st.text_input("🔍 Nesine Maçını Buraya Yaz (Takım Adı):", placeholder="Örn: Fenerbahçe, Liverpool...").strip().lower()
-    
-    cx, cy = st.columns(2)
-    with cx: 
-        if st.button("🧹 CLEAR"): st.session_state["stored_matches"] = []; st.rerun()
-    with cy:
-        if st.button("♻️ UPDATE"): st.session_state["stored_matches"] = fetch_siber_data(); st.rerun()
-
-    if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
-        st.session_state["stored_matches"] = fetch_siber_data()
-
-    # Filtreleme Uygula
-    matches = st.session_state.get("stored_matches", [])
-    if search_q:
-        matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
-
-    for i, m in enumerate(matches):
-        status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed']
-        gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-        is_live = status in ['1H', '2H', 'HT', 'LIVE']
-        dak_html = f"<span class='live-minute'>{status if status=='HT' else f'⏱️ {elap}\''}</span>" if is_live else ""
-        
-        # --- DERİN VERİ SÜZGEÇLERİ ---
-        att_density = round(0.5 + (i % 15) / 10, 2)
-        xg_total = round(1.2 + (i % 25) / 10, 2)
-        confidence_puan = int(60 + (xg_total * 10) + (att_density * 5))
-        if confidence_puan > 99: confidence_puan = 99
-
-        siber_tercih = "📊 ANALİZ BEKLENİYOR"
-        color = "#8b949e"
-        
-        if confidence_puan >= 90:
-            siber_tercih = "💎 SİBER TERCİH: KG VAR & 2.5 ÜST"
-            color = "#2ea043"
-        elif confidence_puan >= 80:
-            siber_tercih = "⚔️ STRATEJİK: SIRADAKİ GOL (EV)"
-            color = "#f1e05a"
-        else:
-            siber_tercih = "🚫 GÜVENLİK PASI (DÜŞÜK VERİ)"
-            color = "#f85149"
-
-        st.markdown(f"""
-            <div class='decision-card' style='border-left: 6px solid {color};'>
-                <div class='ai-score' style='color:{color};'>%{confidence_puan}</div>
-                <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ TSI: {to_tsi(m['fixture']['date'])}</span> {dak_html}
-                <br><span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
-                <br><div class='score-board'>{gh} - {ga}</div>
-                <div style='margin-top:10px; padding:8px; background:rgba(48,54,61,0.3); border-radius:6px;'>
-                    <div class='stat-row'><span class='stat-label'>HÜCUM YOĞUNLUĞU:</span><span class='stat-val'>{att_density} atk/dk</span></div>
-                    <div class='stat-row'><span class='stat-label'>SİBER xG (BEKLENTİ):</span><span class='stat-val'>{xg_total}</span></div>
-                    <div class='stat-row'><span class='stat-label'>GÜVEN ENDEKSİ:</span><span class='stat-val' style='color:{color};'>%{confidence_puan}</span></div>
-                    <div class='stat-row' style='border-top:1px solid #30363d; margin-top:8px; padding-top:5px;'>
-                        <span class='stat-label' style='color:{color}; font-weight:900;'>🎯 SİBER KARAR:</span>
-                        <span class='stat-val' style='color:{color};'>{siber_tercih}</span>
-                    </div>
-                </div>
-                <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                <span style='color:{"#f85149" if is_live else "#2ea043"}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""} CANLI SKOR:</span> {gh} - {ga} | SİBER ANALİZ AKTİF
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+            return [m for m in r.json().get('response', []) if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'PST', 'CANCL
