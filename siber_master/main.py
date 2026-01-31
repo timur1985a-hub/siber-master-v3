@@ -29,10 +29,14 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
+# Hata Onarımı: Tüm zorunlu anahtarların başlangıçta var olduğundan emin oluyoruz
 if "auth" not in st.session_state:
     st.session_state.update({
-        "auth": False, "role": None, "current_user": None, 
-        "stored_matches": [], "api_remaining": "---"
+        "auth": False, 
+        "role": None, 
+        "current_user": None, 
+        "stored_matches": [], 
+        "api_remaining": "---"
     })
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
@@ -71,7 +75,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. STRATEJİK VERİ MOTORU (YENİ METOT ENTEGRESİ) ---
+# --- 3. STRATEJİK VERİ MOTORU ---
 def to_tsi(utc_str):
     try:
         utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -80,26 +84,21 @@ def to_tsi(utc_str):
 
 def fetch_data_strategic():
     try:
-        # Metot: UTC senkronuyla bugünün tüm havuzunu çek
         today = datetime.utcnow().strftime("%Y-%m-%d")
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": today, "timezone": "UTC"}, timeout=15)
-        
-        # Limit Takibi
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '0')
-        
         if r.status_code == 200:
             all_data = r.json().get('response', [])
-            # Stratejik Filtre: Bitmemiş olan her şeyi al (Canlı, NS, HT vs.)
             return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
         return []
     except: return []
 
 # --- 4. GİRİŞ ÖNCESİ ---
-if not st.session_state["auth"]:
+if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     
-    # Giriş ekranı marquee verisi için basit bir canlı çekim
+    # Giriş ekranı marquee
     m_data = fetch_data_strategic()[:15]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
@@ -126,17 +125,19 @@ if not st.session_state["auth"]:
             elif l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p:
                 st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
                 st.rerun()
-            else: st.error("❌ Geçersiz Token veya Şifre!")
+            else: st.error("❌ Geçersiz Giriş!")
 else:
-    # --- 5. PANEL (STRATEJİK VERİ AKIŞLI) ---
-    if st.session_state["role"] == "admin":
+    # --- 5. PANEL (GÜVENLİ ROL KONTROLÜ) ---
+    current_role = st.session_state.get("role")
+    
+    if current_role == "admin":
         st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
         with st.expander("🎫 ANAHTARLARI LİSTELE", expanded=True):
             pkg = st.selectbox("Paket", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             st.dataframe(pd.DataFrame.from_dict({k:v for k,v in CORE_VAULT.items() if v["label"] == pkg}, orient='index'), use_container_width=True)
     else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']} | ⛽ Kalan Hak: {st.session_state.get('api_remaining')}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state.get('current_user')} | ⛽ Kalan Hak: {st.session_state.get('api_remaining')}</div>", unsafe_allow_html=True)
 
     cx, cy = st.columns(2)
     with cx: 
@@ -152,7 +153,7 @@ else:
     if st.button("🚀 STRATEJİK DERİN TARAMAYI BAŞLAT", use_container_width=True):
         st.session_state["stored_matches"] = fetch_data_strategic()
 
-    if st.session_state["stored_matches"]:
+    if st.session_state.get("stored_matches"):
         matches = st.session_state["stored_matches"]
         filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
         
@@ -161,7 +162,7 @@ else:
             elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             
-            # --- GELİŞMİŞ SİBER ANALİZ KATMANLARI ---
+            # --- GELİŞMİŞ SİBER ANALİZ ---
             xg_h = round(0.4 + (i % 5) * 0.35, 2)
             xg_a = round(0.2 + (i % 3) * 0.45, 2)
             rcs_val = 60 + (i % 35)
@@ -196,4 +197,6 @@ else:
                 </div>
             """, unsafe_allow_html=True)
 
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
+        st.session_state.clear()
+        st.rerun()
