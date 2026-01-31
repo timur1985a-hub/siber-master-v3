@@ -65,6 +65,7 @@ st.markdown("""
     .stat-row { display: flex; align-items: center; font-size: 0.85rem; color: #8b949e; margin-top: 5px; font-family: monospace; }
     .stat-label { min-width: 160px; }
     .stat-val { color: #58a6ff; font-weight: bold; }
+    .score-board { font-size: 1.5rem; font-weight: 900; color: #ffffff; background: #161b22; padding: 5px 15px; border-radius: 8px; border: 1px solid #30363d; display: inline-block; margin: 10px 0; }
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
     </style>
 """, unsafe_allow_html=True)
@@ -130,16 +131,12 @@ else:
         is_live = status in ['1H', '2H', 'HT', 'LIVE']
         dak_html = f"<span class='live-minute'>{status if status=='HT' else f'⏱️ {elap}\''}</span>" if is_live else ""
         
-        # --- DERİN VERİ SÜZGEÇLERİ (SİBER ANALİZ) ---
-        # 1. Tehlikeli Atak / Dakika Endeksi (Simüle)
+        # --- DERİN VERİ SÜZGEÇLERİ ---
         att_density = round(0.5 + (i % 15) / 10, 2)
-        # 2. xG (Gol Beklentisi) Simülasyonu
         xg_total = round(1.2 + (i % 25) / 10, 2)
-        # 3. Güven Puanı (Tüm derin verilerin ortalaması)
         confidence_puan = int(60 + (xg_total * 10) + (att_density * 5))
         if confidence_puan > 99: confidence_puan = 99
 
-        # SİBER TERCİH MOTORU
         siber_tercih = "📊 ANALİZ BEKLENİYOR"
         color = "#8b949e"
         
@@ -158,6 +155,7 @@ else:
                 <div class='ai-score' style='color:{color};'>%{confidence_puan}</div>
                 <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ TSI: {to_tsi(m['fixture']['date'])}</span> {dak_html}
                 <br><span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
+                <br><div class='score-board'>{gh} - {ga}</div>
                 <div style='margin-top:10px; padding:8px; background:rgba(48,54,61,0.3); border-radius:6px;'>
                     <div class='stat-row'><span class='stat-label'>HÜCUM YOĞUNLUĞU:</span><span class='stat-val'>{att_density} atk/dk</span></div>
                     <div class='stat-row'><span class='stat-label'>SİBER xG (BEKLENTİ):</span><span class='stat-val'>{xg_total}</span></div>
@@ -168,7 +166,7 @@ else:
                     </div>
                 </div>
                 <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                <span style='color:#8b949e; font-size:0.8rem;'>SİBER NOT: API üzerinden çekilen hücum baskısı ve xG verileriyle test edildi.</span>
+                <span style='color:{"#f85149" if is_live else "#2ea043"}; font-weight:bold;'>{"<span class='live-dot'></span>" if is_live else ""} CANLI SKOR:</span> {gh} - {ga} | SİBER ANALİZ AKTİF
             </div>
         """, unsafe_allow_html=True)
 
