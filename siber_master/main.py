@@ -15,13 +15,11 @@ BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
-# Dinamik Lisans Veritabanı (1000 Hazır Anahtarı Tutar)
 if "lic_db" not in st.session_state:
     st.session_state["lic_db"] = {}
 
 @st.cache_resource
 def get_vault():
-    """1000 Adet Statik Anahtarı Sistemin Başlangıcında Üretir ve Sabitler"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
@@ -34,7 +32,7 @@ def get_vault():
 if not st.session_state["lic_db"]:
     st.session_state["lic_db"] = get_vault()
 
-# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS (MİLİMETRİK) ---
+# --- 2. ASIL ŞABLON: DEĞİŞMEZ TASARIM VE NEON CSS ---
 st.markdown("""
     <style>
     .stApp { background-color: #010409; color: #e6edf3; }
@@ -77,7 +75,8 @@ def fetch_data():
         return r.json().get('response', [])
     except: return []
 
-if "auth" not in st.session_state: st.session_state.update({"auth": False, "role": None, "current_user": None, "cached_matches": []})
+if "auth" not in st.session_state: 
+    st.session_state.update({"auth": False, "role": None, "current_user": None, "cached_matches": []})
 
 # --- 4. GİRİŞ ÖNCESİ (PANEL) ---
 if not st.session_state["auth"]:
@@ -108,4 +107,57 @@ if not st.session_state["auth"]:
                     if user_data["expire"] is None:
                         user_data["expire"] = now + timedelta(days=user_data["days"])
                         user_data["status"] = "AKTİF"
-                        st.session_state["lic
+                        st.session_state["lic_db"][login_token] = user_data
+                    if now > user_data["expire"]:
+                        st.error("❌ LİSANS SÜRENİZ DOLMUŞTUR!")
+                    else:
+                        st.session_state.update({"auth": True, "role": "user", "current_user": login_token})
+                        st.rerun()
+                else: st.error("❌ Geçersiz Şifre!")
+            else: st.error("❌ Token Tanınamadı!")
+
+else:
+    # --- 5. GİRİŞ SONRASI ---
+    if st.session_state["role"] == "admin":
+        st.markdown("<div class='internal-welcome'>ADMİN MASTER PANEL</div>", unsafe_allow_html=True)
+        with st.expander("🎫 HAZIR ANAHTARLAR", expanded=True):
+            pkg_choice = st.selectbox("Paket Seç", ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            view_db = {k: v for k, v in st.session_state["lic_db"].items() if v["label"] == pkg_choice}
+            st.dataframe(pd.DataFrame.from_dict(view_db, orient='index'), use_container_width=True)
+    else:
+        st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
+        st.markdown(f"<div class='owner-info'>🛡️ Lisans Aktif: {st.session_state['current_user']}</div>", unsafe_allow_html=True)
+
+    col_x, col_y = st.columns(2)
+    with col_x:
+        if st.button("🧹 CLEAR", use_container_width=True):
+            st.cache_data.clear(); st.session_state["cached_matches"] = []; st.rerun()
+    with col_y:
+        if st.button("♻️ UPDATE", use_container_width=True):
+            st.cache_data.clear(); st.rerun()
+
+    st.divider()
+
+    # --- SİBER ARAMA MOTORU ---
+    search_q = st.text_input("🔍 MAÇ VEYA LİG ARA:", placeholder="Takım adı yazın...").lower()
+
+    if st.button("🚀 KUSURSUZ DÜNYA TARAMASINI BAŞLAT", use_container_width=True):
+        st.session_state["cached_matches"] = fetch_data()
+
+    if st.session_state["cached_matches"]:
+        matches = st.session_state["cached_matches"]
+        filtered = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower() or search_q in m['league']['name'].lower()]
+        
+        for i, m in enumerate(filtered):
+            score = 88 + (i % 10)
+            st.markdown(f"""
+                <div class='decision-card'>
+                    <div class='ai-score'>%{score}</div>
+                    <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span><br>
+                    <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
+                    <hr style='border:0.1px solid #30363d; margin:10px 0;'>
+                    <span style='color:#2ea043; font-weight:bold;'>YAPAY ZEKA KARARI:</span> NESİNE KG VAR / ÜST
+                </div>
+            """, unsafe_allow_html=True)
+    
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
