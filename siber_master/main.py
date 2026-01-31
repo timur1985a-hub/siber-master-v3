@@ -77,7 +77,6 @@ def to_tsi(utc_str):
 
 def fetch_data():
     try:
-        # Tüm güncel veriyi (canlılar dahil) tek seferde çeker
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"date": datetime.now().strftime("%Y-%m-%d")})
         return r.json().get('response', [])
     except: return []
@@ -120,7 +119,6 @@ else:
         st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
         st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif: {st.session_state['current_user']}</div>", unsafe_allow_html=True)
 
-    # BUTONLAR (SABİT)
     cx, cy = st.columns(2)
     with cx: 
         if st.button("🧹 CLEAR"): 
@@ -128,13 +126,12 @@ else:
             st.cache_data.clear(); st.rerun()
     with cy:
         if st.button("♻️ UPDATE"): 
-            st.cache_data.clear() # Cache zorla temizlenir
-            st.session_state["stored_matches"] = fetch_data() # Yeni veri doğrudan hafızaya
+            st.cache_data.clear()
+            st.session_state["stored_matches"] = fetch_data()
             st.rerun()
 
     st.divider()
 
-    # SİBER ARAMA MOTORU
     search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
 
     if st.button("🚀 NESİNE ÖNCELİKLİ TARAMAYI BAŞLAT", use_container_width=True):
@@ -146,14 +143,22 @@ else:
         
         for i, m in enumerate(filtered):
             status = m['fixture']['status']['short']
+            elapsed = m['fixture']['status']['elapsed']
             is_live = status in ['1H', '2H', 'HT', 'LIVE']
             score = 91 + (i % 7) if is_live else 85 + (i % 10)
             
-            # Dinamik Analiz Yorumu
+            # Canlı Dakika Bilgisi Hazırlama
+            dakika_bilgisi = f"[{elapsed}']" if elapsed else ""
+            if status == 'HT': dakika_bilgisi = "[D.A]"
+
             if is_live:
-                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | Baskı Yüksek! Karar: SIRADAKİ GOL / ÜST"
+                msg = f"🔥 CANLI {dakika_bilgisi}: {m['goals']['home']}-{m['goals']['away']} | Baskı Yüksek! Karar: SIRADAKİ GOL / ÜST"
+                label_color = "#f85149" # CANLI İÇİN KIRMIZI
+                label_text = "CANLI TAHMİNİ"
             else:
                 msg = "🚀 ANALİZ: Ofansif Veriler %90 Uyumlu. Karar: KG VAR / 2.5 ÜST"
+                label_color = "#2ea043" # NORMAL İÇİN YEŞİL
+                label_text = "YAPAY ZEKA TAHMİNİ"
 
             st.markdown(f"""
                 <div class='decision-card'>
@@ -162,7 +167,8 @@ else:
                     <br>
                     <span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span><br>
                     <hr style='border:0.1px solid #30363d; margin:10px 0;'>
-                    <span style='color:#2ea043; font-weight:bold;'>{ "<span class='live-dot'></span>CANLI" if is_live else "YAPAY ZEKA" } TAHMİNİ:</span> {msg}
+                    <span style='color:{label_color}; font-weight:bold;'>{ "<span class='live-dot'></span>" if is_live else "" }{label_text}:</span> 
+                    <span style='color:{label_color if is_live else "#e6edf3"}; font-weight:{"bold" if is_live else "normal"};'>{msg}</span>
                 </div>
             """, unsafe_allow_html=True)
 
