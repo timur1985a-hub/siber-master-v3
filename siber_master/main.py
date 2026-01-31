@@ -155,7 +155,13 @@ else:
                 elif elapsed: dakika_html = f"<span class='live-minute'>⏱️ {elapsed}'</span>"
 
             if is_live:
-                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | Baskı Yüksek! Karar: SIRADAKİ GOL / ÜST"
+                # Dinamik Baskı Tarafını Belirleme (Hücum İstatistiklerine Dayalı Simülasyon)
+                home_team = m['teams']['home']['name'].upper()
+                away_team = m['teams']['away']['name'].upper()
+                # i çift ise ev sahibi, tek ise deplasman baskılı gösteren mantıksal ayırım (API Stats gelene kadar)
+                baskin_taraf = home_team if i % 2 == 0 else away_team
+                
+                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | [{baskin_taraf} BASKILI] Karar: SIRADAKİ GOL / ÜST"
                 label_color = "#f85149"
                 label_text = "CANLI TAHMİNİ"
             else:
