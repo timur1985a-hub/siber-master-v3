@@ -29,14 +29,10 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# Hata Onarımı: Tüm zorunlu anahtarların başlangıçta var olduğundan emin oluyoruz
 if "auth" not in st.session_state:
     st.session_state.update({
-        "auth": False, 
-        "role": None, 
-        "current_user": None, 
-        "stored_matches": [], 
-        "api_remaining": "---"
+        "auth": False, "role": None, "current_user": None, 
+        "stored_matches": [], "api_remaining": "---"
     })
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
@@ -75,7 +71,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. STRATEJİK VERİ MOTORU ---
+# --- 3. STRATEJİK VERİ MOTORU (GELİŞMİŞ FİLTRE) ---
 def to_tsi(utc_str):
     try:
         utc_dt = datetime.strptime(utc_str, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -89,16 +85,14 @@ def fetch_data_strategic():
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '0')
         if r.status_code == 200:
             all_data = r.json().get('response', [])
-            return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL']]
+            # SADECE BİTMEMİŞ (GÜNCEL VEYA GELECEK) MAÇLARI AL
+            return [m for m in all_data if m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'ABD', 'CANCL', 'PST']]
         return []
     except: return []
 
 # --- 4. GİRİŞ ÖNCESİ ---
 if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    
-    # Giriş ekranı marquee
     m_data = fetch_data_strategic()[:15]
     m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} <span>VS</span> {m['teams']['away']['name']}</span>" for m in m_data])
     st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
@@ -127,7 +121,7 @@ if not st.session_state.get("auth", False):
                 st.rerun()
             else: st.error("❌ Geçersiz Giriş!")
 else:
-    # --- 5. PANEL (GÜVENLİ ROL KONTROLÜ) ---
+    # --- 5. PANEL ---
     current_role = st.session_state.get("role")
     
     if current_role == "admin":
@@ -150,7 +144,7 @@ else:
     st.divider()
     search_q = st.text_input("🔍 HAFIZADA MAÇ ARA:", placeholder="Takım veya Lig adı...").lower()
 
-    if st.button("🚀 STRATEJİK DERİN TARAMAYI BAŞLAT", use_container_width=True):
+    if st.button("🚀 STRATEJİK GÜNCEL TARAMAYI BAŞLAT", use_container_width=True):
         st.session_state["stored_matches"] = fetch_data_strategic()
 
     if st.session_state.get("stored_matches"):
@@ -173,12 +167,9 @@ else:
                 if status == 'HT': dakika_html = "<span class='live-minute'>DEVRE ARASI</span>"
                 elif elapsed: dakika_html = f"<span class='live-minute'>⏱️ {elapsed}'</span>"
 
-            if is_live:
-                label_color, label_text = "#f85149", "GÜVENLİ CANLI"
-                msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']} | {'SIRADAKİ GOL' if rcs_val > 70 else 'GOL RİSKLİ'}"
-            else:
-                label_color, label_text = "#2ea043", "YAPAY ZEKA TAHMİNİ"
-                msg = "🚀 ANALİZ: Taktiksel Verimlilik Teyit Edildi. Karar: 1.5 ÜST / MS 1X"
+            label_color = "#f85149" if is_live else "#2ea043"
+            label_text = "GÜVENLİ CANLI" if is_live else "YAPAY ZEKA TAHMİNİ"
+            msg = f"🔥 CANLI: {m['goals']['home']}-{m['goals']['away']}" if is_live else "🚀 ANALİZ: 1.5 ÜST / MS 1X"
 
             st.markdown(f"""
                 <div class='decision-card'>
@@ -196,7 +187,7 @@ else:
                     <span style='color:{label_color if is_live else "#e6edf3"};'>{msg}</span>
                 </div>
             """, unsafe_allow_html=True)
+    else:
+        st.info("⚠️ Güncel maç bulunamadı. Geçmiş veriler temizlendi.")
 
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
-        st.session_state.clear()
-        st.rerun()
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state.clear(); st.rerun()
