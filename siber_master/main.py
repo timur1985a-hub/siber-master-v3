@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import hashlib
 import pytz
 
@@ -52,8 +52,4 @@ header { visibility: hidden; }
 }
 .marquee-text { display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; }
 .match-badge {
-    background: #161b22; color: #f85149; border: 1px solid #f85149; padding: 5px 15px;
-    border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace; font-size: 1rem;
-}
-@keyframes marquee { 0% { transform: translate(0, 0); } 100% { transform: translate(-100%, 0); } }
-.marketing-title { text-
+    background: #161
