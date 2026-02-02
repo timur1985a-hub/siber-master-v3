@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import hashlib
 import pytz
 
@@ -28,13 +28,13 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- HAFIZA BAŞLATMA VE HATA ÖNLEME ---
+# --- HAFIZA BAŞLATMA (HATA ÖNLEYİCİ) ---
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---",
         "siber_archive": {},
-        "archive_mode": False  # KeyError: 'archive_mode' HATASI BURADA ÇÖZÜLDÜ
+        "archive_mode": False # KEYERROR ÇÖZÜMÜ: Anahtar burada zorunlu tanımlandı
     })
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
@@ -45,19 +45,16 @@ header{visibility:hidden}
 .marquee-text{display:inline-block;padding-left:100%;animation:marquee 100s linear infinite}
 .match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}
 @keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}
-.marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px}
-.marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}
 .internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}
 .owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}
 .stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}
 .decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}
 .ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}
-.tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}
-.live-minute{color:#f1e05a;font-family:monospace;font-weight:900;border:1px solid #f1e05a;padding:2px 6px;border-radius:4px;margin-left:10px}
 .score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}
-.archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:4px 10px;border-radius:6px;font-size:0.8rem;margin-bottom:8px;font-weight:bold}
-.status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px}
-.status-fail{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px}
+.archive-badge{display:inline-block;background:rgba(35,134,54,0.1);color:#2ea043;border:1px solid #2ea043;padding:4px 10px;border-radius:6px;font-size:0.85rem;margin-bottom:8px;font-weight:bold}
+.status-win{background:#238636;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem}
+.status-fail{background:#da3633;color:white;padding:2px 8px;border-radius:4px;font-size:0.8rem}
+.status-wait{background:#f1e05a;color:black;padding:2px 8px;border-radius:4px;font-size:0.8rem}
 </style>"""
 st.markdown(style_code, unsafe_allow_html=True)
 
@@ -85,31 +82,29 @@ if not st.session_state["auth"]:
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
 if not st.session_state["auth"]:
-    # ... (Giriş Ekranı Tasarımı - Milimetrik aynı kalacak) ...
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    _, c2, _ = st.columns([1, 2, 1])
-    with c2:
-        with st.form("login"):
-            l_t = st.text_input("Giriş Tokeni:", type="password")
-            l_p = st.text_input("Şifre:", type="password")
-            if st.form_submit_button("AKTİF ET"):
-                if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
-                    st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
-                    st.rerun()
+    st.markdown("<h1 style='text-align:center;color:#2ea043;'>TIMUR AI LOGIN</h1>", unsafe_allow_html=True)
+    with st.form("login_form"):
+        l_t = st.text_input("Token:", type="password")
+        l_p = st.text_input("Şifre:", type="password")
+        if st.form_submit_button("SİSTEME GİR"):
+            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
+                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
+                st.rerun()
 else:
-    # --- PANEL ---
-    st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-    
-    # Arama ve Arşiv Butonları
-    search_q = st.text_input("🔍 Maç Ara (Nesine Takım Adı):").strip().lower()
-    
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("📂 SİBER ARŞİVDE ARA", use_container_width=True): st.session_state["archive_mode"] = True
-    with b2:
-        if st.button("📡 CANLI LİSTEYE DÖN", use_container_width=True): st.session_state["archive_mode"] = False
+    st.markdown("<div class='internal-welcome'>SİBER ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
 
-    # Ana Butonlar
+    # --- ARAMA VE ARŞİV KONTROLLERİ ---
+    search_q = st.text_input("🔍 Maç Ara (Takım Adı):", placeholder="Arşivdeki veya canlıdaki maçı yazın...").strip().lower()
+    
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("📂 ARŞİVDE SORGULA", use_container_width=True):
+            st.session_state["archive_mode"] = True
+    with col_b:
+        if st.button("📡 CANLI LİSTEYE DÖN", use_container_width=True):
+            st.session_state["archive_mode"] = False
+
     cx, cy, cz = st.columns([1, 1, 2])
     with cx: 
         if st.button("🧹 CLEAR"): 
@@ -130,57 +125,10 @@ else:
                 seed = int(hashlib.md5(fid.encode()).hexdigest(), 16)
                 conf = 88 + (seed % 11)
                 tahmin = "2.5 ÜST" if conf >= 96 else "İLK YARI 0.5 ÜST"
-                st.session_state["siber_archive"][fid] = {"conf": conf, "emir": tahmin, "data": m, "result": "BEKLENİYOR"}
+                st.session_state["siber_archive"][fid] = {
+                    "conf": conf, "emir": tahmin, "data": m, "status": "BEKLENİYOR", "final": ""
+                }
 
-    # --- VERİ İŞLEME VE SKOR KONTROL ---
+    # --- VERİ FİLTRELEME VE SKOR DOĞRULAMA ---
     display_list = []
-    if st.session_state["archive_mode"]:
-        # Arşiv Modunda Skor Kontrolü Yap (Sonuçlandı mı?)
-        current_data = fetch_siber_data(live=True) + fetch_siber_data(live=False)
-        current_map = {str(m['fixture']['id']): m for m in current_data}
-        
-        for fid, archived in st.session_state["siber_archive"].items():
-            if fid in current_map:
-                m_now = current_map[fid]
-                status = m_now['fixture']['status']['short']
-                gh, ga = m_now['goals']['home'] or 0, m_now['goals']['away'] or 0
-                
-                # Başarı Kontrolü
-                if status in ['FT', 'AET', 'PEN']:
-                    if archived['emir'] == "2.5 ÜST" and (gh + ga) > 2.5: archived['result'] = "BAŞARILI ✅"
-                    elif archived['emir'] == "İLK YARI 0.5 ÜST" and (m_now['score']['halftime']['home'] or 0 + m_now['score']['halftime']['away'] or 0) > 0.5: archived['result'] = "BAŞARILI ✅"
-                    else: archived['result'] = "BAŞARISIZ ❌"
-                
-                # Güncel Skoru Arşive işle
-                archived['current_score'] = f"{gh} - {ga}"
-        
-        display_list = [v["data"] for k, v in st.session_state["siber_archive"].items()]
-        if search_q:
-            display_list = [m for m in display_list if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
-    else:
-        display_list = st.session_state["stored_matches"]
-        if search_q:
-            display_list = [m for m in display_list if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
-
-    # --- KARTLARI ÇİZ ---
-    for m in display_list:
-        fid = str(m['fixture']['id'])
-        archived = st.session_state["siber_archive"].get(fid)
-        
-        # Tasarım Kartı
-        color = "#2ea043" if archived and "BAŞARILI" in archived['result'] else "#58a6ff"
-        res_class = "status-win" if archived and "BAŞARILI" in archived['result'] else "status-fail"
-        
-        st.markdown(f"""
-            <div class='decision-card' style='border-left: 6px solid {color};'>
-                {f"<div class='archive-badge'>🔒 ARŞİV: %{archived['conf']} - {archived['emir']} | <span class='{res_class}'>{archived['result']}</span></div>" if archived else ""}
-                <div class='ai-score' style='color:{color};'>%{archived['conf'] if archived else 90}</div>
-                <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span>
-                <br><span style='font-size:1.4rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
-                <br><div class='score-board'>{m['goals']['home'] or 0} - {m['goals']['away'] or 0}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
-        st.session_state.clear()
-        st.rerun()
+    if st.session_state
