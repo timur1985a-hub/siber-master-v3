@@ -108,7 +108,6 @@ st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
 # --- 3. SİBER ANALİZ MOTORU (ULTRA DOMINANCE v4) ---
-# Canlı Oranı Yükseltmek İçin: Dinamik Emir Güncelleme Eklendi.
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -145,13 +144,12 @@ def siber_engine(m):
     pre_emir = "1.5 ÜST" if is_high else "0.5 ÜST"
     conf = 94 if is_high else 89
 
-    # BAŞARI ORANI YÜKSELTME MANTIĞI: Dakika hassasiyeti arttırıldı.
     if elapsed > 0:
         if elapsed < 35:
             if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 94
             else: live_emir, conf = "1.5 ÜST", 95
         elif 35 <= elapsed < 65:
-            if total == 0: live_emir, conf = "0.5 ÜST", 98 # Bu dakikada 0-0 ise siber kilit açılır
+            if total == 0: live_emir, conf = "0.5 ÜST", 98
             elif diff == 0: live_emir, conf = "KG VAR", 92
             else: live_emir, conf = "1.5 ÜST", 93
         elif 65 <= elapsed < 82:
@@ -174,9 +172,10 @@ if not st.session_state["auth"]:
     st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
     
+    # Tarayıcının 'Şifreyi Kaydet' demesi için Formu Optimize Ettim
     with st.form("auth_f"):
-        l_t = st.text_input("Giriş Tokeni:", type="password").strip()
-        l_p = st.text_input("Şifre:", type="password").strip()
+        l_t = st.text_input("Giriş Tokeni (Kullanıcı Adı):", key="username", help="Tokeninizi buraya girin.").strip()
+        l_p = st.text_input("Şifre:", type="password", key="password").strip()
         if st.form_submit_button("AKTİF ET"):
             now = datetime.now(pytz.timezone("Europe/Istanbul"))
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
@@ -248,7 +247,6 @@ else:
             elapsed = m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
             
-            # Canlıda olan maçı siber arşive mühürle
             if fid not in PERMANENT_ARCHIVE:
                 PERMANENT_ARCHIVE[fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'],
@@ -257,7 +255,6 @@ else:
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
             else:
-                # ÖNEMLİ: Eğer maç bitmemişse canlı emri ve dakikayı güncelle (Başarı oranı için kritik)
                 if status not in ['FT', 'AET', 'PEN']:
                     PERMANENT_ARCHIVE[fid].update({
                         "score": f"{gh}-{ga}", "status": status, "min": elapsed, 
