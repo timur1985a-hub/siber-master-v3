@@ -76,7 +76,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. SİBER ANALİZ MOTORU ---
+# --- 3. SİBER ANALİZ MOTORU (ULTRA GUARANTEE v2) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -93,10 +93,12 @@ def fetch_siber_data(live=True):
 
 def check_success(emir, gh, ga):
     total = gh + ga
+    if "İLK YARI 0.5 ÜST" in emir: return total > 0
     if "2.5 ÜST" in emir: return total > 2
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
+    if "+0.5 GOL" in emir: return total > 0
     return False
 
 def siber_engine(m):
@@ -104,15 +106,36 @@ def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
+    diff = abs(gh - ga)
+    
+    # Yüksek Hakimiyetli Ligler
+    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1"]
     is_high = any(x in league for x in high_leagues)
-    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
-    conf = 94 if is_high else 89
+    
+    # CANSIZ STRATEJİ: Risk Azaltılmış Hakimiyet
+    pre_emir = "1.5 ÜST" if is_high else "0.5 ÜST"
+    conf = 93 if is_high else 88
+
+    # CANLI STRATEJİ: Garantici Baskı Analizi
     if elapsed > 0:
-        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
-        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
-        else: live_emir = "KG VAR"
-    else: live_emir = "KG VAR"
+        if elapsed < 40:
+            if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 91
+            else: live_emir, conf = "1.5 ÜST", 94
+        elif 40 <= elapsed < 70:
+            # Skor Dengesi ve Baskı Kontrolü
+            if total == 0: live_emir, conf = "0.5 ÜST", 95
+            elif diff == 0: live_emir, conf = "KG VAR", 90 # 1-1 beklenen çekişmeli maç
+            elif diff >= 3: live_emir, conf = "3.5 ÜST", 85 # Fark açılmışsa gol devam eder
+            else: live_emir, conf = "1.5 ÜST", 92
+        elif 70 <= elapsed < 85:
+            # Son Çeyrek Garantisi
+            if total < 2: live_emir, conf = "0.5 ÜST", 96
+            else: live_emir, conf = "+0.5 GOL", 92 # Mevcut skora bir gol daha eklenir mi?
+        else:
+            live_emir, conf = "MAÇ SONU +0.5", 89
+    else:
+        live_emir = "KG VAR" if is_high else "0.5 ÜST"
+
     return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
@@ -165,9 +188,8 @@ else:
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
-                # KRİTİK: Temizlik sonrası otomatik kaydı durdurmak için modu 'clear' yapıyoruz.
                 st.session_state["view_mode"] = "clear"
-                st.success("Tüm siber hafıza temizlendi! Yeni analizler için mod seçiniz.")
+                st.success("Tüm siber hafıza temizlendi!")
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -193,9 +215,6 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # --- VERİ KAYIT İŞLEMİ (KESİN ÇÖZÜM BURADA) ---
-    # Sadece 'live' veya 'pre' modundayken ve liste doluysa kayıt yap. 
-    # Arşiv modundayken veya ekran temizken asla yeni kayıt (eski maçları çekme) yapma.
     if mode in ["live", "pre"] and st.session_state["stored_matches"]:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
@@ -212,14 +231,11 @@ else:
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
             else:
-                # Sadece skoru ve zamanı güncelle, yeni bir "kayıt" olarak ekleme
                 PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
-    # --- GÖRÜNTÜLEME ---
     if mode == "archive": 
         display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
-        # Sadece o anki çekilen maçları göster, arşivi komple dökme!
         display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     if search_q:
