@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 import pytz
+import re
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
@@ -28,7 +29,12 @@ def get_hardcoded_vault():
 @st.cache_resource
 def get_persistent_archive(): return {}
 
-# Kritik: Lisans verilerini session_state'de tutarak "DAĞIT" işlemini kalıcı kılıyoruz.
+def siber_normalize(text):
+    """Türkçe karakterleri siber temizliğe tabi tutar ve standardize eder."""
+    text = text.lower()
+    text = text.replace('ı', 'i').replace('ç', 'c').replace('ş', 's').replace('ğ', 'g').replace('ü', 'u').replace('ö', 'o')
+    return re.sub(r'[^a-z0-9]', '', text)
+
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
@@ -67,7 +73,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. ULTRA GÜÇLÜ ANALİZ MOTORU (%85+ BAŞARI) ---
+# --- 3. ANALİZ MOTORU (%85+ BAŞARI) ---
 def check_success(emir, score_str):
     try:
         gh, ga = map(int, score_str.split('-'))
@@ -78,7 +84,6 @@ def check_success(emir, score_str):
         if "KG VAR" in emir: return gh > 0 and ga > 0
         if "1X" in emir: return gh >= ga
         if "X2" in emir: return ga >= gh
-        if "İY 0.5" in emir: return total > 0
         return False
     except: return False
 
@@ -86,21 +91,13 @@ def advanced_decision_engine(m):
     league = m['league']['name'].upper()
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total, elapsed = gh + ga, m['fixture']['status']['elapsed'] or 0
-    
-    # Siber Filtre Katmanları
     is_high = any(x in league for x in ["BUNDES", "EREDI", "ELITE", "AUSTRIA", "ICELAND", "U19", "U21"])
-    
-    # Cansız Analiz
-    if is_high: pre_emir, conf = "1.5 ÜST", 92
-    else: pre_emir, conf = "0.5 ÜST", 90
-
-    # Canlı Analiz
+    pre_emir, conf = ("1.5 ÜST", 92) if is_high else ("0.5 ÜST", 90)
     if elapsed > 0:
         if elapsed < 35: live_emir = "İY 0.5 ÜST" if total == 0 else "1.5 ÜST"
         elif 35 <= elapsed < 70: live_emir = "0.5 ÜST" if total == 0 else "KG VAR"
         else: live_emir = "0.5 ÜST (SİBER)"
     else: live_emir = "0.5 ÜST"
-    
     return conf, pre_emir, live_emir
 
 def fetch_siber_data(live=True):
@@ -131,7 +128,7 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # Butonlar
+    # Navigasyon
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1: 
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
@@ -147,9 +144,9 @@ else:
         else:
             if st.button("🧹 TEMİZLE", use_container_width=True): st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
-    # --- ARAMA ÇUBUĞU ---
+    # --- SİBER ARAMA ÇUBUĞU (HASSASLAŞTIRILMIŞ) ---
     st.markdown("<div class='search-box-style'>", unsafe_allow_html=True)
-    search_q = st.text_input("🔍 TAKIM VEYA LİG ARA:", placeholder="Hızlı süzme için yazın...").strip().upper()
+    search_input = st.text_input("🔍 TAKIM VEYA LİG ARA:", placeholder="Fenerbahçe, Madrid, Premier...").strip()
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Veri İşleme
@@ -160,7 +157,7 @@ else:
             st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short']}
         st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short']})
 
-    # --- LİSTELEME VE FİLTRELEME ---
+    # Liste ve Siber Arama Filtresi
     all_data = list(st.session_state["PERMANENT_ARCHIVE"].values())
     if st.session_state["view_mode"] == "archive":
         display_list = all_data
@@ -168,8 +165,9 @@ else:
         current_ids = [str(m['fixture']['id']) for m in st.session_state.get("stored_matches", [])]
         display_list = [v for k, v in st.session_state["PERMANENT_ARCHIVE"].items() if k in current_ids]
 
-    if search_q:
-        display_list = [x for x in display_list if search_q in x['home'].upper() or search_q in x['away'].upper() or search_q in x['league'].upper()]
+    if search_input:
+        norm_q = siber_normalize(search_input)
+        display_list = [x for x in display_list if norm_q in siber_normalize(x['home']) or norm_q in siber_normalize(x['away']) or norm_q in siber_normalize(x['league'])]
 
     # Başarı Paneli
     finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
@@ -178,14 +176,13 @@ else:
         l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
         st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>{len(finished)}</div><div class='stat-lbl'>Siber Kayıt</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div></div>", unsafe_allow_html=True)
 
-    # Admin/İçerik Alanı
+    # İçerik Alanı
     if st.session_state["view_mode"] == "admin_vault" and st.session_state["role"] == "admin":
         st.markdown("### 🗄️ LİSANS YÖNETİMİ")
         now = datetime.now(pytz.timezone("Europe/Istanbul"))
         tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-        for i, tab in enumerate(tabs):
-            pkg = ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"][i]
-            with tab:
+        for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+            with tabs[i]:
                 pkg_lics = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
                 for t, info in pkg_lics.items():
                     col_a, col_b = st.columns([4, 1])
@@ -204,8 +201,7 @@ else:
             win_l = "✅" if check_success(arc['live_emir'], arc['score']) else ("❌" if is_fin else "")
             st.markdown(f"<div class='decision-card'><div class='ai-score'>%{arc['conf']}</div><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']}</div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.05); padding:8px; border-radius:6px; border:1px solid #30363d;'><small>CANSIZ</small><br><b>{arc['pre_emir']}</b> {win_p}</div><div style='flex:1; background:rgba(46,160,67,0.05); padding:8px; border-radius:6px; border:1px solid #2ea043;'><small>CANLI</small><br><b>{arc['live_emir']}</b> {win_l}</div></div></div>", unsafe_allow_html=True)
 
-    # --- GÜVENLİ ÇIKIŞ (FIXED) ---
+    # --- GÜVENLİ ÇIKIŞ ---
     if st.button("🔴 GÜVENLİ ÇIKIŞ", use_container_width=True):
         st.session_state["auth"] = False
-        st.session_state["current_user"] = None
         st.rerun()
