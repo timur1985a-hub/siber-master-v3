@@ -148,7 +148,7 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # --- ADMIN KONTROL PANELİ (ORİJİNAL API YOLLARINA DOKUNMADAN EKLENDİ) ---
+    # --- ADMIN KONTROL PANELİ ---
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
             t1, t2, t3, t4, t5 = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
@@ -191,7 +191,7 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veri Kayıt İşlemi (ORİJİNAL - API YOLLARI BURADA ÇALIŞIR)
+    # Veri Kayıt İşlemi (ORİJİNAL)
     if mode != "clear":
         for m in st.session_state.get("stored_matches", []):
             fid = str(m['fixture']['id'])
