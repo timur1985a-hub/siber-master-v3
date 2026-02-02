@@ -98,6 +98,9 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
+    # MAÇ ARAMA ÇUBUĞU GERİ GELDİ
+    search_q = st.text_input("🔍 Nesine Maçını Buraya Yaz (Takım Adı):", placeholder="Örn: Fenerbahçe, Liverpool...").strip().lower()
+    
     cx, cy, cz = st.columns([1, 1, 2])
     with cx: 
         if st.button("🧹 CLEAR"): st.session_state["stored_matches"] = []; st.rerun()
@@ -107,7 +110,14 @@ else:
         if st.button("💎 SİBER CANSIZ MAÇ TARAMASI (%90+ GÜVEN)", use_container_width=True):
             st.session_state["stored_matches"] = fetch_siber_data(live=False)
 
+    if st.button("🚀 STRATEJİK CANLI TARAMAYI BAŞLAT", use_container_width=True):
+        st.session_state["stored_matches"] = fetch_siber_data(live=True)
+
     matches = st.session_state.get("stored_matches", [])
+    
+    # FİLTRELEME MANTIĞI
+    if search_q:
+        matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
 
     for i, m in enumerate(matches):
         status = m['fixture']['status']['short']
@@ -120,26 +130,17 @@ else:
         h_name = str(m['teams']['home']['name'])
         a_name = str(m['teams']['away']['name'])
         
-        # SİBER EMİR MEKANİZMASI
         if is_pre:
             seed_v = int(hashlib.md5(str(m['fixture']['id']).encode()).hexdigest(), 16)
             conf = 85 + (seed_v % 15) 
-            if conf >= 95:
-                s_emir, color = "💎 SİBER EMİR: 2.5 ÜST OYNA!", "#2ea043"
-            elif conf >= 90:
-                s_emir, color = "🔥 SİBER EMİR: İLK YARI 0.5 ÜST!", "#58a6ff"
-            else:
-                s_emir, color = "⚠️ SİBER TERCİH: KG VAR (DÜŞÜK KASA)", "#f1e05a"
-            dak_h = "<span class='live-minute' style='border-color:#58a6ff; color:#58a6ff;'>BAŞLAMADI</span>"
+            s_emir, color = ("💎 SİBER EMİR: 2.5 ÜST OYNA!", "#2ea043") if conf >= 95 else ("🔥 SİBER EMİR: İLK YARI 0.5 ÜST!", "#58a6ff")
+            dak_h = "<span class='live-minute'>BAŞLAMADI</span>"
         else:
             elap = m['fixture']['status']['elapsed']
             conf = int(60 + ((i % 25) + 15))
             if conf > 99: conf = 99
             dak_h = f"<span class='live-minute'>⏱️ {elap}'</span>"
-            if conf >= 90:
-                s_emir, color = "🚀 SİBER EMİR: SIRADAKİ GOLÜ KOVALA!", "#2ea043"
-            else:
-                s_emir, color = "🛡️ SİBER TERCİH: RİSKLİ PAS GEÇ!", "#f85149"
+            s_emir, color = ("🚀 SİBER EMİR: SIRADAKİ GOL!", "#2ea043") if conf >= 90 else ("🛡️ SİBER TERCİH: PAS GEÇ", "#f85149")
 
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
@@ -148,8 +149,7 @@ else:
                 <br><span style='font-size:1.4rem; font-weight:bold;'>{h_name} vs {a_name}</span>
                 <br><div class='score-board'>{gh} - {ga}</div>
                 <div style='margin-top:10px; padding:12px; background:rgba(46,160,67,0.1); border:1px solid {color}; border-radius:8px;'>
-                    <div class='stat-row'><span class='stat-label' style='color:{color}; font-size:1rem; font-weight:900;'>🎯 {s_emir}</span></div>
-                    <div class='stat-row' style='margin-top:5px;'><span class='stat-label'>GÜVEN ANALİZİ:</span><span class='stat-val' style='color:{color}; font-size:1.1rem;'>%{conf}</span></div>
+                    <span style='color:{color}; font-size:1rem; font-weight:900;'>🎯 {s_emir}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
