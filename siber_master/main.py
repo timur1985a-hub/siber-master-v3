@@ -4,6 +4,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 import pytz
+import re
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
@@ -16,25 +17,33 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
-    """50.000 LİSANSLIK DEV HAVUZ - V16 SEED"""
+    """50.000 LİSANSLIK DEV SİBER HAVUZ - SADECE BİR KEZ ÜRETİLİR"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
-        for i in range(1, 10001): # Her paketten 10bin adet
-            seed = f"V16_FIXED_SEED_{lbl}_{i}_TIMUR_2026"
+        for i in range(1, 10001): # Her paketten 10.000 adet (Toplam 50K)
+            seed = f"V16_ULTRA_FIXED_{lbl}_{i}_TIMUR_2026"
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
+            # issued: Dağıtıldı mı?, exp: Bitiş tarihi
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
-if "CORE_VAULT" not in st.session_state: st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-if "PERMANENT_ARCHIVE" not in st.session_state: st.session_state["PERMANENT_ARCHIVE"] = {}
+@st.cache_resource
+def get_persistent_archive(): return {}
+
+# Kritik: CORE_VAULT'u session_state'e taşıyoruz ki "DAĞIT" deyince güncellensin
+if "CORE_VAULT" not in st.session_state:
+    st.session_state["CORE_VAULT"] = get_hardcoded_vault()
+
+PERMANENT_ARCHIVE = get_persistent_archive()
+
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MİLİMETRİK KORUMA) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (GÖNDERDİĞİN ŞABLONUN AYNISI) ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -58,4 +67,123 @@ style_code = (
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
     ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
-    ".live-pulse
+    ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
+    ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
+    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
+    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
+    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
+    ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
+    "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
+    ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
+    "</style>"
+)
+st.markdown(style_code, unsafe_allow_html=True)
+
+# --- 3. SİBER ANALİZ MOTORU (ORİJİNAL) ---
+def to_tsi(utc_str):
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
+    except: return "--:--"
+
+def fetch_siber_data(live=True):
+    try:
+        params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=params, timeout=15)
+        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
+        return r.json().get('response', []) if r.status_code == 200 else []
+    except: return []
+
+def check_success(emir, gh, ga):
+    total = gh + ga
+    if "2.5 ÜST" in emir: return total > 2
+    if "1.5 ÜST" in emir: return total > 1
+    if "0.5 ÜST" in emir: return total > 0
+    if "KG VAR" in emir: return gh > 0 and ga > 0
+    return False
+
+def siber_engine(m):
+    league = m['league']['name'].upper()
+    gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+    total = gh + ga
+    elapsed = m['fixture']['status']['elapsed'] or 0
+    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
+    is_high = any(x in league for x in high_leagues)
+    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
+    conf = 94 if is_high else 89
+    if elapsed > 0:
+        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
+        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
+        else: live_emir = "KG VAR"
+    else: live_emir = "KG VAR"
+    return conf, pre_emir, live_emir
+
+# --- 4. PANEL ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Siber Analiz ve Yapay Zeka Stratejileri</div>", unsafe_allow_html=True)
+    m_data = fetch_siber_data(True)[:10]
+    if m_data:
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
+        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    
+    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
+    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
+    
+    with st.form("auth_f"):
+        l_t = st.text_input("Giriş Tokeni:", type="password").strip()
+        l_p = st.text_input("Şifre:", type="password").strip()
+        if st.form_submit_button("AKTİF ET"):
+            now = datetime.now(pytz.timezone("Europe/Istanbul"))
+            if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
+                st.session_state.update({"auth": True, "role": "admin", "current_user": "TIMUR-ROOT"}); st.rerun()
+            elif l_t in st.session_state["CORE_VAULT"]:
+                ud = st.session_state["CORE_VAULT"][l_t]
+                if ud["pass"] == l_p:
+                    if ud["issued"] and (ud["exp"] is None or now < ud["exp"]):
+                        st.session_state.update({"auth": True, "role": "user", "current_user": l_t}); st.rerun()
+                    elif not ud["issued"]: st.error("⚠️ LİSANS AKTİF DEĞİL (DAĞITILMAMIŞ).")
+                    else: st.error("❌ LİSANS SÜRESİ DOLMUŞ.")
+                else: st.error("❌ ŞİFRE HATALI")
+            else: st.error("❌ GEÇERSİZ TOKEN")
+else:
+    st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    
+    # ADMIN PANELİ (LISANS DAGITIM BURAYA EKLENDI)
+    if st.session_state.get("role") == "admin":
+        with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
+            st.write("### 50.000 Lisans Havuzu")
+            t1, t2, t3, t4, t5 = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+                with [t1, t2, t3, t4, t5][i]:
+                    # Sadece ilk 20 tanesini göster (Performans için)
+                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
+                    for tk in list(subset.keys())[:20]:
+                        v = subset[tk]
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | Durum: {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
+                        with col2:
+                            if not v["issued"]:
+                                if st.button("DAĞIT", key=f"d_{tk}"):
+                                    st.session_state["CORE_VAULT"][tk].update({
+                                        "issued": True, 
+                                        "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])
+                                    })
+                                    st.success(f"{tk} Aktif Edildi!")
+                                    st.rerun()
+            
+            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
+                PERMANENT_ARCHIVE.clear(); st.success("Tüm siber hafıza temizlendi!"); st.rerun()
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
+    with c2:
+        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
+    with c3:
+        if st.button("🔄 GÜNCELLE", use_container_width=True):
+            st.session_state["stored_matches"] = fetch_siber_
