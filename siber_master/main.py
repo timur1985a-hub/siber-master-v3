@@ -181,4 +181,31 @@ else:
     # Admin/İçerik Alanı
     if st.session_state["view_mode"] == "admin_vault" and st.session_state["role"] == "admin":
         st.markdown("### 🗄️ LİSANS YÖNETİMİ")
-        now =
+        now = datetime.now(pytz.timezone("Europe/Istanbul"))
+        tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+        for i, tab in enumerate(tabs):
+            pkg = ["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"][i]
+            with tab:
+                pkg_lics = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
+                for t, info in pkg_lics.items():
+                    col_a, col_b = st.columns([4, 1])
+                    with col_a:
+                        exp_txt = f"⌛ KALAN: {(info['exp'] - now).days} GÜN" if info["issued"] else "⚪ BEKLEMEDE"
+                        st.markdown(f"<div class='license-card'><b>{t}</b> | Pass: {info['pass']}<br><small>{exp_txt}</small></div>", unsafe_allow_html=True)
+                    with col_b:
+                        if not info["issued"]:
+                            if st.button("DAĞIT", key=f"d_{t}"):
+                                st.session_state["CORE_VAULT"][t].update({"issued": True, "exp": now + timedelta(days=info["days"])})
+                                st.rerun()
+    elif st.session_state["view_mode"] != "clear":
+        for arc in display_list:
+            is_fin = arc['status'] in ['FT', 'AET', 'PEN']
+            win_p = "✅" if check_success(arc['pre_emir'], arc['score']) else ("❌" if is_fin else "")
+            win_l = "✅" if check_success(arc['live_emir'], arc['score']) else ("❌" if is_fin else "")
+            st.markdown(f"<div class='decision-card'><div class='ai-score'>%{arc['conf']}</div><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']}</div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.05); padding:8px; border-radius:6px; border:1px solid #30363d;'><small>CANSIZ</small><br><b>{arc['pre_emir']}</b> {win_p}</div><div style='flex:1; background:rgba(46,160,67,0.05); padding:8px; border-radius:6px; border:1px solid #2ea043;'><small>CANLI</small><br><b>{arc['live_emir']}</b> {win_l}</div></div></div>", unsafe_allow_html=True)
+
+    # --- GÜVENLİ ÇIKIŞ (FIXED) ---
+    if st.button("🔴 GÜVENLİ ÇIKIŞ", use_container_width=True):
+        st.session_state["auth"] = False
+        st.session_state["current_user"] = None
+        st.rerun()
