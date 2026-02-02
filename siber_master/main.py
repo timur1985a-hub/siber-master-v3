@@ -44,4 +44,28 @@ style_code = """<style>.stApp{background-color:#010409;color:#e6edf3}header{visi
 st.markdown(style_code, unsafe_allow_html=True)
 
 # --- 3. YARDIMCI FONKSİYONLAR ---
-def to_
+def to_tsi(utc_str):
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+    except Exception:
+        return "--:--"
+
+def fetch_siber_data(live=True):
+    try:
+        params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=params, timeout=15)
+        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
+        if r.status_code == 200:
+            res = r.json().get('response', [])
+            return [m for m in res if m['fixture']['status']['short'] in (['1H', '2H', 'HT', 'LIVE'] if live else ['NS'])]
+        return []
+    except Exception:
+        return []
+
+# --- 4. GİRİŞ VE PANEL ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    m_data = fetch_siber_data(live=True)[:10]
+    if m_data:
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['
