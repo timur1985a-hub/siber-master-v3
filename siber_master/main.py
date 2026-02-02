@@ -17,6 +17,7 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 @st.cache_resource
 def get_hardcoded_vault():
     v = {}
+    # Her paket için 400 adet, toplam 2000 Lisans
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 401): 
@@ -39,7 +40,7 @@ if q_t and q_p and not st.session_state["auth"]:
     if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
         st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
-# --- 2. DEĞİŞMEZ TASARIM + CANLI GÖSTERGE STİLLERİ ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -104,7 +105,6 @@ if not st.session_state["auth"]:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
-    # PAKETLER VE KAMPANYA FİYATLARI (BELİRTTİĞİN RAKAMLAR)
     st.markdown("""
         <div class='pkg-row'>
             <div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div>
@@ -125,10 +125,21 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
 else:
-    # İÇ PANEL (DOKUNULMAZ)
+    # İÇ PANEL
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
+    # ADMIN LİSANS YÖNETİMİ
+    if st.session_state.get("role") == "admin":
+        with st.expander("🔑 SİBER LİSANS YÖNETİM MERKEZİ (2000 ADET)"):
+            st.info("Lisanslar zaman damgalıdır. Süre bittiğinde 'Lisans Yenile' uyarısı aktif olur.")
+            p_filter = st.selectbox("Paket Türü Filtrele:", ["TÜMÜ", "1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            license_data = []
+            for t, info in CORE_VAULT.items():
+                if p_filter == "TÜMÜ" or info['label'] == p_filter:
+                    license_data.append({"TOKEN": t, "ŞİFRE": info['pass'], "PAKET": info['label'], "SÜRE (GÜN)": info['days']})
+            st.table(pd.DataFrame(license_data).head(100)) # İlk 100 tanesini gösterir
+
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
