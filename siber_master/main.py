@@ -172,10 +172,10 @@ if not st.session_state["auth"]:
     st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
     
-    # Tarayıcının 'Şifreyi Kaydet' demesi için Formu Optimize Ettim
     with st.form("auth_f"):
-        l_t = st.text_input("Giriş Tokeni (Kullanıcı Adı):", key="username", help="Tokeninizi buraya girin.").strip()
-        l_p = st.text_input("Şifre:", type="password", key="password").strip()
+        # SADECE 'Kullanıcı adı' olarak güncellendi.
+        l_t = st.text_input("Kullanıcı adı", key="username").strip()
+        l_p = st.text_input("Şifre", type="password", key="password").strip()
         if st.form_submit_button("AKTİF ET"):
             now = datetime.now(pytz.timezone("Europe/Istanbul"))
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
