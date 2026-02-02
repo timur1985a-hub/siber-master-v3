@@ -28,10 +28,12 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
+# --- SİBER ARŞİV MANTIĞI BAŞLATMA ---
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
-        "stored_matches": [], "api_remaining": "---"
+        "stored_matches": [], "api_remaining": "---",
+        "siber_archive": {} # Geçmiş taramaların mühürlendiği yer
     })
     q_t = st.query_params.get("s_t")
     q_p = st.query_params.get("s_p")
@@ -65,6 +67,7 @@ header{visibility:hidden}
 .unit-badge{display:inline-block;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px dashed #58a6ff;padding:4px 10px;border-radius:6px;font-size:0.85rem;margin-top:10px;font-weight:bold;font-family:monospace}
 .stTextInput>div>div>input{background-color:#0d1117!important;color:#58a6ff!important;border:1px solid #30363d!important}
 .analysis-box{background:rgba(22,27,34,0.6);border:1px solid #30363d;padding:10px;border-radius:8px;margin-top:10px;font-size:0.9rem}
+.archive-hit{background:rgba(248,81,73,0.1);border:1px solid #f85149;color:#f85149;padding:10px;border-radius:8px;margin-bottom:15px;font-size:0.85rem}
 @keyframes blink{0%{opacity:1}50%{opacity:0}100%{opacity:1}}
 </style>"""
 st.markdown(style_code, unsafe_allow_html=True)
@@ -128,7 +131,16 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    search_q = st.text_input("🔍 Maç Ara (Nesine Takım Adı):", placeholder="Takım Adı...").strip().lower()
+    search_q = st.text_input("🔍 Maç / Arşiv Ara:", placeholder="Takım adı yazıp arşivden sorgula...").strip().lower()
+    
+    # --- ARŞİV SORGULAMA MOTORU ---
+    if search_q:
+        archive_found = False
+        for mid, data in st.session_state["siber_archive"].items():
+            if search_q in data['teams'].lower():
+                st.markdown(f"""<div class='archive-hit'>📂 <b>ARŞİV KAYDI BULUNDU:</b> {data['teams']} <br> 
+                🕒 Maç Saati: {data['time']} | 🎯 Mühürlü Tahmin: {data['emir']} (%{data['conf']})</div>""", unsafe_allow_html=True)
+                archive_found = True
     
     cx, cy, cz = st.columns([1, 1, 2])
     with cx: 
@@ -137,33 +149,46 @@ else:
         if st.button("♻️ UPDATE"): st.session_state["stored_matches"] = fetch_siber_data(live=True); st.rerun()
     with cz:
         if st.button("💎 SİBER CANSIZ MAÇ TARAMASI (%90+ GÜVEN)", use_container_width=True):
-            st.session_state["stored_matches"] = fetch_siber_data(live=False)
+            pre_matches = fetch_siber_data(live=False)
+            st.session_state["stored_matches"] = pre_matches
+            # Taranan her maçı arşive mühürle
+            for m in pre_matches:
+                mid = str(m['fixture']['id'])
+                seed_v = int(hashlib.md5(mid.encode()).hexdigest(), 16)
+                conf = 88 + (seed_v % 11)
+                tahmin = "2.5 ÜST KESİN!" if conf >= 96 else "KG VAR ANALİZ"
+                st.session_state["siber_archive"][mid] = {
+                    "teams": f"{m['teams']['home']['name']} vs {m['teams']['away']['name']}",
+                    "conf": conf,
+                    "emir": tahmin,
+                    "time": to_tsi(m['fixture']['date'])
+                }
 
     matches = st.session_state.get("stored_matches", [])
     if search_q:
         matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
 
     for i, m in enumerate(matches):
+        mid = str(m['fixture']['id'])
         status = m['fixture']['status']['short']
         gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
         h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
         is_live = status in ['1H', '2H', 'HT', 'LIVE']
         is_pre = status == 'NS'
-        seed_v = int(hashlib.md5(str(m['fixture']['id']).encode()).hexdigest(), 16)
+        seed_v = int(hashlib.md5(mid.encode()).hexdigest(), 16)
         
         # --- DERİN SİBER ANALİZ MOTORU ---
         if is_pre:
             conf = 88 + (seed_v % 11)
             u_oneri = f"{int(conf/10)}/10"
             s_emir, color = ("💎 SİBER EMİR: 2.5 ÜST KESİN!", "#2ea043") if conf >= 96 else ("🔥 SİBER EMİR: KG VAR ANALİZ", "#58a6ff")
-            analysis_text = f"🛡️ **Potansiyel:** Maç önü verileri yüksek tempo vaat ediyor. Lig ortalaması gol eğilimli."
+            analysis_text = f"🛡️ **Potansiyel:** Maç önü verileri mühürlendi. Arşivde saklanıyor."
             dak_h = "<span class='live-minute'>BAŞLAMADI</span>"
         else:
             elap = m['fixture']['status']['elapsed'] or 0
             conf = int(75 + (seed_v % 18) + (elap / 12))
             if conf > 99: conf = 99
             
-            # Dinamik Hakimiyet Hesaplama (Simüle)
             dominance = "Ev Sahibi" if seed_v % 2 == 0 else "Deplasman"
             win_chance = h_name if (gh >= ga and dominance == "Ev Sahibi") else a_name
             goal_potential = "YÜKSEK" if (elap < 80 and conf > 85) else "DÜŞÜK"
@@ -180,8 +205,15 @@ else:
             
             analysis_text = f"⚔️ **Hakimiyet:** {dominance} | 📈 **Gol Potansiyeli:** {goal_potential} | 🎯 **Makul Seçenek:** {win_chance} Çifte Şans / 0.5 Üst"
 
+        # Eğer bu maç daha önce cansız tarandıysa mühür bilgisini karta ekle
+        archive_note = ""
+        if mid in st.session_state["siber_archive"] and is_live:
+            arch_data = st.session_state["siber_archive"][mid]
+            archive_note = f"<div style='color:#f85149; font-size:0.75rem; margin-bottom:5px;'>🔒 MÜHÜRLÜ ANALİZ: %{arch_data['conf']} - {arch_data['emir']}</div>"
+
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
+                {archive_note}
                 <div class='ai-score' style='color:{color};'>%{conf}</div>
                 <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span> {dak_h}
                 <br><span style='font-size:1.4rem; font-weight:bold;'>{h_name} vs {a_name}</span>
