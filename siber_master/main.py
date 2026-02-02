@@ -7,6 +7,17 @@ import pytz
 import re
 import json
 
+# --- 0. SEO VE GOOGLE DOĞRULAMA (YENİ EKLEDİĞİMİZ KISIM) ---
+st.markdown("""
+    <head>
+        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="description" content="Siber Timur AI - Yapay Zeka Destekli Stratejik Maç Analizleri. %80+ Cansız Başarı Oranı.">
+        <meta name="keywords" content="yapay zeka analiz, futbol tahminleri, siber analiz, timur ai, canlı maç stratejileri">
+        <meta name="author" content="Timur">
+        <title>Siber Analiz AI - Strategic Predictor</title>
+    </head>
+""", unsafe_allow_html=True)
+
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
@@ -173,7 +184,6 @@ if not st.session_state["auth"]:
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
     
     with st.form("auth_f"):
-        # SADECE 'Kullanıcı adı' olarak güncellendi.
         l_t = st.text_input("Kullanıcı adı", key="username").strip()
         l_p = st.text_input("Şifre", type="password", key="password").strip()
         if st.form_submit_button("AKTİF ET"):
@@ -249,7 +259,7 @@ else:
             
             if fid not in PERMANENT_ARCHIVE:
                 PERMANENT_ARCHIVE[fid] = {
-                    "fid": fid, "conf": conf, "league": m['league']['name'],
+                    "fid": fid, "conf": "??", "league": m['league']['name'],
                     "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
                     "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
@@ -278,11 +288,18 @@ else:
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
     for arc in display_list:
-        gh_v, ga_v = map(int, arc['score'].split('-'))
+        try:
+            gh_v, ga_v = map(int, arc['score'].split('-'))
+        except: gh_v, ga_v = 0, 0
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
         win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
-        color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
+        
+        # Güven oranı sayısal değilse (??) renk sarı olsun
+        try: c_val = int(arc['conf'])
+        except: c_val = 0
+        color = "#2ea043" if c_val >= 94 else "#f1e05a"
+        
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
