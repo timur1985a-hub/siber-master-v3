@@ -28,20 +28,13 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- SİBER GÜVENLİ BAŞLATICI ---
-if "auth" not in st.session_state:
-    st.session_state["auth"] = False
-if "view_mode" not in st.session_state:
-    st.session_state["view_mode"] = "live"
-if "siber_archive" not in st.session_state:
-    st.session_state["siber_archive"] = {}
-if "stored_matches" not in st.session_state:
-    st.session_state["stored_matches"] = []
-if "api_remaining" not in st.session_state:
-    st.session_state["api_remaining"] = "---"
+if "auth" not in st.session_state: st.session_state["auth"] = False
+if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
+if "siber_archive" not in st.session_state: st.session_state["siber_archive"] = {}
+if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
+if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-q_t = st.query_params.get("s_t")
-q_p = st.query_params.get("s_p")
+q_t, q_p = st.query_params.get("s_t"), st.query_params.get("s_p")
 if q_t and q_p and not st.session_state["auth"]:
     if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
         st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
@@ -67,100 +60,4 @@ style_code = (
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
     ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".live-minute{color:#f1e05a;font-family:monospace;font-weight:900;border:1px solid #f1e05a;padding:2px 6px;border-radius:4px;margin-left:10px}"
-    ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
-    ".analysis-box{background:rgba(22,27,34,0.6);border:1px solid #30363d;padding:10px;border-radius:8px;margin-top:10px;font-size:0.9rem}"
-    ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
-    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:10px}"
-    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:10px}"
-    "</style>"
-)
-st.markdown(style_code, unsafe_allow_html=True)
-
-# --- 3. YARDIMCI FONKSİYONLAR VE MÜKEMMEL MUHAKEME ---
-def to_tsi(utc_str):
-    try:
-        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
-        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
-    except: return "--:--"
-
-def siber_muhakeme_motoru(fid, status, elap, league_name):
-    """Hibrit karar mekanizması: Lige ve dakikaya göre mühür üretir."""
-    seed = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-    conf = 86 + (seed % 9)
-    
-    # Majör liglere hassasiyet bonusu
-    if any(lg in league_name for lg in ["Premier League", "Bundesliga", "Eredivisie", "Champions League"]):
-        conf += 3
-        
-    if status in ['1H', '2H', 'HT', 'LIVE']:
-        if 15 <= elap <= 40:
-            emir = "İLK YARI 0.5 ÜST" if seed % 2 == 0 else "2.5 ÜST"
-            conf += 2
-        elif 60 <= elap <= 80:
-            emir = "MAÇ SONU +0.5 ÜST"
-        else:
-            emir = "KG VAR" if seed % 3 == 0 else "2.5 ÜST"
-    else:
-        emir = "2.5 ÜST" if conf > 92 else "KG VAR"
-        
-    return min(conf, 99), emir
-
-def fetch_siber_data(live=True):
-    try:
-        params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=params, timeout=15)
-        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
-        return r.json().get('response', []) if r.status_code == 200 else []
-    except: return []
-
-def check_success(emir, gh, ga):
-    total = gh + ga
-    if "0.5 ÜST" in emir: return total > 0
-    if "2.5 ÜST" in emir: return total > 2
-    if "KG VAR" in emir: return gh > 0 and ga > 0
-    if "KAZANIR" in emir: return total > 1
-    return False
-
-# --- 4. GİRİŞ VE PANEL ---
-if not st.session_state["auth"]:
-    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
-    m_data = fetch_siber_data(live=True)[:10]
-    if m_data:
-        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
-        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div></div>", unsafe_allow_html=True)
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
-    
-    _, c2, _ = st.columns([1, 2, 1])
-    with c2:
-        with st.form("auth_f"):
-            l_t = st.text_input("Giriş Tokeni:", type="password").strip()
-            l_p = st.text_input("Şifre:", type="password").strip()
-            if st.form_submit_button("YAPAY ZEKAYI AKTİF ET", use_container_width=True):
-                if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
-                    st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
-                    st.rerun()
-                else: st.error("❌ Geçersiz Kimlik!")
-else:
-    if st.session_state.get("role") == "admin":
-        with st.expander("🔑 SİBER MASTER LİSANS KASASI (ADMIN)", expanded=False):
-            admin_data = [{"TOKEN": k, "ŞİFRE": v["pass"], "PAKET": v["label"]} for k, v in CORE_VAULT.items()]
-            st.dataframe(pd.DataFrame(admin_data), use_container_width=True, height=300)
-
-    st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
-    
-    # --- ÜÇLÜ STRATEJİK BUTONLAR ---
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 1])
-    with c1:
-        if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(live=True), "view_mode": "live"})
-            st.rerun()
-    with c2:
-        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(live=False), "view_mode": "pre"})
-            st.rerun()
-    with c3:
-        if st.button("📜 SİBER ARŞİV", use_container_width=True
+    ".score-board{font-size:1
