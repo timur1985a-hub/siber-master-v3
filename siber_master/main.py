@@ -62,6 +62,8 @@ style_code = (
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #f85149;box-shadow: 0 4px 15px rgba(0,0,0,0.5)}"
     ".stat-val{font-size:2rem;font-weight:900;color:#2ea043}"
     ".stat-lbl{font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:bold;letter-spacing:1px}"
+    ".market-card{background:#161b22;border:1px solid #30363d;padding:15px;border-radius:10px;text-align:center;transition:0.3s}"
+    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     "</style>"
 )
@@ -83,43 +85,27 @@ def check_success(emir, score_str):
     except: return False
 
 def advanced_decision_engine(m):
-    # Veri Çekme
     league = m['league']['name'].upper()
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    
-    # 1. ANALİZ: LİG GÜCÜ
     is_scoring_league = any(x in league for x in ["BUNDES", "EREDI", "ELITE", "AUSTRIA", "ICELAND"])
     is_defensive_league = any(x in league for x in ["GREECE", "FRANCE", "ITALY", "AFRICA"])
 
-    # 2. CANSIZ KARAR (İSTATİSTİKSEL)
     if is_scoring_league: pre_emir, conf = "2.5 ÜST", 94
     elif is_defensive_league: pre_emir, conf = "1.5 ÜST", 90
     else: pre_emir, conf = "0.5 ÜST", 91
 
-    # 3. CANLI KARAR (DİNAMİK HİBRİT)
     if elapsed > 0:
-        # Dakika 0-40 arası
         if elapsed < 40:
-            if total == 0: live_emir = "İLK YARI 0.5 ÜST"
-            else: live_emir = "1.5 ÜST"
-        # Dakika 40-75 arası (Kritik Bölge)
+            live_emir = "İLK YARI 0.5 ÜST" if total == 0 else "1.5 ÜST"
         elif 40 <= elapsed < 75:
             if total == 0: live_emir = "0.5 ÜST"
-            elif total == 1:
-                if gh == 1: live_emir = "X2 (ÇİFTE ŞANS)" # Deplasman baskısı veya KG beklentisi
-                else: live_emir = "1X (ÇİFTE ŞANS)"
-            elif total >= 2:
-                if gh > 0 and ga > 0: live_emir = "2.5 ÜST"
-                else: live_emir = "KG VAR"
-        # Dakika 75+ (Güvenli Liman)
+            elif total == 1: live_emir = "X2 (ÇİFTE ŞANS)" if gh == 1 else "1X (ÇİFTE ŞANS)"
+            else: live_emir = "KG VAR"
         else:
-            if total == 0: live_emir = "0.5 ÜST"
-            else: live_emir = "0.5 ÜST (SON HAMLE)"
-    else:
-        live_emir = "0.5 ÜST"
-
+            live_emir = "0.5 ÜST" if total == 0 else "0.5 ÜST (SON HAMLE)"
+    else: live_emir = "0.5 ÜST"
     return conf, pre_emir, live_emir
 
 def fetch_siber_data(live=True):
@@ -146,6 +132,15 @@ if not st.session_state["auth"]:
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.query_params.update({"s_t": l_t, "s_p": l_p}); st.rerun()
+
+    st.markdown("---")
+    st.markdown("<h3 style='text-align:center;'>💎 SİBER MARKET (PAKETLER)</h3>", unsafe_allow_html=True)
+    m1, m2, m3 = st.columns(3)
+    pkts = [("1 AY SİBER", "350 TL"), ("3 AY SİBER", "850 TL"), ("SINIRSIZ", "2500 TL")]
+    for i, (name, price) in enumerate(pkts):
+        with [m1, m2, m3][i]:
+            st.markdown(f"<div class='market-card'><b style='color:#58a6ff;'>{name}</b><br><h2 style='color:#2ea043;'>{price}</h2></div>", unsafe_allow_html=True)
+            st.markdown(f"<a href='{WA_LINK}' class='wa-btn'>SATIN AL</a>", unsafe_allow_html=True)
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
