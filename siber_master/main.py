@@ -37,7 +37,7 @@ if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# Otomatik Giriş (Query Params)
+# Otomatik Giriş Kontrolü
 q_t, q_p = st.query_params.get("s_t"), st.query_params.get("s_p")
 if q_t and q_p and not st.session_state["auth"]:
     if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
@@ -67,13 +67,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. SİBER MOTOR FONKSİYONLARI ---
-def to_tsi(utc_str):
-    try:
-        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
-        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
-    except: return "--:--"
-
+# --- 3. HİBRİT ANALİZ VE KARAR MOTORU ---
 def check_success(emir, score_str):
     try:
         gh, ga = map(int, score_str.split('-'))
@@ -81,23 +75,51 @@ def check_success(emir, score_str):
         if "2.5 ÜST" in emir: return total > 2
         if "1.5 ÜST" in emir: return total > 1
         if "0.5 ÜST" in emir: return total > 0
-        if "İLK YARI 0.5 ÜST" in emir: return total > 0
         if "KG VAR" in emir: return gh > 0 and ga > 0
+        if "1X" in emir: return gh >= ga
+        if "X2" in emir: return ga >= gh
+        if "İLK YARI 0.5" in emir: return total > 0
         return False
     except: return False
 
 def advanced_decision_engine(m):
+    # Veri Çekme
     league = m['league']['name'].upper()
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    pre_emir = "2.5 ÜST" if any(x in league for x in ["BUNDES", "EREDI", "ELITE", "AUSTRIA"]) else "0.5 ÜST"
-    conf = 94 if pre_emir == "2.5 ÜST" else 89
+    
+    # 1. ANALİZ: LİG GÜCÜ
+    is_scoring_league = any(x in league for x in ["BUNDES", "EREDI", "ELITE", "AUSTRIA", "ICELAND"])
+    is_defensive_league = any(x in league for x in ["GREECE", "FRANCE", "ITALY", "AFRICA"])
+
+    # 2. CANSIZ KARAR (İSTATİSTİKSEL)
+    if is_scoring_league: pre_emir, conf = "2.5 ÜST", 94
+    elif is_defensive_league: pre_emir, conf = "1.5 ÜST", 90
+    else: pre_emir, conf = "0.5 ÜST", 91
+
+    # 3. CANLI KARAR (DİNAMİK HİBRİT)
     if elapsed > 0:
-        if elapsed < 40 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
-        elif elapsed >= 40 and total < 2: live_emir = "1.5 ÜST"
-        else: live_emir = "KG VAR"
-    else: live_emir = "0.5 ÜST"
+        # Dakika 0-40 arası
+        if elapsed < 40:
+            if total == 0: live_emir = "İLK YARI 0.5 ÜST"
+            else: live_emir = "1.5 ÜST"
+        # Dakika 40-75 arası (Kritik Bölge)
+        elif 40 <= elapsed < 75:
+            if total == 0: live_emir = "0.5 ÜST"
+            elif total == 1:
+                if gh == 1: live_emir = "X2 (ÇİFTE ŞANS)" # Deplasman baskısı veya KG beklentisi
+                else: live_emir = "1X (ÇİFTE ŞANS)"
+            elif total >= 2:
+                if gh > 0 and ga > 0: live_emir = "2.5 ÜST"
+                else: live_emir = "KG VAR"
+        # Dakika 75+ (Güvenli Liman)
+        else:
+            if total == 0: live_emir = "0.5 ÜST"
+            else: live_emir = "0.5 ÜST (SON HAMLE)"
+    else:
+        live_emir = "0.5 ÜST"
+
     return conf, pre_emir, live_emir
 
 def fetch_siber_data(live=True):
@@ -108,13 +130,19 @@ def fetch_siber_data(live=True):
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
 
+def to_tsi(utc_str):
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
+    except: return "--:--"
+
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
-    st.markdown("<div class='internal-welcome'>TIMUR AI - ACCESS REQUIRED</div>", unsafe_allow_html=True)
+    st.markdown("<div class='internal-welcome'>TIMUR AI - STRATEGIC ACCESS</div>", unsafe_allow_html=True)
     with st.form("auth_f"):
         l_t = st.text_input("Token:", type="password").strip()
         l_p = st.text_input("Pass:", type="password").strip()
-        if st.form_submit_button("LOGIN"):
+        if st.form_submit_button("SİSTEME GİR"):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.query_params.update({"s_t": l_t, "s_p": l_p}); st.rerun()
@@ -133,11 +161,9 @@ else:
     with c4: 
         if st.button("📜 SİBER ARŞİV", use_container_width=True): st.session_state["view_mode"] = "archive"; st.rerun()
     with c5: 
-        if st.button("🧹 EKRANI TEMİZLE", use_container_width=True): st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
+        if st.button("🧹 TEMİZLE", use_container_width=True): st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
-    mode = st.session_state["view_mode"]
-    
-    # Veri İşleme (Her zaman arka planda arşivi günceller)
+    # Veri İşleme
     for m in st.session_state.get("stored_matches", []):
         fid = str(m['fixture']['id'])
         gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
@@ -149,11 +175,10 @@ else:
             }
         PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0})
 
-    # --- SİBER BAŞARI PANELİ (HER MODDA EN ÜSTTE) ---
-    all_archived = list(PERMANENT_ARCHIVE.values())
-    finished = [d for d in all_archived if d['status'] in ['FT', 'AET', 'PEN']]
-    
-    if finished and mode != "clear":
+    # Global Başarı Paneli
+    all_data = list(PERMANENT_ARCHIVE.values())
+    finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
+    if finished and st.session_state["view_mode"] != "clear":
         p_ok = sum(1 for d in finished if check_success(d['pre_emir'], d['score']))
         l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
         st.markdown(f"""
@@ -165,7 +190,7 @@ else:
         """, unsafe_allow_html=True)
 
     # Liste Gösterimi
-    display_list = all_archived if mode == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
+    display_list = all_data if st.session_state["view_mode"] == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     for arc in display_list:
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
@@ -182,13 +207,13 @@ else:
                 <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
                 <div style='display:flex; gap:10px; margin-top:10px;'>
                     <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ</small><br><b>{arc['pre_emir']}</b> {win_p}
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_p}
                     </div>
                     <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI</small><br><b>{arc['live_emir']}</b> {win_l}
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_l}
                     </div>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-    if st.button("🔴 ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
