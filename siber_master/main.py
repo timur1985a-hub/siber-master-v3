@@ -9,13 +9,14 @@ import pytz
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
+    """50.000 LİSANSLIK DEV HAVUZ - V16 SEED"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
@@ -29,6 +30,7 @@ def get_hardcoded_vault():
 @st.cache_resource
 def get_persistent_archive(): return {}
 
+# Kritik: Değişkenleri session_state'e mühürlüyoruz
 if "CORE_VAULT" not in st.session_state: st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 PERMANENT_ARCHIVE = get_persistent_archive()
 
@@ -73,7 +75,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. GÜÇLENDİRİLMİŞ SİBER ANALİZ MOTORU ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -101,30 +103,16 @@ def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    
-    high_scoring_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP", "SWITZERLAND"]
-    is_elite = any(x in league for x in high_scoring_leagues)
-    
-    base_conf = 88
-    if is_elite: base_conf += 4
-    if total > 0: base_conf += 2 
-    
-    pre_emir = "2.5 ÜST" if is_elite else "1.5 ÜST"
-    
+    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
+    is_high = any(x in league for x in high_leagues)
+    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
+    conf = 94 if is_high else 89
     if elapsed > 0:
-        if elapsed < 35:
-            if total == 0: live_emir = "İLK YARI 0.5 ÜST"
-            else: live_emir = "KG VAR"
-        elif 35 <= elapsed <= 65:
-            if total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
-            else: live_emir = "MAÇ SONU 3.5 ÜST"
-        else:
-            if total < 1: live_emir = "0.5 ÜST (SON HAMLE)"
-            else: live_emir = "SIRADAKİ GOL"
-            base_conf -= 3
+        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
+        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
+        else: live_emir = "KG VAR"
     else: live_emir = "KG VAR"
-
-    return min(base_conf, 98), pre_emir, live_emir
+    return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
@@ -172,14 +160,8 @@ else:
                             if st.button("DAĞIT", key=f"btn_{tk}"):
                                 st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                                 st.rerun()
-            # Dokunulmaz Arşiv Yönetimi (Sadece Admin)
-            st.divider()
-            st.write("### 🛠️ Kritik Sistem Kontrolü")
-            if st.button("🗑️ SİBER HAFIZAYI TEMİZLE (ADMİN)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear()
-                st.session_state["stored_matches"] = []
-                st.success("Siber Arşiv sıfırlandı!")
-                st.rerun()
+            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
+                PERMANENT_ARCHIVE.clear(); st.success("Tüm siber hafıza temizlendi!"); st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -202,6 +184,7 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
+    # Veri Kayıt İşlemi (SİBER ARŞİV MANTIĞI)
     if mode != "clear":
         for m in st.session_state.get("stored_matches", []):
             fid = str(m['fixture']['id'])
@@ -225,6 +208,7 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
+    # --- KRİTİK ARŞİV BAŞARI PANELİ (KALICI MÜHÜR) ---
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
@@ -232,6 +216,7 @@ else:
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
+    # Maç Kartları Gösterimi
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
