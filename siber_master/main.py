@@ -28,26 +28,24 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- ARŞİV MANTIĞI BAŞLATMA ---
+# --- SİBER ARŞİV BAŞLATMA ---
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---",
-        "siber_archive": {} # Arşiv burada saklanır
+        "siber_archive": {} 
     })
 
 if "siber_archive" not in st.session_state:
     st.session_state["siber_archive"] = {}
 
-# Giriş Kontrolü (URL Parametreleri ile)
-q_t = st.query_params.get("s_t")
-q_p = st.query_params.get("s_p")
-if q_t and q_p and not st.session_state["auth"]:
-    if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
-        st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
-
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
-style_code = """<style>
+style_code = """
+<style>
 .stApp{background-color:#010409;color:#e6edf3}
 header{visibility:hidden}
-.marquee-container{background:rgba(13,17,23,0.9);border-top:2px solid #f85149;border-bottom:2px solid #f85149;box-shadow:0 0 15px rgba(248,81,73,0.2);padding:1
+.marquee-container{background:rgba(13,17,23,0.9);border-top:2px solid #f85149;border-bottom:2px solid #f85149;box-shadow:0 0 15px rgba(248,81,73,0.2);padding:15px 0;margin-bottom:25px;overflow:hidden;white-space:nowrap}
+.marquee-text{display:inline-block;padding-left:100%;animation:marquee 100s linear infinite}
+.match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}
+@keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}
+.marketing-title{text-align:center;color:#2
