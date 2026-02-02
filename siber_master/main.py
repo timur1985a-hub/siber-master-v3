@@ -26,10 +26,9 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d}
     return v
 
-# --- SİBER ARŞİV KALICILIK MÜHRÜ ---
 @st.cache_resource
 def get_persistent_archive():
-    return {} # Uygulama ömrü boyunca burada saklanır
+    return {}
 
 CORE_VAULT = get_hardcoded_vault()
 PERMANENT_ARCHIVE = get_persistent_archive()
@@ -134,14 +133,20 @@ else:
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     if st.session_state.get("role") == "admin":
-        with st.expander("🔑 SİBER LİSANS YÖNETİM MERKEZİ (2000 ADET)"):
-            st.info("Lisanslar zaman damgalıdır. Süre bittiğinde 'Lisans Yenile' uyarısı aktif olur.")
-            p_filter = st.selectbox("Paket Türü Filtrele:", ["TÜMÜ", "1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            license_data = []
-            for t, info in CORE_VAULT.items():
-                if p_filter == "TÜMÜ" or info['label'] == p_filter:
-                    license_data.append({"TOKEN": t, "ŞİFRE": info['pass'], "PAKET": info['label'], "SÜRE (GÜN)": info['days']})
-            st.table(pd.DataFrame(license_data).head(100))
+        with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
+            c_admin1, c_admin2 = st.columns(2)
+            with c_admin1:
+                st.subheader("Lisanslar")
+                p_filter = st.selectbox("Paket Filtre:", ["TÜMÜ", "1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+                license_data = [{"TOKEN": t, "PAKET": info['label']} for t, info in CORE_VAULT.items() if p_filter == "TÜMÜ" or info['label'] == p_filter]
+                st.dataframe(pd.DataFrame(license_data).head(50), use_container_width=True)
+            with c_admin2:
+                st.subheader("Siber Hafıza")
+                st.warning("Bu işlem geri alınamaz!")
+                if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
+                    PERMANENT_ARCHIVE.clear()
+                    st.success("Tüm siber hafıza temizlendi!")
+                    st.rerun()
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -154,12 +159,12 @@ else:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c4:
-        if st.button("🧹 TEMİZLE", use_container_width=True):
-            PERMANENT_ARCHIVE.clear() # Kalıcı arşivi temizle
+        if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
+            # Sadece ekrandaki listeyi temizler, ana arşive dokunmaz
             st.session_state["stored_matches"] = []
             st.session_state["view_mode"] = "clear"; st.rerun()
 
-    search_q = st.text_input("🔍 Siber Arama (Takım veya Lig):", placeholder="Takım adını girin...").strip().lower()
+    search_q = st.text_input("🔍 Siber Arama:", placeholder="Takım/Lig...").strip().lower()
     mode = st.session_state["view_mode"]
     display_list = []
 
@@ -188,7 +193,7 @@ else:
         else:
             for m in raw_matches:
                 fid = str(m['fixture']['id'])
-                display_list.append(PERMANENT_ARCHIVE[fid])
+                if fid in PERMANENT_ARCHIVE: display_list.append(PERMANENT_ARCHIVE[fid])
 
     if search_q:
         if mode == "clear": display_list = list(PERMANENT_ARCHIVE.values())
@@ -199,7 +204,6 @@ else:
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
         win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
         color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
-        
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
@@ -219,7 +223,6 @@ else:
                         <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}
                     </div>
                 </div>
-                <div class='analysis-box'>Siber Durum: {arc['status']}</div>
             </div>
         """, unsafe_allow_html=True)
 
