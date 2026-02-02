@@ -148,7 +148,8 @@ else:
                     st.success("Tüm siber hafıza temizlendi!")
                     st.rerun()
 
-    c1, c2, c3, c4 = st.columns(4)
+    # --- KONTROL BUTONLARI ---
+    c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
             st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
@@ -156,11 +157,17 @@ else:
         if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3:
+        if st.button("🔄 GÜNCELLE", use_container_width=True):
+            # Mevcut mod neyse (canlı/pre) ona göre veriyi tazeler
+            is_live_mode = st.session_state["view_mode"] == "live"
+            st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
+            st.toast("Veriler anlık olarak güncellendi!")
+            st.rerun()
+    with c4:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
-    with c4:
+    with c5:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
-            # Sadece ekrandaki listeyi temizler, ana arşive dokunmaz
             st.session_state["stored_matches"] = []
             st.session_state["view_mode"] = "clear"; st.rerun()
 
@@ -186,6 +193,7 @@ else:
                     "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
+            # Hafızadaki veriyi anlık skor ve dakikayla güncelle (Update butonu burayı tetikler)
             PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
         if mode == "archive":
