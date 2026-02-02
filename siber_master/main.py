@@ -172,4 +172,48 @@ else:
         if fid not in PERMANENT_ARCHIVE:
             conf, p_e, l_e = advanced_decision_engine(m)
             PERMANENT_ARCHIVE[fid] = {
-                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name
+                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0
+            }
+        PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0})
+
+    all_data = list(PERMANENT_ARCHIVE.values())
+    finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
+    if finished and st.session_state["view_mode"] != "clear":
+        p_ok = sum(1 for d in finished if check_success(d['pre_emir'], d['score']))
+        l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
+        st.markdown(f"""
+            <div class='stats-panel'>
+                <div><div class='stat-val'>{len(finished)}</div><div class='stat-lbl'>SİBER</div></div>
+                <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>PRE</div></div>
+                <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>LIVE</div></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    display_list = all_data if st.session_state["view_mode"] == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
+
+    for arc in display_list:
+        is_fin = arc['status'] in ['FT', 'AET', 'PEN']
+        win_p = "<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
+        win_l = "<span class='status-win'>✅</span>" if check_success(arc['live_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
+        is_live = arc['status'] not in ['NS', 'FT', 'TBD', 'CANC']
+        
+        st.markdown(f"""
+            <div class='decision-card'>
+                <div class='ai-score'>%{arc['conf']}</div>
+                {"<div class='live-pulse'>📡 CANLI</div>" if is_live else "<div class='archive-badge'>🔒 ARŞİV</div>"}<br>
+                <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
+                <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+                <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
+                <div style='display:flex; gap:10px; margin-top:10px;'>
+                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
+                        <small style='color:#58a6ff;'>PRE</small><br><b>{arc['pre_emir']}</b> {win_p}
+                    </div>
+                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
+                        <small style='color:#2ea043;'>LIVE</small><br><b>{arc['live_emir']}</b> {win_l}
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
