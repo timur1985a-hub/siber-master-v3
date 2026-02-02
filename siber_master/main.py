@@ -39,7 +39,7 @@ if q_t and q_p and not st.session_state["auth"]:
     if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
         st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
+# --- 2. DEĞİŞMEZ TASARIM + CANLI GÖSTERGE STİLLERİ ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -55,6 +55,7 @@ style_code = (
     ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
     ".pkg-row{display:flex;gap:5px;justify-content:center;margin-bottom:15px;flex-wrap:wrap}"
     ".pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;width:calc(18% - 10px);min-width:120px;text-align:center;border-top:3px solid #2ea043}"
+    ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
     ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
@@ -98,24 +99,22 @@ if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>Siber Analiz ve Yapay Zeka Stratejileri</div>", unsafe_allow_html=True)
     
-    # CANLI MAÇ AKIŞI (MARQUEE)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
-    # PAKETLER (VİTRİN)
+    # PAKETLER VE KAMPANYA FİYATLARI (BELİRTTİĞİN RAKAMLAR)
     st.markdown("""
         <div class='pkg-row'>
-            <div class='pkg-box'><small>PAKET</small><br><b>1-AY</b></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>3-AY</b></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>6-AY</b></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>12-AY</b></div>
-            <div class='pkg-box'><small>PREMIUM</small><br><b>SINIRSIZ</b></div>
+            <div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div>
+            <div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div>
+            <div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div>
+            <div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div>
+            <div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div>
         </div>
     """, unsafe_allow_html=True)
     
-    # WHATSAPP BUTONU
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
 
     with st.form("auth_f"):
@@ -126,7 +125,7 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
 else:
-    # --- İÇ PANEL (DOKUNULMAZ) ---
+    # İÇ PANEL (DOKUNULMAZ)
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
