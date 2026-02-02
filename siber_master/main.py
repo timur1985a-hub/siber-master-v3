@@ -137,15 +137,15 @@ def siber_engine(m):
     elapsed = m['fixture']['status']['elapsed'] or 0
     diff = abs(gh - ga)
     
-    # --- CANSIZ EMİR (MAÇ ÖNCESİ) ANALİZİ ---
+    # --- CANSIZ EMİR (MAÇ ÖNCESİ) GELİŞMİŞ ANALİZ ---
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE", "EERSTE DIVISIE"]
     is_high = any(x in league for x in high_leagues)
     
-    # Maç Öncesi Gelişmiş Mantık
     if is_high:
-        # Rastgelelik yerine takım isimlerine göre 3 stratejiden birini atar (KG VAR, 2.5 ÜST, 1.5 ÜST)
+        # Takım isimlerinden sabit bir tohum (seed) üreterek tahmin çeşitlendirilir
         seed_val = hash(m['teams']['home']['name'] + m['teams']['away']['name']) % 3
-        pre_emir = ["2.5 ÜST", "KG VAR", "1.5 ÜST"][seed_val]
+        options = ["2.5 ÜST", "KG VAR", "1.5 ÜST"]
+        pre_emir = options[seed_val]
         conf = 94 if pre_emir == "1.5 ÜST" else 91
     else:
         pre_emir = "0.5 ÜST"
