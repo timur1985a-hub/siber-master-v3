@@ -6,7 +6,19 @@ import hashlib
 import pytz
 import re
 import json
-import urllib.parse
+
+# --- 0. SEO VE GOOGLE DOĞRULAMA (SADECE BOTLAR İÇİN - SİSTEMDEN BAĞIMSIZ) ---
+st.markdown("""
+    <head>
+        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
+        <meta name="description" content="Siber Timur AI - Yapay Zeka Destekli Stratejik Maç Analizleri. %80+ Cansız Başarı Oranı.">
+        <meta name="keywords" content="yapay zeka analiz, futbol tahminleri, siber analiz, timur ai, canlı maç stratejileri">
+        <meta name="author" content="Timur">
+    </head>
+    <div style="display:none;">
+        <h1>Siber Analiz AI - Strategic Predictor</h1>
+    </div>
+""", unsafe_allow_html=True)
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
@@ -49,11 +61,10 @@ def get_persistent_archive(): return {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-if "bulten_check" not in st.session_state:
-    st.session_state["bulten_check"] = {} 
 
 PERMANENT_ARCHIVE = get_persistent_archive()
 
+# Auth Kontrolü
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -64,7 +75,8 @@ if "auth" not in st.session_state:
             ud = st.session_state["CORE_VAULT"][t_param]
             if ud["pass"] == p_param and ud["issued"]:
                 st.session_state.update({"auth": True, "role": "user", "current_user": t_param})
-    else: st.session_state["auth"] = False
+    else:
+        st.session_state["auth"] = False
 
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
@@ -96,25 +108,18 @@ style_code = (
     ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
+    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
+    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
+    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
     ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
-    ".search-link{display:block; text-align:center; margin-top:8px; color:#f1e05a!important; font-size:0.75rem; text-decoration:none; border:1px dashed #f1e05a; padding:6px; border-radius:4px; font-weight:bold;}"
-    ".onay-badge{background:#2ea043; color:white; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold; display:inline-block; margin-bottom:5px;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU VE OTO-BÜLTEN TESPİTİ ---
-# İddaa'da genellikle açılan majör ligler listesi
-MAJOR_BULTEN_LEAGUES = [
-    "PREMIER LEAGUE", "LALIGA", "BUNDESLIGA", "SERIE A", "LIGUE 1", 
-    "SUPER LIG", "EREDIVISIE", "PRIMEIRA LIGA", "CHAMPIONSHIP", 
-    "EUROPA LEAGUE", "CHAMPIONS LEAGUE", "CONFERENCE LEAGUE", 
-    "1. LIG", "SEGUNDA DIVISION", "SERIE B", "BUNDESLIGA 2"
-]
-
+# --- 3. SİBER ANALİZ MOTORU (DOKUNULMAZ KARAR YAPISI) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -147,8 +152,10 @@ def siber_engine(m):
     diff = abs(gh - ga)
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE"]
     is_high = any(x in league for x in high_leagues)
+    
     pre_emir = "1.5 ÜST" if is_high else "0.5 ÜST"
     conf = 94 if is_high else 89
+
     if elapsed > 0:
         if elapsed < 35:
             if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 94
@@ -201,41 +208,23 @@ else:
     
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
-            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            t1, t2, t3, t4, t5 = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
-                with t_tabs[i]:
+                with [t1, t2, t3, t4, t5][i]:
                     subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
                     for tk in list(subset.keys())[:15]:
                         v = subset[tk]
-                        c1, c2 = st.columns([3, 1])
-                        c1.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
-                        if not v["issued"] and c2.button("DAĞIT", key=f"d_{tk}"):
-                            st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
-                            st.rerun()
+                        col1, col2 = st.columns([3, 1])
+                        with col1: st.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
+                        with col2:
+                            if not v["issued"] and st.button("DAĞIT", key=f"d_{tk}"):
+                                st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
+                                st.rerun()
             st.divider()
-
-            # --- YENİ OTO-BÜLTEN TESPİT SİSTEMİ ---
-            st.subheader("🛰️ Siber Bülten Senkronizasyonu")
-            if st.button("🔴 BÜLTENİ OTOMATİK TARA VE HAFIZAYA AL", use_container_width=True):
-                if st.session_state["stored_matches"]:
-                    counter = 0
-                    for m in st.session_state["stored_matches"]:
-                        fid = str(m['fixture']['id'])
-                        l_name = m['league']['name'].upper()
-                        # Eğer maç majör liglerden birindeyse otomatik VAR yap
-                        if any(x in l_name for x in MAJOR_BULTEN_LEAGUES):
-                            st.session_state["bulten_check"][fid] = "VAR"
-                            counter += 1
-                    st.success(f"🤖 Siber Senkronizasyon Tamamlandı: {counter} maç bültende olarak işaretlendi.")
-                    st.rerun()
-                else:
-                    st.warning("⚠️ Önce 'Canlı Maçlar' veya 'Maç Öncesi' butonuna basarak liste çekmelisiniz.")
-
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
-                st.session_state["bulten_check"] = {}
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -265,13 +254,23 @@ else:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-            status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
+            status = m['fixture']['status']['short']
+            elapsed = m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
+            
             if fid not in PERMANENT_ARCHIVE:
-                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
+                PERMANENT_ARCHIVE[fid] = {
+                    "fid": fid, "conf": conf, "league": m['league']['name'],
+                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                    "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
+                    "score": f"{gh}-{ga}", "status": status, "min": elapsed
+                }
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
+                    PERMANENT_ARCHIVE[fid].update({
+                        "score": f"{gh}-{ga}", "status": status, "min": elapsed, 
+                        "live_emir": l_emir, "conf": conf
+                    })
                 else:
                     PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
 
@@ -283,53 +282,21 @@ else:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
     for arc in display_list:
-        fid = arc['fid']
-        gh_v, ga_v = map(int, arc['score'].split('-'))
+        try:
+            gh_v, ga_v = map(int, arc['score'].split('-'))
+        except: gh_v, ga_v = 0, 0
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
         win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
-        color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
+        
+        try: c_val = int(arc['conf'])
+        except: c_val = 0
+        color = "#2ea043" if c_val >= 94 else "#f1e05a"
+        
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
-        
-        # Onay Rozeti
-        onay_html = ""
-        if st.session_state["bulten_check"].get(fid) == "VAR":
-            onay_html = "<div class='onay-badge'>✅ BÜLTENDE ONAYLANDI</div>"
-        
-        # Arama Linki
-        search_query = urllib.parse.quote(f"{arc['home']} {arc['away']} nesine iddaa")
-        search_url = f"https://www.google.com/search?q={search_query}"
-
-        st.markdown(f"""
-        <div class='decision-card' style='border-left:6px solid {color};'>
-            <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-            {onay_html}<br>{live_tag}<br>
-            <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
-            <span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
-            <div class='score-board'>{arc['score']} {min_tag}</div>
-            <div style='display:flex; gap:10px; margin-top:10px;'>
-                <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
-                    <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}
-                </div>
-                <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
-                    <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}
-                </div>
-            </div>
-            <a href='{search_url}' target='_blank' class='search-link'>🔍 NESİNE/İDDAA'DA ARA (MANUEL)</a>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Onay Butonları
-        if mode != "clear":
-            btn_col1, btn_col2, btn_col3 = st.columns([1,1,2])
-            with btn_col1:
-                if st.button("VAR", key=f"v_{fid}", use_container_width=True):
-                    st.session_state["bulten_check"][fid] = "VAR"; st.rerun()
-            with btn_col2:
-                if st.button("YOK", key=f"y_{fid}", use_container_width=True):
-                    st.session_state["bulten_check"][fid] = "YOK"; st.rerun()
+        st.markdown(f"""<div class='decision-card' style='border-left:6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
         st.query_params.clear()
