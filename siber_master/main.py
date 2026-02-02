@@ -312,3 +312,24 @@ else:
             {live_tag} <b style='color:#58a6ff; margin-left:10px;'>{arc.get('b_not', '')}</b><br>
             <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
             <span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <div class='score-board'>{arc['score']} {min_tag}</div>
+            <div class='dominance-bar'>
+                <div class='dom-home' style='width:{arc.get("dom_h", 50)}%'></div>
+                <div class='dom-away' style='width:{arc.get("dom_a", 50)}%'></div>
+            </div>
+            <div style='display:flex; gap:10px; margin-top:10px;'>
+                <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
+                    <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}
+                </div>
+                <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
+                    <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.query_params.clear()
+        st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
+        st.session_state["auth"] = False
+        st.rerun()
