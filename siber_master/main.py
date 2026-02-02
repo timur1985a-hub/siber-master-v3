@@ -48,11 +48,4 @@ st.markdown("""
 header { visibility: hidden; }
 .marquee-container {
     background: rgba(13, 17, 23, 0.9); border-top: 2px solid #f85149; border-bottom: 2px solid #f85149;
-    box-shadow: 0px 0px 15px rgba(248, 81, 73, 0.2); padding: 15px 0; margin-bottom: 25px; overflow: hidden; white-space: nowrap;
-}
-.marquee-text { display: inline-block; padding-left: 100%; animation: marquee 100s linear infinite; }
-.match-badge {
-    background: #161b22; color: #f85149; border: 1px solid #f85149; padding: 5px 15px;
-    border-radius: 50px; margin-right: 30px; font-weight: 900; font-family: 'Courier New', monospace; font-size: 1rem;
-}
-@keyframes marquee { 0% { transform: translate(0,
+    box-shadow: 0px 0px 15px rgba(248, 81, 73,
