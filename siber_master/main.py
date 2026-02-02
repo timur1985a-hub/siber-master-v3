@@ -62,8 +62,8 @@ style_code = (
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #f85149;box-shadow: 0 4px 15px rgba(0,0,0,0.5)}"
     ".stat-val{font-size:2rem;font-weight:900;color:#2ea043}"
     ".stat-lbl{font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:bold;letter-spacing:1px}"
-    ".market-card{background:#161b22;border:1px solid #30363d;padding:20px;border-radius:10px;text-align:center;margin-bottom:10px}"
-    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin:20px auto;max-width:300px; border: 1px solid #fff;}"
+    ".market-card{background:#161b22;border:1px solid #30363d;padding:15px;border-radius:10px;text-align:center}"
+    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin:10px auto;max-width:320px;border:1px solid #fff}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     "</style>"
 )
@@ -137,21 +137,14 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.query_params.update({"s_t": l_t, "s_p": l_p}); st.rerun()
 
-    st.markdown("<a href='"+WA_LINK+"' class='wa-btn'>💬 WHATSAPP İLETİŞİM HATTI</a>", unsafe_allow_html=True)
+    st.markdown(f"<a href='{WA_LINK}' class='wa-btn'>💬 WHATSAPP İLETİŞİM HATTI</a>", unsafe_allow_html=True)
     
     st.markdown("<h3 style='text-align:center; color:#58a6ff;'>💎 SİBER MARKET - PAKETLER</h3>", unsafe_allow_html=True)
-    m1, m2, m3, m4, m5 = st.columns(5)
-    packages = [
-        ("3 AY SİBER", "700 TL"),
-        ("6 AY SİBER", "2000 TL"),
-        ("12 AY KAMPANYA", "500 TL"),
-        ("1000 GÜN ÖZEL", "9000 TL"),
-        ("SINIRSIZ MASTER", "20.000 TL")
-    ]
-    cols = [m1, m2, m3, m4, m5]
-    for i, (name, price) in enumerate(packages):
-        with cols[i]:
-            st.markdown(f"<div class='market-card'><small style='color:#8b949e;'>{name}</small><br><b style='color:#2ea043; font-size:1.2rem;'>{price}</b></div>", unsafe_allow_html=True)
+    pk_cols = st.columns(5)
+    pk_data = [("3 AY SİBER", "700 TL"), ("6 AY SİBER", "2000 TL"), ("12 AY KAMPANYA", "500 TL"), ("1000 GÜN ÖZEL", "9000 TL"), ("SINIRSIZ MASTER", "20 BİN TL")]
+    for i, (name, price) in enumerate(pk_data):
+        with pk_cols[i]:
+            st.markdown(f"<div class='market-card'><small style='color:#8b949e;'>{name}</small><br><b style='color:#2ea043; font-size:1.1rem;'>{price}</b></div>", unsafe_allow_html=True)
 
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
@@ -197,4 +190,26 @@ else:
 
     for arc in display_list:
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
-        win_p = f"
+        win_p = "<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
+        win_l = "<span class='status-win'>✅</span>" if check_success(arc['live_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
+        is_live = arc['status'] not in ['NS', 'FT', 'TBD', 'CANC']
+        
+        st.markdown(f"""
+            <div class='decision-card'>
+                <div class='ai-score'>%{arc['conf']}</div>
+                {"<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"}<br>
+                <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
+                <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+                <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
+                <div style='display:flex; gap:10px; margin-top:10px;'>
+                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_p}
+                    </div>
+                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_l}
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
