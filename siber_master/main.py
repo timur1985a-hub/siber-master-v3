@@ -27,8 +27,7 @@ def get_hardcoded_vault():
     return v
 
 @st.cache_resource
-def get_persistent_archive():
-    return {}
+def get_persistent_archive(): return {}
 
 CORE_VAULT = get_hardcoded_vault()
 PERMANENT_ARCHIVE = get_persistent_archive()
@@ -78,7 +77,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. YARDIMCI FONKSİYONLAR ---
+# --- 3. GÜÇLENDİRİLMİŞ SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -93,9 +92,40 @@ def fetch_siber_data(live=True):
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
 
+def siber_engine(m):
+    """Karar mekanizmasını veriye dayalı hale getiren çekirdek."""
+    league = m['league']['name'].upper()
+    gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+    total = gh + ga
+    elapsed = m['fixture']['status']['elapsed'] or 0
+    
+    # Lig Bazlı Güvenlik Filtresi (Örn: Hollanda, Almanya gibi golcü ligler)
+    high_score_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN"]
+    is_high = any(x in league for x in high_score_leagues)
+    
+    # Cansız Analiz: Lig potansiyeline göre
+    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
+    conf = 94 if is_high else 89
+    
+    # Canlı Analiz: Maçın momentumuna göre
+    if elapsed > 0:
+        if elapsed < 30 and total == 0:
+            live_emir = "İLK YARI 0.5 ÜST"
+        elif elapsed > 60 and total < 2:
+            live_emir = "MAÇ SONU 1.5 ÜST"
+        elif total >= 1:
+            live_emir = "KG VAR"
+        else:
+            live_emir = "0.5 ÜST"
+    else:
+        live_emir = "KG VAR"
+        
+    return conf, pre_emir, live_emir
+
 def check_success(emir, gh, ga):
     total = gh + ga
     if "2.5 ÜST" in emir: return total > 2
+    if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
     return False
@@ -136,8 +166,7 @@ else:
                 st.subheader("Siber Hafıza")
                 if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                     PERMANENT_ARCHIVE.clear()
-                    st.success("Tüm siber hafıza temizlendi!")
-                    st.rerun()
+                    st.success("Tüm siber hafıza temizlendi!"); st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -149,8 +178,7 @@ else:
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
             is_live_mode = st.session_state["view_mode"] == "live"
-            st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
-            st.rerun()
+            st.session_state["stored_matches"] = fetch_siber_data(is_live_mode); st.rerun()
     with c4:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
@@ -169,20 +197,20 @@ else:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed'] or 0
+            
+            # GÜÇLENDİRİLMİŞ ANALİZ ÇAĞRISI
+            conf, p_emir, l_emir = siber_engine(m)
+            
             if fid not in PERMANENT_ARCHIVE:
-                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-                conf = 85 + (seed_v % 14)
                 PERMANENT_ARCHIVE[fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'],
                     "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                    "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
-                    "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
-                    "score": f"{gh}-{ga}", "status": status, "min": elapsed
+                    "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir,
+                    "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
-            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
+            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "conf": conf})
 
-        if mode == "archive":
-            display_list = list(PERMANENT_ARCHIVE.values())
+        if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
         else:
             for m in raw_matches:
                 fid = str(m['fixture']['id'])
@@ -191,30 +219,24 @@ else:
     if search_q:
         display_list = [d for d in (display_list if mode != "clear" else list(PERMANENT_ARCHIVE.values())) if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    # --- SİLİNMEZ BAŞARI MEKANİZMASI ---
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
             p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
-            st.markdown(f"""
-                <div class='stats-panel'>
-                    <div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>Siber Kayıt</div></div>
-                    <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div>
-                    <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div>
-                </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>Siber Kayıt</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div></div>""", unsafe_allow_html=True)
 
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
-        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
-        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
+        is_fin = arc['status'] in ['FT', 'AET', 'PEN']
+        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
+        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
         color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
 
-        st.markdown(f"""<div class='decision-card' style='border-left: 6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}</div></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class='decision-card' style='border-left: 6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
         st.query_params.clear(); st.session_state.clear(); st.rerun()
