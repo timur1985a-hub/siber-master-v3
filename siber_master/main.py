@@ -205,4 +205,14 @@ else:
                 <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
                 <div style='display:flex; gap:10px; margin-top:10px;'>
                     <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_p}
+                    </div>
+                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_l}
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.query_params.clear(); st.session_state.clear(); st.rerun()
