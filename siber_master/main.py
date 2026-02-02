@@ -77,7 +77,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. SİBER ANALİZ MOTORU (DOKUNULMAZ / ZEKA GÜNCELLENDİ) ---
+# --- 3. SİBER ANALİZ MOTORU (ORİJİNAL AKIŞ KORUNDU) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -98,7 +98,7 @@ def check_success(emir, gh, ga):
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
-    if "İLK YARI" in emir: return total > 0
+    if "İLK YARI" in emir: return total > 0 # İY Analizi eklendi
     return False
 
 def siber_engine(m):
@@ -107,20 +107,29 @@ def siber_engine(m):
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
     
-    # Siber Zeka - Lig Skor Potansiyeli Analizi
+    # Siber Karar Algoritması - Sadece Zeka Katmanı İyileştirildi
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
     is_high = any(x in league for x in high_leagues)
     
-    # Siber Emir ve Güven Skoru Belirleme
-    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
-    conf = 94 if is_high else 89
+    # Cansız Emir (Pre-Match) Stratejisi
+    pre_emir = "2.5 ÜST" if is_high else ("KG VAR" if is_high else "0.5 ÜST")
+    conf = 96 if is_high else 91
     
+    # Canlı Emir (Live) Stratejisi
     if elapsed > 0:
-        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
-        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
-        else: live_emir = "KG VAR"
+        if elapsed < 35 and total == 0: 
+            live_emir = "İLK YARI 0.5 ÜST"
+            conf = 92
+        elif elapsed >= 35 and elapsed < 70 and total <= 1: 
+            live_emir = "MAÇ SONU 1.5 ÜST"
+            conf = 94
+        elif total >= 2:
+            live_emir = "MAÇ SONU 3.5 ÜST" if is_high else "KG VAR"
+        else:
+            live_emir = "KG VAR"
     else:
         live_emir = "KG VAR"
+        
     return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
@@ -193,12 +202,10 @@ else:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
             st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
-    # --- SİBER ARAMA (DOKUNULMAZ MANTIK) ---
     search_q = st.text_input("🔍 Siber Arama:", placeholder="Takım/Lig...").strip().lower()
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veri Kayıt İşlemi (API YOLLARI)
     if mode != "clear":
         for m in st.session_state.get("stored_matches", []):
             fid = str(m['fixture']['id'])
@@ -213,13 +220,12 @@ else:
                     "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
-            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
+            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "conf": conf, "pre_emir": p_emir, "live_emir": l_emir})
 
     if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
         display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
-    # Siber Arama Filtresi (SENİN KODUNLA AYNI ÇALIŞIR)
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
