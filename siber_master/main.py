@@ -28,13 +28,13 @@ def get_hardcoded_vault():
 
 CORE_VAULT = get_hardcoded_vault()
 
-# --- SİBER ARŞİV BAŞLATMA VE HATA ÖNLEME ---
+# --- SİBER ARŞİV BAŞLATMA ---
 if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---",
         "siber_archive": {},
-        "archive_mode": False # KeyError önleyici anahtar
+        "archive_mode": False
     })
     q_t = st.query_params.get("s_t")
     q_p = st.query_params.get("s_p")
@@ -68,9 +68,9 @@ header{visibility:hidden}
 .unit-badge{display:inline-block;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px dashed #58a6ff;padding:4px 10px;border-radius:6px;font-size:0.85rem;margin-top:10px;font-weight:bold;font-family:monospace}
 .stTextInput>div>div>input{background-color:#0d1117!important;color:#58a6ff!important;border:1px solid #30363d!important}
 .analysis-box{background:rgba(22,27,34,0.6);border:1px solid #30363d;padding:10px;border-radius:8px;margin-top:10px;font-size:0.9rem}
-.archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:4px 10px;border-radius:6px;font-size:0.8rem;margin-bottom:8px;font-weight:bold}
-.status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px}
-.status-fail{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px}
+.archive-badge{display:inline-block;background:rgba(46,160,67,0.1);color:#2ea043;border:1px solid #2ea043;padding:4px 10px;border-radius:6px;font-size:0.85rem;margin-bottom:8px;font-weight:bold}
+.status-win{background:#238636;color:white;padding:2px 6px;border-radius:4px;font-size:0.8rem;margin-left:5px}
+.status-fail{background:#da3633;color:white;padding:2px 6px;border-radius:4px;font-size:0.8rem;margin-left:5px}
 </style>"""
 st.markdown(style_code, unsafe_allow_html=True)
 
@@ -93,8 +93,8 @@ def fetch_siber_data(live=True):
 
 # --- 4. GİRİŞ VE PANEL ---
 if not st.session_state["auth"]:
-    # ... (Giriş Tasarımı - Milimetrik aynı kalacak) ...
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(live=True)[:15]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
@@ -111,10 +111,11 @@ if not st.session_state["auth"]:
     
     _, c2, _ = st.columns([1, 2, 1])
     with c2:
-        with st.form("login"):
-            l_t = st.text_input("Giriş Tokeni:", type="password").strip()
-            l_p = st.text_input("Şifre:", type="password").strip()
-            if st.form_submit_button("YAPAY ZEKAYI AKTİF ET"):
+        with st.form("siber_auth_form", clear_on_submit=False):
+            l_t = st.text_input("Giriş Tokeni:", type="password", key="l_token_f").strip()
+            l_p = st.text_input("Şifre:", type="password", key="l_pass_f").strip()
+            submit = st.form_submit_button("YAPAY ZEKAYI AKTİF ET", use_container_width=True)
+            if submit:
                 if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
                     st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                     st.rerun()
@@ -123,95 +124,20 @@ else:
     if st.session_state["role"] == "admin":
         with st.expander("🔑 SİBER MASTER LİSANS KASASI (ADMIN)", expanded=False):
             admin_data = [{"TOKEN": k, "ŞİFRE": v["pass"], "PAKET": v["label"]} for k, v in CORE_VAULT.items()]
-            st.dataframe(pd.DataFrame(admin_data), use_container_width=True)
+            st.dataframe(pd.DataFrame(admin_data), use_container_width=True, height=400)
 
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    search_q = st.text_input("🔍 Maç Ara (Nesine Takım Adı):").strip().lower()
+    search_q = st.text_input("🔍 Maç Ara (Nesine Takım Adı):", placeholder="Takım yazarak hem canlıyı hem arşivi tara...").strip().lower()
     
-    # Arşiv Butonları
-    col_a, col_b = st.columns(2)
-    with col_a:
+    # Buton Düzeni
+    cola, colb = st.columns(2)
+    with cola:
         if st.button("📂 SİBER ARŞİVDE ARA", use_container_width=True): st.session_state["archive_mode"] = True
-    with col_b:
+    with colb:
         if st.button("📡 CANLI LİSTEYE DÖN", use_container_width=True): st.session_state["archive_mode"] = False
 
     cx, cy, cz = st.columns([1, 1, 2])
     with cx: 
-        if st.button("🧹 CLEAR"): 
-            st.session_state["stored_matches"] = []
-            st.session_state["archive_mode"] = False
-            st.rerun()
-    with cy:
-        if st.button("♻️ UPDATE"):
-            st.session_state["stored_matches"] = [m for m in fetch_siber_data(live=True) if m['fixture']['status']['short'] in ['1H', '2H', 'HT', 'LIVE']]
-            st.session_state["archive_mode"] = False
-            st.rerun()
-    with cz:
-        if st.button("💎 SİBER CANSIZ MAÇ TARAMASI (%90+ GÜVEN)", use_container_width=True):
-            res = [m for m in fetch_siber_data(live=False) if m['fixture']['status']['short'] == 'NS']
-            st.session_state["stored_matches"] = res
-            for m in res:
-                fid = str(m['fixture']['id'])
-                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-                conf = 88 + (seed_v % 11)
-                tahmin = "2.5 ÜST" if conf >= 96 else "İLK YARI 0.5 ÜST"
-                st.session_state["siber_archive"][fid] = {"conf": conf, "emir": tahmin, "data": m, "result": "BEKLENİYOR"}
-
-    # --- VERİ İŞLEME VE SKOR DOĞRULAMA ---
-    matches = []
-    if st.session_state["archive_mode"]:
-        # Arşiv Modu: Skorları API'den anlık doğrula
-        current_data = fetch_siber_data(live=True) + fetch_siber_data(live=False)
-        c_map = {str(m['fixture']['id']): m for m in current_data}
-        
-        for fid, arch in st.session_state["siber_archive"].items():
-            if fid in c_map:
-                m_now = c_map[fid]
-                gh, ga = m_now['goals']['home'] or 0, m_now['goals']['away'] or 0
-                status = m_now['fixture']['status']['short']
-                iy_h = m_now['score']['halftime']['home'] or 0
-                iy_a = m_now['score']['halftime']['away'] or 0
-                
-                if status in ['FT', 'AET', 'PEN']:
-                    if arch['emir'] == "2.5 ÜST" and (gh + ga) > 2.5: arch['result'] = "BAŞARILI ✅"
-                    elif arch['emir'] == "İLK YARI 0.5 ÜST" and (iy_h + iy_a) > 0.5: arch['result'] = "BAŞARILI ✅"
-                    else: arch['result'] = "BAŞARISIZ ❌"
-                
-                arch['data']['goals']['home'], arch['data']['goals']['away'] = gh, ga
-        
-        matches = [v["data"] for k, v in st.session_state["siber_archive"].items()]
-    else:
-        matches = st.session_state.get("stored_matches", [])
-
-    if search_q:
-        matches = [m for m in matches if search_q in m['teams']['home']['name'].lower() or search_q in m['teams']['away']['name'].lower()]
-
-    # --- KART ÇİZİMİ ---
-    for m in matches:
-        fid = str(m['fixture']['id'])
-        archived = st.session_state["siber_archive"].get(fid)
-        
-        # Dinamik Renk Belirleme
-        color = "#58a6ff"
-        status_text = ""
-        if archived:
-            if "BAŞARILI" in archived['result']: color = "#2ea043"; status_text = f"| <span class='status-win'>{archived['result']}</span>"
-            elif "BAŞARISIZ" in archived['result']: color = "#f85149"; status_text = f"| <span class='status-fail'>{archived['result']}</span>"
-            else: status_text = "| ⏳ BEKLENİYOR"
-
-        # Şablona Sadık Kart Yapısı
-        st.markdown(f"""
-            <div class='decision-card' style='border-left: 6px solid {color};'>
-                {f"<div class='archive-badge'>🔒 MÜHÜRLÜ ANALİZ: %{archived['conf']} - {archived['emir']} {status_text}</div>" if archived else ""}
-                <div class='ai-score' style='color:{color};'>%{archived['conf'] if archived else 90}</div>
-                <b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span>
-                <br><span style='font-size:1.4rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
-                <br><div class='score-board'>{m['goals']['home'] or 0} - {m['goals']['away'] or 0}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
-        st.session_state.clear()
-        st.rerun()
+        if st.button("🧹 CLEAR"): st.session_state["stored_matches"] = []; st
