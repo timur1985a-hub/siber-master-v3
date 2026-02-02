@@ -7,22 +7,10 @@ import pytz
 import re
 import json
 
-# --- 0. SEO VE GOOGLE DOĞRULAMA (SADECE BOTLAR İÇİN - SİSTEMDEN BAĞIMSIZ) ---
-st.markdown("""
-    <head>
-        <meta name="google-site-verification" content="H1Ify4fYD3oQjHKjrcgFvUBOgndELK-wVkbSB0FrDJk" />
-        <meta name="description" content="Siber Timur AI - Yapay Zeka Destekli Stratejik Maç Analizleri. %80+ Cansız Başarı Oranı.">
-        <meta name="keywords" content="yapay zeka analiz, futbol tahminleri, siber analiz, timur ai, canlı maç stratejileri">
-        <meta name="author" content="Timur">
-    </head>
-    <div style="display:none;">
-        <h1>Siber Analiz AI - Strategic Predictor</h1>
-    </div>
-""", unsafe_allow_html=True)
-
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
+# Yerel Depolama (Refresh Koruması) İçin Görünmez JavaScript
 def persist_auth_js():
     st.markdown("""
         <script>
@@ -64,7 +52,7 @@ if "CORE_VAULT" not in st.session_state:
 
 PERMANENT_ARCHIVE = get_persistent_archive()
 
-# Auth Kontrolü
+# URL'den Geri Yükleme ve Auth Kontrolü
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -119,7 +107,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (DOKUNULMAZ KARAR YAPISI) ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -152,10 +140,8 @@ def siber_engine(m):
     diff = abs(gh - ga)
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE"]
     is_high = any(x in league for x in high_leagues)
-    
     pre_emir = "1.5 ÜST" if is_high else "0.5 ÜST"
     conf = 94 if is_high else 89
-
     if elapsed > 0:
         if elapsed < 35:
             if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 94
@@ -208,18 +194,17 @@ else:
     
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
-            t1, t2, t3, t4, t5 = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
-                with [t1, t2, t3, t4, t5][i]:
+                with t_tabs[i]:
                     subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
                     for tk in list(subset.keys())[:15]:
                         v = subset[tk]
-                        col1, col2 = st.columns([3, 1])
-                        with col1: st.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
-                        with col2:
-                            if not v["issued"] and st.button("DAĞIT", key=f"d_{tk}"):
-                                st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
-                                st.rerun()
+                        c1, c2 = st.columns([3, 1])
+                        c1.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
+                        if not v["issued"] and c2.button("DAĞIT", key=f"d_{tk}"):
+                            st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
+                            st.rerun()
             st.divider()
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 PERMANENT_ARCHIVE.clear()
@@ -254,23 +239,13 @@ else:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-            status = m['fixture']['status']['short']
-            elapsed = m['fixture']['status']['elapsed'] or 0
+            status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
-            
             if fid not in PERMANENT_ARCHIVE:
-                PERMANENT_ARCHIVE[fid] = {
-                    "fid": fid, "conf": conf, "league": m['league']['name'],
-                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                    "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
-                    "score": f"{gh}-{ga}", "status": status, "min": elapsed
-                }
+                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    PERMANENT_ARCHIVE[fid].update({
-                        "score": f"{gh}-{ga}", "status": status, "min": elapsed, 
-                        "live_emir": l_emir, "conf": conf
-                    })
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
                 else:
                     PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
 
@@ -281,18 +256,19 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
+    if mode == "archive" and display_list:
+        fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
+        if fin:
+            p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
+            l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
+            st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
+
     for arc in display_list:
-        try:
-            gh_v, ga_v = map(int, arc['score'].split('-'))
-        except: gh_v, ga_v = 0, 0
+        gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
         win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
-        
-        try: c_val = int(arc['conf'])
-        except: c_val = 0
-        color = "#2ea043" if c_val >= 94 else "#f1e05a"
-        
+        color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
