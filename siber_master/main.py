@@ -17,7 +17,6 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
-    """50.000 LİSANSLIK DEV SİBER HAVUZ - SADECE BİR KEZ ÜRETİLİR"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
@@ -29,15 +28,12 @@ def get_hardcoded_vault():
     return v
 
 @st.cache_resource
-def get_persistent_archive(): 
-    # Global arşivi bir sözlük kapsayıcısında tutarak tam temizlik sağlıyoruz
-    return {"data": {}}
+def get_persistent_archive(): return {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-# Arşiv verisine güvenli ve temizlenebilir erişim
-PERMANENT_CONTAINER = get_persistent_archive()
+PERMANENT_ARCHIVE = get_persistent_archive()
 
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
@@ -101,7 +97,6 @@ def check_success(emir, gh, ga):
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
-    if "İLK YARI" in emir: return total > 0 
     return False
 
 def siber_engine(m):
@@ -111,21 +106,13 @@ def siber_engine(m):
     elapsed = m['fixture']['status']['elapsed'] or 0
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
     is_high = any(x in league for x in high_leagues)
-    pre_emir = "2.5 ÜST" if is_high else ("KG VAR" if is_high else "0.5 ÜST")
-    conf = 96 if is_high else 91
+    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
+    conf = 94 if is_high else 89
     if elapsed > 0:
-        if elapsed < 35 and total == 0: 
-            live_emir = "İLK YARI 0.5 ÜST"
-            conf = 92
-        elif elapsed >= 35 and elapsed < 70 and total <= 1: 
-            live_emir = "MAÇ SONU 1.5 ÜST"
-            conf = 94
-        elif total >= 2:
-            live_emir = "MAÇ SONU 3.5 ÜST" if is_high else "KG VAR"
-        else:
-            live_emir = "KG VAR"
-    else:
-        live_emir = "KG VAR"
+        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
+        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
+        else: live_emir = "KG VAR"
+    else: live_emir = "KG VAR"
     return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
@@ -176,9 +163,9 @@ else:
                                 st.rerun()
             st.divider()
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                # SİBER TEMİZLİK: Konteyner ve tüm geçici listeler imha edilir.
-                PERMANENT_CONTAINER["data"] = {} 
+                PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
+                # KRİTİK: Temizlik sonrası otomatik kaydı durdurmak için modu 'clear' yapıyoruz.
                 st.session_state["view_mode"] = "clear"
                 st.success("Tüm siber hafıza temizlendi! Yeni analizler için mod seçiniz.")
                 st.rerun()
@@ -192,7 +179,6 @@ else:
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
-            # Arşiv modunda güncelleme yapılması engellenerek veri çakışması önlenir.
             if st.session_state["view_mode"] != "archive":
                 st.session_state["stored_matches"] = fetch_siber_data(st.session_state["view_mode"] == "live")
             st.rerun()
@@ -207,31 +193,34 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # OTOMATİK HAFIZA KAYDI: Sadece aktif tarama modlarında çalışır
-    if mode in ["live", "pre"]:
-        for m in st.session_state.get("stored_matches", []):
+    # --- VERİ KAYIT İŞLEMİ (KESİN ÇÖZÜM BURADA) ---
+    # Sadece 'live' veya 'pre' modundayken ve liste doluysa kayıt yap. 
+    # Arşiv modundayken veya ekran temizken asla yeni kayıt (eski maçları çekme) yapma.
+    if mode in ["live", "pre"] and st.session_state["stored_matches"]:
+        for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
             
-            if fid not in PERMANENT_CONTAINER["data"]:
-                PERMANENT_CONTAINER["data"][fid] = {
+            if fid not in PERMANENT_ARCHIVE:
+                PERMANENT_ARCHIVE[fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'],
                     "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
                     "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
             else:
-                PERMANENT_CONTAINER["data"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "conf": conf, "pre_emir": p_emir, "live_emir": l_emir})
+                # Sadece skoru ve zamanı güncelle, yeni bir "kayıt" olarak ekleme
+                PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
-    # VERİ FİLTRELEME VE GÖSTERİM
+    # --- GÖRÜNTÜLEME ---
     if mode == "archive": 
-        display_list = list(PERMANENT_CONTAINER["data"].values())
+        display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
-        # Sadece o anki çekilen listedekileri arşivden süzüp getir
-        display_list = [PERMANENT_CONTAINER["data"][str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_CONTAINER["data"]]
+        # Sadece o anki çekilen maçları göster, arşivi komple dökme!
+        display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
