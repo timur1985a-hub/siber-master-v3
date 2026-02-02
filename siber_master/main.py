@@ -108,4 +108,85 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    c1, c2, c3, c4 = st.columns(
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
+    with c2:
+        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
+    with c3:
+        if st.button("📜 SİBER ARŞİV", use_container_width=True):
+            st.session_state["view_mode"] = "archive"; st.rerun()
+    with c4:
+        if st.button("🧹 TEMİZLE", use_container_width=True):
+            st.session_state["stored_matches"] = []
+            st.session_state["view_mode"] = "clear"; st.rerun()
+
+    search_q = st.text_input("🔍 Siber Arama (Takım veya Lig):", placeholder="Takım adını girin...").strip().lower()
+    mode = st.session_state["view_mode"]
+    display_list = []
+
+    if mode != "clear":
+        raw_matches = st.session_state.get("stored_matches", [])
+        for m in raw_matches:
+            fid = str(m['fixture']['id'])
+            gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+            status = m['fixture']['status']['short']
+            elapsed = m['fixture']['status']['elapsed'] or 0
+            
+            if fid not in st.session_state["siber_archive"]:
+                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
+                conf = 85 + (seed_v % 14)
+                st.session_state["siber_archive"][fid] = {
+                    "fid": fid, "conf": conf, "league": m['league']['name'],
+                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                    "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
+                    "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
+                    "score": f"{gh}-{ga}", "status": status, "min": elapsed
+                }
+            st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
+
+        if mode == "archive":
+            display_list = list(st.session_state["siber_archive"].values())
+        else:
+            for m in raw_matches:
+                fid = str(m['fixture']['id'])
+                display_list.append(st.session_state["siber_archive"][fid])
+
+    if search_q:
+        if mode == "clear": display_list = list(st.session_state["siber_archive"].values())
+        display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
+
+    for arc in display_list:
+        gh_v, ga_v = map(int, arc['score'].split('-'))
+        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
+        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
+        color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
+        
+        # CANLI MAÇ BELİRTECİ
+        is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
+        live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
+        min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
+
+        st.markdown(f"""
+            <div class='decision-card' style='border-left: 6px solid {color};'>
+                <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
+                {live_tag}
+                <br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span>
+                <br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span>
+                <br><div class='score-board'>{arc['score']} {min_tag}</div>
+                <div style='display:flex; gap:10px; margin-top:10px;'>
+                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}
+                    </div>
+                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}
+                    </div>
+                </div>
+                <div class='analysis-box'>Siber Durum: {arc['status']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
+        st.query_params.clear(); st.session_state.clear(); st.rerun()
