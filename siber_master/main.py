@@ -123,65 +123,57 @@ else:
         if st.button("🧹 TEMİZLE", use_container_width=True):
             st.session_state["stored_matches"] = []; st.rerun()
 
-    matches = st.session_state.get("stored_matches", [])
     mode = st.session_state["view_mode"]
     
-    if mode == "live": matches = [m for m in matches if m['fixture']['status']['short'] in ['1H', '2H', 'HT', 'LIVE']]
-    elif mode == "pre": matches = [m for m in matches if m['fixture']['status']['short'] == 'NS']
-    elif mode == "archive": matches = [m for m in matches if str(m['fixture']['id']) in st.session_state["siber_archive"]]
-
-    for m in matches:
-        fid = str(m['fixture']['id'])
-        status = m['fixture']['status']['short']
-        gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-        
-        # SİBER MÜHÜRLEME (Hem Cansız Hem Canlı Kararları Kaydeder)
-        if fid not in st.session_state["siber_archive"]:
-            seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-            conf = 85 + (seed_v % 14)
-            # Cansız mühürleme
-            pre_emir = "2.5 ÜST" if conf > 92 else "KG VAR"
-            # Canlı mühürleme (Temsili)
-            live_emir = "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST"
+    # ARŞİV MANTIĞI: Eğer arşivdeysek, hafızadaki her şeyi göster. Değilsek, API'den gelenleri göster.
+    if mode == "archive":
+        display_list = list(st.session_state["siber_archive"].values())
+    else:
+        display_list = []
+        raw_matches = st.session_state.get("stored_matches", [])
+        for m in raw_matches:
+            fid = str(m['fixture']['id'])
+            gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+            status = m['fixture']['status']['short']
             
-            st.session_state["siber_archive"][fid] = {
-                "conf": conf,
-                "pre_emir": pre_emir,
-                "live_emir": live_emir,
-                "league": m['league']['name'],
-                "home": m['teams']['home']['name'],
-                "away": m['teams']['away']['name'],
-                "date": to_tsi(m['fixture']['date']),
-                "final_score": f"{gh}-{ga}",
-                "status": status
-            }
-        
-        # Arşivi Güncelle (Maç bittikçe skoru ve durumu tazeler)
-        st.session_state["siber_archive"][fid].update({"final_score": f"{gh}-{ga}", "status": status})
-        arc = st.session_state["siber_archive"][fid]
+            # SADECE YENİLERİ MÜHÜRLER
+            if fid not in st.session_state["siber_archive"]:
+                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
+                conf = 85 + (seed_v % 14)
+                st.session_state["siber_archive"][fid] = {
+                    "fid": fid, "conf": conf, "league": m['league']['name'],
+                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                    "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
+                    "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
+                    "score": f"{gh}-{ga}", "status": status
+                }
+            # MEVCUTLARI GÜNCELLE
+            st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status})
+            display_list.append(st.session_state["siber_archive"][fid])
 
-        # Başarı Durumu Kontrolü
-        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh, ga) else f"<span class='status-lost'>❌</span>"
-        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh, ga) else f"<span class='status-lost'>❌</span>"
-        
+    # GÖRÜNTÜLEME ÜNİTESİ
+    for arc in display_list:
+        gh_v, ga_v = map(int, arc['score'].split('-'))
+        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
+        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
         color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
         
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
                 <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-                <div class='archive-badge'>🔒 SİBER MÜHÜR</div>
+                <div class='archive-badge'>🔒 SİBER MÜHÜR #{arc['fid']}</div>
                 <br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span>
                 <br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span>
-                <br><div class='score-board'>{gh} - {ga}</div>
+                <br><div class='score-board'>{arc['score']}</div>
                 <div style='display:flex; gap:10px; margin-top:10px;'>
                     <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if status in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh, ga) else ''}
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}
                     </div>
                     <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if status in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh, ga) else ''}
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}
                     </div>
                 </div>
-                <div class='analysis-box'>Maç Durumu: {status} | Kayıtlı Skor: {arc['final_score']}</div>
+                <div class='analysis-box'>Kayıtlı Durum: {arc['status']}</div>
             </div>
         """, unsafe_allow_html=True)
 
