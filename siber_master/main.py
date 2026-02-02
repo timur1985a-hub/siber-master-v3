@@ -43,7 +43,8 @@ if "auth" not in st.session_state:
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
-style_code = """<style>
+style_code = """
+<style>
 .stApp{background-color:#010409;color:#e6edf3}
 header{visibility:hidden}
 .marquee-container{background:rgba(13,17,23,0.9);border-top:2px solid #f85149;border-bottom:2px solid #f85149;box-shadow:0 0 15px rgba(248,81,73,0.2);padding:15px 0;margin-bottom:25px;overflow:hidden;white-space:nowrap}
@@ -60,4 +61,56 @@ header{visibility:hidden}
 .wa-small{display:block;width:100%;max-width:300px;margin:0 auto 15px auto;background:#238636;color:#fff!important;text-align:center;padding:10px;border-radius:8px;font-weight:700;text-decoration:none}
 .decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}
 .ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}
-.tsi-time{color:#f1e
+.tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}
+.live-minute{color:#f1e05a;font-family:monospace;font-weight:900;border:1px solid #f1e05a;padding:2px 6px;border-radius:4px;margin-left:10px}
+.score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}
+.pressure-bg{background:#161b22;height:10px;width:100%;border-radius:10px;margin-top:12px;border:1px solid #30363d;overflow:hidden}
+.pressure-fill{height:100%;border-radius:10px;transition:width: 0.8s ease-in-out}
+.unit-badge{display:inline-block;background:rgba(88,166,255,0.1);color:#58a6ff;border:1px dashed #58a6ff;padding:4px 10px;border-radius:6px;font-size:0.85rem;margin-top:10px;font-weight:bold;font-family:monospace}
+.stTextInput>div>div>input{background-color:#0d1117!important;color:#58a6ff!important;border:1px solid #30363d!important}
+.analysis-box{background:rgba(22,27,34,0.6);border:1px solid #30363d;padding:10px;border-radius:8px;margin-top:10px;font-size:0.9rem}
+.archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}
+</style>
+"""
+st.markdown(style_code, unsafe_allow_html=True)
+
+# --- 3. YARDIMCI FONKSİYONLAR ---
+def to_tsi(utc_str):
+    try:
+        dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
+        return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%H:%M")
+    except: return "--:--"
+
+def fetch_siber_data(live=True):
+    try:
+        params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=params, timeout=15)
+        st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
+        if r.status_code == 200:
+            return r.json().get('response', [])
+        return []
+    except: return []
+
+# --- 4. GİRİŞ VE PANEL ---
+if not st.session_state["auth"]:
+    st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>⚠️ %90+ BAŞARIYLA SİBER KARAR VERİCİ AKTİF!</div>", unsafe_allow_html=True)
+    m_data = fetch_siber_data(live=True)[:15]
+    if m_data:
+        m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
+        st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
+    
+    st.markdown("""<div class='pkg-row'>
+        <div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div>
+        <div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div>
+        <div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div>
+        <div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div>
+        <div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div>
+    </div>""", unsafe_allow_html=True)
+    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
+    
+    _, c2, _ = st.columns([1, 2, 1])
+    with c2:
+        with st.form("siber_auth_form"):
+            l_t = st.text_input("Giriş Tokeni:", type="password").strip()
+            l_p = st.text_input("
