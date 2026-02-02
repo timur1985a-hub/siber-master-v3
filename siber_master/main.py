@@ -50,7 +50,7 @@ def get_persistent_archive(): return {}
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 if "bulten_check" not in st.session_state:
-    st.session_state["bulten_check"] = {} # Bültende var/yok hafızası
+    st.session_state["bulten_check"] = {} 
 
 PERMANENT_ARCHIVE = get_persistent_archive()
 
@@ -64,8 +64,7 @@ if "auth" not in st.session_state:
             ud = st.session_state["CORE_VAULT"][t_param]
             if ud["pass"] == p_param and ud["issued"]:
                 st.session_state.update({"auth": True, "role": "user", "current_user": t_param})
-    else:
-        st.session_state["auth"] = False
+    else: st.session_state["auth"] = False
 
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
@@ -97,9 +96,6 @@ style_code = (
     ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
-    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
-    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
-    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
     ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
@@ -110,7 +106,15 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (DOKUNULMAZ) ---
+# --- 3. SİBER ANALİZ MOTORU VE OTO-BÜLTEN TESPİTİ ---
+# İddaa'da genellikle açılan majör ligler listesi
+MAJOR_BULTEN_LEAGUES = [
+    "PREMIER LEAGUE", "LALIGA", "BUNDESLIGA", "SERIE A", "LIGUE 1", 
+    "SUPER LIG", "EREDIVISIE", "PRIMEIRA LIGA", "CHAMPIONSHIP", 
+    "EUROPA LEAGUE", "CHAMPIONS LEAGUE", "CONFERENCE LEAGUE", 
+    "1. LIG", "SEGUNDA DIVISION", "SERIE B", "BUNDESLIGA 2"
+]
+
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -209,6 +213,24 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
+
+            # --- YENİ OTO-BÜLTEN TESPİT SİSTEMİ ---
+            st.subheader("🛰️ Siber Bülten Senkronizasyonu")
+            if st.button("🔴 BÜLTENİ OTOMATİK TARA VE HAFIZAYA AL", use_container_width=True):
+                if st.session_state["stored_matches"]:
+                    counter = 0
+                    for m in st.session_state["stored_matches"]:
+                        fid = str(m['fixture']['id'])
+                        l_name = m['league']['name'].upper()
+                        # Eğer maç majör liglerden birindeyse otomatik VAR yap
+                        if any(x in l_name for x in MAJOR_BULTEN_LEAGUES):
+                            st.session_state["bulten_check"][fid] = "VAR"
+                            counter += 1
+                    st.success(f"🤖 Siber Senkronizasyon Tamamlandı: {counter} maç bültende olarak işaretlendi.")
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Önce 'Canlı Maçlar' veya 'Maç Öncesi' butonuna basarak liste çekmelisiniz.")
+
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
@@ -295,11 +317,11 @@ else:
                     <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}
                 </div>
             </div>
-            <a href='{search_url}' target='_blank' class='search-link'>🔍 NESİNE/İDDAA'DA ARA</a>
+            <a href='{search_url}' target='_blank' class='search-link'>🔍 NESİNE/İDDAA'DA ARA (MANUEL)</a>
         </div>
         """, unsafe_allow_html=True)
         
-        # Onay Butonları (Tasarım bozulmadan hemen altına streamlit butonu olarak)
+        # Onay Butonları
         if mode != "clear":
             btn_col1, btn_col2, btn_col3 = st.columns([1,1,2])
             with btn_col1:
