@@ -6,11 +6,11 @@ import hashlib
 import pytz
 import re
 import json
+import urllib.parse
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
-# Yerel Depolama (Refresh Koruması) İçin Görünmez JavaScript
 def persist_auth_js():
     st.markdown("""
         <script>
@@ -49,10 +49,11 @@ def get_persistent_archive(): return {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
+if "bulten_check" not in st.session_state:
+    st.session_state["bulten_check"] = {} # Bültende var/yok hafızası
 
 PERMANENT_ARCHIVE = get_persistent_archive()
 
-# URL'den Geri Yükleme ve Auth Kontrolü
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -102,12 +103,14 @@ style_code = (
     ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
+    ".search-link{display:block; text-align:center; margin-top:8px; color:#f1e05a!important; font-size:0.75rem; text-decoration:none; border:1px dashed #f1e05a; padding:6px; border-radius:4px; font-weight:bold;}"
+    ".onay-badge{background:#2ea043; color:white; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:bold; display:inline-block; margin-bottom:5px;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU ---
+# --- 3. SİBER ANALİZ MOTORU (DOKUNULMAZ) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -210,6 +213,7 @@ else:
                 PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
+                st.session_state["bulten_check"] = {}
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -256,14 +260,8 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    if mode == "archive" and display_list:
-        fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
-        if fin:
-            p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
-            l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
-            st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
-
     for arc in display_list:
+        fid = arc['fid']
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
@@ -272,7 +270,44 @@ else:
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
-        st.markdown(f"""<div class='decision-card' style='border-left:6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
+        
+        # Onay Rozeti
+        onay_html = ""
+        if st.session_state["bulten_check"].get(fid) == "VAR":
+            onay_html = "<div class='onay-badge'>✅ BÜLTENDE ONAYLANDI</div>"
+        
+        # Arama Linki
+        search_query = urllib.parse.quote(f"{arc['home']} {arc['away']} nesine iddaa")
+        search_url = f"https://www.google.com/search?q={search_query}"
+
+        st.markdown(f"""
+        <div class='decision-card' style='border-left:6px solid {color};'>
+            <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
+            {onay_html}<br>{live_tag}<br>
+            <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
+            <span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <div class='score-board'>{arc['score']} {min_tag}</div>
+            <div style='display:flex; gap:10px; margin-top:10px;'>
+                <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
+                    <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}
+                </div>
+                <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
+                    <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}
+                </div>
+            </div>
+            <a href='{search_url}' target='_blank' class='search-link'>🔍 NESİNE/İDDAA'DA ARA</a>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Onay Butonları (Tasarım bozulmadan hemen altına streamlit butonu olarak)
+        if mode != "clear":
+            btn_col1, btn_col2, btn_col3 = st.columns([1,1,2])
+            with btn_col1:
+                if st.button("VAR", key=f"v_{fid}", use_container_width=True):
+                    st.session_state["bulten_check"][fid] = "VAR"; st.rerun()
+            with btn_col2:
+                if st.button("YOK", key=f"y_{fid}", use_container_width=True):
+                    st.session_state["bulten_check"][fid] = "YOK"; st.rerun()
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
         st.query_params.clear()
