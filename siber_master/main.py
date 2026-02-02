@@ -4,38 +4,32 @@ import pandas as pd
 from datetime import datetime, timedelta
 import hashlib
 import pytz
-import re
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 
 @st.cache_resource
 def get_hardcoded_vault():
-    """50.000 LİSANSLIK DEV SİBER HAVUZ - SADECE BİR KEZ ÜRETİLİR"""
     v = {}
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
-        for i in range(1, 10001): # Her paketten 10.000 adet (Toplam 50K)
-            seed = f"V16_ULTRA_FIXED_{lbl}_{i}_TIMUR_2026"
+        for i in range(1, 10001): 
+            seed = f"V16_FIXED_SEED_{lbl}_{i}_TIMUR_2026"
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
-            # issued: Dağıtıldı mı?, exp: Bitiş tarihi
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
 @st.cache_resource
 def get_persistent_archive(): return {}
 
-# Kritik: CORE_VAULT'u session_state'e taşıyoruz ki "DAĞIT" deyince güncellensin
-if "CORE_VAULT" not in st.session_state:
-    st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-
+if "CORE_VAULT" not in st.session_state: st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 PERMANENT_ARCHIVE = get_persistent_archive()
 
 if "auth" not in st.session_state: st.session_state["auth"] = False
@@ -43,7 +37,7 @@ if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (GÖNDERDİĞİN ŞABLONUN AYNISI) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -79,7 +73,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. SİBER ANALİZ MOTORU (ORİJİNAL) ---
+# --- 3. GÜÇLENDİRİLMİŞ SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -107,16 +101,30 @@ def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
-    is_high = any(x in league for x in high_leagues)
-    pre_emir = "2.5 ÜST" if is_high else "0.5 ÜST"
-    conf = 94 if is_high else 89
+    
+    high_scoring_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP", "SWITZERLAND"]
+    is_elite = any(x in league for x in high_scoring_leagues)
+    
+    base_conf = 88
+    if is_elite: base_conf += 4
+    if total > 0: base_conf += 2 
+    
+    pre_emir = "2.5 ÜST" if is_elite else "1.5 ÜST"
+    
     if elapsed > 0:
-        if elapsed < 35 and total == 0: live_emir = "İLK YARI 0.5 ÜST"
-        elif elapsed > 60 and total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
-        else: live_emir = "KG VAR"
+        if elapsed < 35:
+            if total == 0: live_emir = "İLK YARI 0.5 ÜST"
+            else: live_emir = "KG VAR"
+        elif 35 <= elapsed <= 65:
+            if total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
+            else: live_emir = "MAÇ SONU 3.5 ÜST"
+        else:
+            if total < 1: live_emir = "0.5 ÜST (SON HAMLE)"
+            else: live_emir = "SIRADAKİ GOL"
+            base_conf -= 3
     else: live_emir = "KG VAR"
-    return conf, pre_emir, live_emir
+
+    return min(base_conf, 98), pre_emir, live_emir
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
@@ -129,7 +137,6 @@ if not st.session_state["auth"]:
     
     st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
-    
     with st.form("auth_f"):
         l_t = st.text_input("Giriş Tokeni:", type="password").strip()
         l_p = st.text_input("Şifre:", type="password").strip()
@@ -150,32 +157,29 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # ADMIN PANELİ (LISANS DAGITIM BURAYA EKLENDI)
     if st.session_state.get("role") == "admin":
-        with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
-            st.write("### 50.000 Lisans Havuzu")
-            t1, t2, t3, t4, t5 = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
-                with [t1, t2, t3, t4, t5][i]:
-                    # Sadece ilk 20 tanesini göster (Performans için)
-                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
-                    for tk in list(subset.keys())[:20]:
+        with st.expander("🔑 SİBER HAFIZA VE LİSANS YÖNETİMİ"):
+            st.write("### 50.000 Lisans Havuzu (Dağıtım Merkezi)")
+            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            for idx, pkg_lbl in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+                with t_tabs[idx]:
+                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg_lbl and not v["issued"]}
+                    for tk in list(subset.keys())[:15]:
                         v = subset[tk]
-                        col1, col2 = st.columns([3, 1])
-                        with col1:
-                            st.markdown(f"<div class='lic-item'><b>{tk}</b><br>Pass: {v['pass']} | Durum: {'✅ AKTİF' if v['issued'] else '⚪ BEKLEMEDE'}</div>", unsafe_allow_html=True)
-                        with col2:
-                            if not v["issued"]:
-                                if st.button("DAĞIT", key=f"d_{tk}"):
-                                    st.session_state["CORE_VAULT"][tk].update({
-                                        "issued": True, 
-                                        "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])
-                                    })
-                                    st.success(f"{tk} Aktif Edildi!")
-                                    st.rerun()
-            
-            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear(); st.success("Tüm siber hafıza temizlendi!"); st.rerun()
+                        c_l1, c_l2 = st.columns([4, 1])
+                        with c_l1: st.markdown(f"<div class='lic-item'><b>{tk}</b> | Pass: {v['pass']}</div>", unsafe_allow_html=True)
+                        with c_l2:
+                            if st.button("DAĞIT", key=f"btn_{tk}"):
+                                st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
+                                st.rerun()
+            # Dokunulmaz Arşiv Yönetimi (Sadece Admin)
+            st.divider()
+            st.write("### 🛠️ Kritik Sistem Kontrolü")
+            if st.button("🗑️ SİBER HAFIZAYI TEMİZLE (ADMİN)", use_container_width=True):
+                PERMANENT_ARCHIVE.clear()
+                st.session_state["stored_matches"] = []
+                st.success("Siber Arşiv sıfırlandı!")
+                st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -198,7 +202,6 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veri Kayıt İşlemi (ORİJİNAL)
     if mode != "clear":
         for m in st.session_state.get("stored_matches", []):
             fid = str(m['fixture']['id'])
@@ -222,7 +225,6 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    # Başarı Paneli (ORİJİNAL)
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
@@ -230,7 +232,6 @@ else:
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
-    # Maç Kartları (ORİJİNAL)
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
@@ -240,6 +241,6 @@ else:
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
-        st.markdown(f"""<div class='decision-card' style='border-left:6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div class='decision-card' style='border-left: 6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.session_state["auth"] = False; st.rerun()
