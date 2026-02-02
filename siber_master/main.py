@@ -78,14 +78,14 @@ def to_tsi(utc_str):
 
 def siber_muhakeme_motoru(fid, status, elap, league_name):
     seed = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-    conf = 87 + (seed % 8)
+    conf = 88 + (seed % 7)
     if any(lg in league_name for lg in ["Premier League", "Bundesliga", "Eredivisie"]): conf += 2
     if status in ['1H', '2H', 'HT', 'LIVE']:
         if 20 <= elap <= 40: emir = "İY 0.5 ÜST"
         elif elap >= 65: emir = "MS +0.5 ÜST"
         else: emir = "2.5 ÜST"
     else: emir = "2.5 ÜST" if conf > 91 else "KG VAR"
-    return min(conf, 98), emir
+    return min(conf, 99), emir
 
 def fetch_siber_data(live=True):
     try:
@@ -137,8 +137,7 @@ else:
             st.rerun()
     with c3:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
-            st.session_state["view_mode"] = "archive"
-            st.rerun()
+            st.session_state["view_mode"] = "archive"; st.rerun()
     with c4:
         if st.button("🧹 TEMİZLE", use_container_width=True):
             st.session_state["stored_matches"] = []; st.rerun()
@@ -146,7 +145,6 @@ else:
     matches = st.session_state.get("stored_matches", [])
     mode = st.session_state["view_mode"]
     
-    # Filtreleme
     if mode == "live": matches = [m for m in matches if m['fixture']['status']['short'] in ['1H', '2H', 'HT', 'LIVE']]
     elif mode == "pre": matches = [m for m in matches if m['fixture']['status']['short'] == 'NS']
     elif mode == "archive": matches = [m for m in matches if str(m['fixture']['id']) in st.session_state["siber_archive"]]
@@ -166,6 +164,9 @@ else:
             win_status = f"<span class='status-win'>✅ TUTTU</span>" if check_success(arc['emir'], gh, ga) else f"<span class='status-lost'>❌ KAYIP</span>"
 
         color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
+        # KeyError Safe Access: arc.get('score', '0-0')
+        entry_score = arc.get('score', '0-0')
+        
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
                 <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
@@ -176,7 +177,7 @@ else:
                 <div style='margin-top:10px; padding:10px; background:rgba(46,160,67,0.1); border:1px solid {color}; border-radius:8px;'>
                     <span style='color:{color}; font-size:1rem; font-weight:900;'>🎯 EMİR: {arc['emir']}</span>
                 </div>
-                <div class='analysis-box'>Giriş Skoru: {arc['score']} | Dakika: {elap}' | Güven: %{arc['conf']}</div>
+                <div class='analysis-box'>Giriş Skoru: {entry_score} | Dakika: {elap}' | Güven: %{arc['conf']}</div>
             </div>
         """, unsafe_allow_html=True)
 
