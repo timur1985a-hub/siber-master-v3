@@ -76,17 +76,6 @@ def to_tsi(utc_str):
         return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
     except: return "--:--"
 
-def siber_muhakeme_motoru(fid, status, elap, league_name):
-    seed = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-    conf = 88 + (seed % 7)
-    if any(lg in league_name for lg in ["Premier League", "Bundesliga", "Eredivisie"]): conf += 2
-    if status in ['1H', '2H', 'HT', 'LIVE']:
-        if 20 <= elap <= 40: emir = "İY 0.5 ÜST"
-        elif elap >= 65: emir = "MS +0.5 ÜST"
-        else: emir = "2.5 ÜST"
-    else: emir = "2.5 ÜST" if conf > 91 else "KG VAR"
-    return min(conf, 99), emir
-
 def fetch_siber_data(live=True):
     try:
         params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
@@ -96,9 +85,9 @@ def fetch_siber_data(live=True):
     except: return []
 
 def check_success(emir, gh, ga):
-    t = gh + ga
-    if "0.5 ÜST" in emir: return t > 0
-    if "2.5 ÜST" in emir: return t > 2
+    total = gh + ga
+    if "2.5 ÜST" in emir: return total > 2
+    if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
     return False
 
@@ -109,8 +98,6 @@ if not st.session_state["auth"]:
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    st.markdown("<div class='pkg-row'><div class='pkg-box'><small>1 AYLIK</small><br><b>700 TL</b></div><div class='pkg-box'><small>3 AYLIK</small><br><b>2.000 TL</b></div><div class='pkg-box'><small>6 AYLIK</small><br><b>5.000 TL</b></div><div class='pkg-box'><small>12 AYLIK</small><br><b>9.000 TL</b></div><div class='pkg-box'><small>SINIRSIZ</small><br><b>10.000 TL</b></div></div>", unsafe_allow_html=True)
-    st.markdown(f"<a href='{WA_LINK}' class='wa-small'>🔥 HEMEN LİSANS AL</a>", unsafe_allow_html=True)
     with st.form("auth_f"):
         l_t = st.text_input("Giriş Tokeni:", type="password").strip()
         l_p = st.text_input("Şifre:", type="password").strip()
@@ -119,22 +106,16 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
 else:
-    if st.session_state.get("role") == "admin":
-        with st.expander("🔑 ADMIN PANEL"):
-            st.dataframe(pd.DataFrame([{"TOKEN": k, "ŞİFRE": v["pass"]} for k, v in CORE_VAULT.items()]))
-
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"})
-            st.rerun()
+            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
     with c2:
         if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"})
-            st.rerun()
+            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
@@ -151,33 +132,56 @@ else:
 
     for m in matches:
         fid = str(m['fixture']['id'])
-        status, elap = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
+        status = m['fixture']['status']['short']
         gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
         
+        # SİBER MÜHÜRLEME (Hem Cansız Hem Canlı Kararları Kaydeder)
         if fid not in st.session_state["siber_archive"]:
-            conf, emir = siber_muhakeme_motoru(fid, status, elap, m['league']['name'])
-            st.session_state["siber_archive"][fid] = {"conf": conf, "emir": emir, "type": "CANLI" if status != 'NS' else "CANSIZ", "score": f"{gh}-{ga}"}
+            seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
+            conf = 85 + (seed_v % 14)
+            # Cansız mühürleme
+            pre_emir = "2.5 ÜST" if conf > 92 else "KG VAR"
+            # Canlı mühürleme (Temsili)
+            live_emir = "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST"
+            
+            st.session_state["siber_archive"][fid] = {
+                "conf": conf,
+                "pre_emir": pre_emir,
+                "live_emir": live_emir,
+                "league": m['league']['name'],
+                "home": m['teams']['home']['name'],
+                "away": m['teams']['away']['name'],
+                "date": to_tsi(m['fixture']['date']),
+                "final_score": f"{gh}-{ga}",
+                "status": status
+            }
         
+        # Arşivi Güncelle (Maç bittikçe skoru ve durumu tazeler)
+        st.session_state["siber_archive"][fid].update({"final_score": f"{gh}-{ga}", "status": status})
         arc = st.session_state["siber_archive"][fid]
-        win_status = ""
-        if status in ['FT', 'AET', 'PEN'] or check_success(arc['emir'], gh, ga):
-            win_status = f"<span class='status-win'>✅ TUTTU</span>" if check_success(arc['emir'], gh, ga) else f"<span class='status-lost'>❌ KAYIP</span>"
 
+        # Başarı Durumu Kontrolü
+        win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh, ga) else f"<span class='status-lost'>❌</span>"
+        win_live = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], gh, ga) else f"<span class='status-lost'>❌</span>"
+        
         color = "#2ea043" if arc['conf'] >= 92 else "#f1e05a"
-        # KeyError Safe Access: arc.get('score', '0-0')
-        entry_score = arc.get('score', '0-0')
         
         st.markdown(f"""
             <div class='decision-card' style='border-left: 6px solid {color};'>
                 <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-                <div class='archive-badge'>🔒 {arc['type']} MÜHÜR</div> {win_status}
-                <br><b style='color:#58a6ff;'>⚽ {m['league']['name']}</b> | <span class='tsi-time'>⌚ {to_tsi(m['fixture']['date'])}</span>
-                <br><span style='font-size:1.3rem; font-weight:bold;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</span>
+                <div class='archive-badge'>🔒 SİBER MÜHÜR</div>
+                <br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span>
+                <br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span>
                 <br><div class='score-board'>{gh} - {ga}</div>
-                <div style='margin-top:10px; padding:10px; background:rgba(46,160,67,0.1); border:1px solid {color}; border-radius:8px;'>
-                    <span style='color:{color}; font-size:1rem; font-weight:900;'>🎯 EMİR: {arc['emir']}</span>
+                <div style='display:flex; gap:10px; margin-top:10px;'>
+                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
+                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if status in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh, ga) else ''}
+                    </div>
+                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if status in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh, ga) else ''}
+                    </div>
                 </div>
-                <div class='analysis-box'>Giriş Skoru: {entry_score} | Dakika: {elap}' | Güven: %{arc['conf']}</div>
+                <div class='analysis-box'>Maç Durumu: {status} | Kayıtlı Skor: {arc['final_score']}</div>
             </div>
         """, unsafe_allow_html=True)
 
