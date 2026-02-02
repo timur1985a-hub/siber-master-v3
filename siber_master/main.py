@@ -44,4 +44,7 @@ st.markdown("""
     .stApp { background-color: #010409; color: #e6edf3; }
     header { visibility: hidden; }
     .marketing-title { text-align: center; color: #2ea043; font-size: 2.5rem; font-weight: 900; margin-bottom: 5px; }
-    .internal-welcome { text-align: center; color: #2ea043; font-size: 2rem; font-
+    .internal-welcome { text-align: center; color: #2ea043; font-size: 2rem; font-weight: 800; }
+    .owner-info { text-align: center; color: #58a6ff; font-size: 1rem; margin-bottom: 20px; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+    .stButton>button { background-color: #0d1117 !important; border: 1px solid #2ea043 !important; color: #2ea043 !important; font-weight: bold !important; border-radius: 6px !important; }
+    .decision-card { background: #0d1117; border: 1px solid #30363d; border-left: 6px solid #2ea043
