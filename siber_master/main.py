@@ -29,12 +29,16 @@ def get_hardcoded_vault():
     return v
 
 @st.cache_resource
-def get_persistent_archive(): return {}
+def get_persistent_archive(): 
+    # Global arşivi bir sözlük içinde tutarak sıfırlanabilir kılıyoruz
+    return {"data": {}}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-PERMANENT_ARCHIVE = get_persistent_archive()
+# Arşiv verisine güvenli erişim
+PERMANENT_CONTAINER = get_persistent_archive()
+PERMANENT_ARCHIVE = PERMANENT_CONTAINER["data"]
 
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
@@ -98,7 +102,7 @@ def check_success(emir, gh, ga):
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
-    if "İLK YARI" in emir: return total > 0 # İY Analizi eklendi
+    if "İLK YARI" in emir: return total > 0 
     return False
 
 def siber_engine(m):
@@ -106,16 +110,10 @@ def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
-    
-    # Siber Karar Algoritması - Sadece Zeka Katmanı İyileştirildi
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP"]
     is_high = any(x in league for x in high_leagues)
-    
-    # Cansız Emir (Pre-Match) Stratejisi
     pre_emir = "2.5 ÜST" if is_high else ("KG VAR" if is_high else "0.5 ÜST")
     conf = 96 if is_high else 91
-    
-    # Canlı Emir (Live) Stratejisi
     if elapsed > 0:
         if elapsed < 35 and total == 0: 
             live_emir = "İLK YARI 0.5 ÜST"
@@ -129,7 +127,6 @@ def siber_engine(m):
             live_emir = "KG VAR"
     else:
         live_emir = "KG VAR"
-        
     return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
@@ -180,8 +177,11 @@ else:
                                 st.rerun()
             st.divider()
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear()
+                # ÖNEMLİ: Hem session'ı hem de global cache nesnesini temizliyoruz.
+                PERMANENT_CONTAINER["data"] = {} 
+                PERMANENT_ARCHIVE = {}
                 st.session_state["stored_matches"] = []
+                st.session_state["view_mode"] = "clear"
                 st.success("Tüm siber hafıza temizlendi!")
                 st.rerun()
 
@@ -206,13 +206,17 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
+    # Güncel veri işleme
     if mode != "clear":
-        for m in st.session_state.get("stored_matches", []):
+        current_matches = st.session_state.get("stored_matches", [])
+        for m in current_matches:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
+            
+            # Kayıt yoksa veya mod archive değilse (yani canlı/pre ise) her zaman güncelle/ekle
             if fid not in PERMANENT_ARCHIVE:
                 PERMANENT_ARCHIVE[fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'],
@@ -220,10 +224,14 @@ else:
                     "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir,
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
-            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "conf": conf, "pre_emir": p_emir, "live_emir": l_emir})
+            else:
+                PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "conf": conf, "pre_emir": p_emir, "live_emir": l_emir})
 
-    if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
+    # Görünüm mantığı
+    if mode == "archive": 
+        display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
+        # Sadece o an çekilen listedekileri göster
         display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     if search_q:
