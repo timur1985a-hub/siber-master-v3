@@ -43,14 +43,14 @@ if q_t and q_p and not st.session_state["auth"]:
     if (q_t == ADMIN_TOKEN and q_p == ADMIN_PASS) or (q_t in CORE_VAULT and CORE_VAULT[q_t]["pass"] == q_p):
         st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MOBİL UYUMLU) ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
     "header{visibility:hidden}"
     ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800;margin-top:10px}"
     ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
-    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
+    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important;width:100%}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
     ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
@@ -62,8 +62,8 @@ style_code = (
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #f85149;box-shadow: 0 4px 15px rgba(0,0,0,0.5)}"
     ".stat-val{font-size:2rem;font-weight:900;color:#2ea043}"
     ".stat-lbl{font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:bold;letter-spacing:1px}"
-    ".market-card{background:#161b22;border:1px solid #30363d;padding:15px;border-radius:10px;text-align:center}"
-    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin:10px auto;max-width:320px;border:1px solid #fff}"
+    ".market-item{background:#161b22;border:1px solid #30363d;padding:10px;border-radius:8px;text-align:center;margin-bottom:10px}"
+    ".wa-link-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:15px;border:1px solid #fff}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     "</style>"
 )
@@ -128,23 +128,27 @@ def to_tsi(utc_str):
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
-    st.markdown("<div class='internal-welcome'>TIMUR AI - STRATEGIC ACCESS</div>", unsafe_allow_html=True)
+    # Orijinal İştahlandırıcı Giriş
+    st.markdown("<div class='internal-welcome'>💎 TIMUR AI GLOBAL - STRATEGIC WEALTH SYSTEM 💎</div>", unsafe_allow_html=True)
+    
     with st.form("auth_f"):
         l_t = st.text_input("Token:", type="password").strip()
         l_p = st.text_input("Pass:", type="password").strip()
         if st.form_submit_button("SİSTEME GİR"):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS) or (l_t in CORE_VAULT and CORE_VAULT[l_t]["pass"] == l_p):
-                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
+                st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": q_t if q_t else l_t})
                 st.query_params.update({"s_t": l_t, "s_p": l_p}); st.rerun()
 
-    st.markdown(f"<a href='{WA_LINK}' class='wa-btn'>💬 WHATSAPP İLETİŞİM HATTI</a>", unsafe_allow_html=True)
+    # Mobil Uyumlu Paketler ve WhatsApp
+    st.markdown(f"<a href='{WA_LINK}' class='wa-link-btn'>💬 LİSANS İÇİN TIKLA</a>", unsafe_allow_html=True)
     
-    st.markdown("<h3 style='text-align:center; color:#58a6ff;'>💎 SİBER MARKET - PAKETLER</h3>", unsafe_allow_html=True)
-    pk_cols = st.columns(5)
-    pk_data = [("3 AY SİBER", "700 TL"), ("6 AY SİBER", "2000 TL"), ("12 AY KAMPANYA", "500 TL"), ("1000 GÜN ÖZEL", "9000 TL"), ("SINIRSIZ MASTER", "20 BİN TL")]
-    for i, (name, price) in enumerate(pk_data):
-        with pk_cols[i]:
-            st.markdown(f"<div class='market-card'><small style='color:#8b949e;'>{name}</small><br><b style='color:#2ea043; font-size:1.1rem;'>{price}</b></div>", unsafe_allow_html=True)
+    st.write("")
+    m_cols = st.columns(2) # Mobilde daha iyi görünmesi için 2 sütun
+    pk_data = [("3 AY", "700 TL"), ("6 AY", "2000 TL"), ("12 AY", "500 TL"), ("1000 GÜN", "9000 TL"), ("SINIRSIZ", "20 BİN TL")]
+    
+    for i, (n, p) in enumerate(pk_data):
+        with m_cols[i % 2]:
+            st.markdown(f"<div class='market-item'><small>{n}</small><br><b>{p}</b></div>", unsafe_allow_html=True)
 
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
@@ -152,13 +156,13 @@ else:
     
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1: 
-        if st.button("♻️ CANLI MAÇLAR", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
+        if st.button("♻️ CANLI", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
     with c2: 
-        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
+        if st.button("💎 ÖNCE", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3: 
         if st.button("🔄 GÜNCELLE", use_container_width=True): st.session_state["stored_matches"] = fetch_siber_data(st.session_state["view_mode"] == "live"); st.rerun()
     with c4: 
-        if st.button("📜 SİBER ARŞİV", use_container_width=True): st.session_state["view_mode"] = "archive"; st.rerun()
+        if st.button("📜 ARŞİV", use_container_width=True): st.session_state["view_mode"] = "archive"; st.rerun()
     with c5: 
         if st.button("🧹 TEMİZLE", use_container_width=True): st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
@@ -168,48 +172,4 @@ else:
         if fid not in PERMANENT_ARCHIVE:
             conf, p_e, l_e = advanced_decision_engine(m)
             PERMANENT_ARCHIVE[fid] = {
-                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0
-            }
-        PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0})
-
-    all_data = list(PERMANENT_ARCHIVE.values())
-    finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
-    if finished and st.session_state["view_mode"] != "clear":
-        p_ok = sum(1 for d in finished if check_success(d['pre_emir'], d['score']))
-        l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
-        st.markdown(f"""
-            <div class='stats-panel'>
-                <div><div class='stat-val'>{len(finished)}</div><div class='stat-lbl'>Siber Kayıt</div></div>
-                <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div>
-                <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    display_list = all_data if st.session_state["view_mode"] == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
-
-    for arc in display_list:
-        is_fin = arc['status'] in ['FT', 'AET', 'PEN']
-        win_p = "<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
-        win_l = "<span class='status-win'>✅</span>" if check_success(arc['live_emir'], arc['score']) else ("<span class='status-lost'>❌</span>" if is_fin else "")
-        is_live = arc['status'] not in ['NS', 'FT', 'TBD', 'CANC']
-        
-        st.markdown(f"""
-            <div class='decision-card'>
-                <div class='ai-score'>%{arc['conf']}</div>
-                {"<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"}<br>
-                <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
-                <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
-                <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
-                <div style='display:flex; gap:10px; margin-top:10px;'>
-                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_p}
-                    </div>
-                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_l}
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
+                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name
