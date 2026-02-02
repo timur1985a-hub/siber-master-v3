@@ -121,44 +121,46 @@ else:
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c4:
         if st.button("🧹 TEMİZLE", use_container_width=True):
-            st.session_state["stored_matches"] = []; st.rerun()
+            st.session_state["stored_matches"] = []
+            st.session_state["view_mode"] = "clear" # Kilit mod: Ekranı boş tutar
+            st.rerun()
 
-    # SİBER ARAMA MOTORU (API & ARŞİV ENTEGRE)
     search_q = st.text_input("🔍 Siber Arama (Takım veya Lig):", placeholder="Takım adını girin...").strip().lower()
-
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # 1. API VERİLERİNİ İŞLE VE MÜHÜRLE (EĞER ARŞİVDE DEĞİLSEK)
-    raw_matches = st.session_state.get("stored_matches", [])
-    for m in raw_matches:
-        fid = str(m['fixture']['id'])
-        gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-        status = m['fixture']['status']['short']
-        
-        if fid not in st.session_state["siber_archive"]:
-            seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-            conf = 85 + (seed_v % 14)
-            st.session_state["siber_archive"][fid] = {
-                "fid": fid, "conf": conf, "league": m['league']['name'],
-                "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
-                "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
-                "score": f"{gh}-{ga}", "status": status
-            }
-        st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status})
-
-    # 2. GÖRÜNTÜLEME LİSTESİNİ OLUŞTUR
-    if mode == "archive":
-        display_list = list(st.session_state["siber_archive"].values())
-    else:
-        # Sadece o anki mod (Live/Pre) kapsamındaki mühürlü maçları listeye ekle
+    # 1. API VERİLERİNİ İŞLE (Sadece 'clear' modunda değilsek)
+    if mode != "clear":
+        raw_matches = st.session_state.get("stored_matches", [])
         for m in raw_matches:
             fid = str(m['fixture']['id'])
-            display_list.append(st.session_state["siber_archive"][fid])
+            gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+            status = m['fixture']['status']['short']
+            
+            if fid not in st.session_state["siber_archive"]:
+                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
+                conf = 85 + (seed_v % 14)
+                st.session_state["siber_archive"][fid] = {
+                    "fid": fid, "conf": conf, "league": m['league']['name'],
+                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                    "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
+                    "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
+                    "score": f"{gh}-{ga}", "status": status
+                }
+            st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status})
 
-    # 3. GLOBAL ARAMA FİLTRESİ
+        # 2. GÖRÜNTÜLEME LİSTESİNİ OLUŞTUR
+        if mode == "archive":
+            display_list = list(st.session_state["siber_archive"].values())
+        else:
+            for m in raw_matches:
+                fid = str(m['fixture']['id'])
+                display_list.append(st.session_state["siber_archive"][fid])
+
+    # 3. GLOBAL ARAMA FİLTRESİ (Arama yapılırsa 'clear' modu otomatik iptal olur)
     if search_q:
+        if mode == "clear": # Arama yapılırsa en son hafızadaki her şeyi ara
+            display_list = list(st.session_state["siber_archive"].values())
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
     # 4. GÖRÜNTÜLEME ÜNİTESİ
