@@ -175,4 +175,26 @@ else:
         if fid not in PERMANENT_ARCHIVE:
             conf, p_e, l_e = advanced_decision_engine(m)
             PERMANENT_ARCHIVE[fid] = {
-                "fid": fid, "conf": conf, "league": m['
+                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0
+            }
+        PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0})
+
+    all_data = list(PERMANENT_ARCHIVE.values())
+    finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
+    if finished and st.session_state["view_mode"] != "clear":
+        p_ok = sum(1 for d in finished if check_success(d['pre_emir'], d['score']))
+        l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
+        st.markdown(f"""
+            <div class='stats-panel'>
+                <div><div class='stat-val'>{len(finished)}</div><div class='stat-lbl'>Siber Kayıt</div></div>
+                <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div>
+                <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    display_list = all_data if st.session_state["view_mode"] == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
+
+    for arc in display_list:
+        is_fin = arc['status'] in ['FT', 'AET', 'PEN']
+        win_p = f"
