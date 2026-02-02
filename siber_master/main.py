@@ -33,8 +33,7 @@ if "auth" not in st.session_state:
     st.session_state.update({
         "auth": False, "role": None, "current_user": None, 
         "stored_matches": [], "api_remaining": "---",
-        "siber_archive": {},
-        "archive_mode": False
+        "siber_archive": {}
     })
     q_t = st.query_params.get("s_t")
     q_p = st.query_params.get("s_p")
@@ -43,7 +42,8 @@ if "auth" not in st.session_state:
             st.session_state.update({"auth": True, "role": "admin" if q_t == ADMIN_TOKEN else "user", "current_user": q_t})
 
 # --- 2. DEĞİŞMEZ ŞABLON VE TASARIM (MİLİMETRİK) ---
-style_code = """<style>
+style_code = """
+<style>
 .stApp{background-color:#010409;color:#e6edf3}
 header{visibility:hidden}
 .marquee-container{background:rgba(13,17,23,0.9);border-top:2px solid #f85149;border-bottom:2px solid #f85149;box-shadow:0 0 15px rgba(248,81,73,0.2);padding:15px 0;margin-bottom:25px;overflow:hidden;white-space:nowrap}
@@ -51,4 +51,12 @@ header{visibility:hidden}
 .match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}
 @keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}
 .marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px}
-.marketing-subtitle{text-align:center;color:#f85149;
+.marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}
+.internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}
+.owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}
+.stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}
+.pkg-row{display:flex;gap:5px;justify-content:center;margin-bottom:15px;flex-wrap:wrap}
+.pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;width:calc(18% - 10px);min-width:120px;text-align:center;border-top:3px solid #2ea043}
+.wa-small{display:block;width:100%;max-width:300px;margin:0 auto 15px auto;background:#238636;color:#fff!important;text-align:center;padding:10px;border-radius:8px;font-weight:700;text-decoration:none}
+.decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}
+.ai-score
