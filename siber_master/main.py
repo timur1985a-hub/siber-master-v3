@@ -76,7 +76,7 @@ style_code = (
 )
 st.markdown(style_code, unsafe_allow_html=True)
 
-# --- 3. SİBER ANALİZ MOTORU (ULTRA GUARANTEE v2) ---
+# --- 3. SİBER ANALİZ MOTORU (DOMINANCE & GUARANTEE v3) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -108,31 +108,42 @@ def siber_engine(m):
     elapsed = m['fixture']['status']['elapsed'] or 0
     diff = abs(gh - ga)
     
-    # Yüksek Hakimiyetli Ligler
-    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1"]
+    # Siber Süzgeç: Yüksek Gol Potansiyeli Olan Ligler
+    high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE"]
     is_high = any(x in league for x in high_leagues)
     
-    # CANSIZ STRATEJİ: Risk Azaltılmış Hakimiyet
-    pre_emir = "1.5 ÜST" if is_high else "0.5 ÜST"
-    conf = 93 if is_high else 88
+    # 1. CANSIZ STRATEJİ (MAÇ ÖNCESİ)
+    if is_high:
+        pre_emir = "1.5 ÜST" # Risk düşürülüp başarı hedeflendi
+        conf = 94
+    else:
+        pre_emir = "0.5 ÜST"
+        conf = 89
 
-    # CANLI STRATEJİ: Garantici Baskı Analizi
+    # 2. CANLI STRATEJİ (HAKİMİYET ODAKLI)
     if elapsed > 0:
         if elapsed < 40:
-            if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 91
-            else: live_emir, conf = "1.5 ÜST", 94
+            if total == 0: 
+                live_emir, conf = "İLK YARI 0.5 ÜST", 92
+            else: 
+                live_emir, conf = "1.5 ÜST", 95
         elif 40 <= elapsed < 70:
-            # Skor Dengesi ve Baskı Kontrolü
-            if total == 0: live_emir, conf = "0.5 ÜST", 95
-            elif diff == 0: live_emir, conf = "KG VAR", 90 # 1-1 beklenen çekişmeli maç
-            elif diff >= 3: live_emir, conf = "3.5 ÜST", 85 # Fark açılmışsa gol devam eder
-            else: live_emir, conf = "1.5 ÜST", 92
-        elif 70 <= elapsed < 85:
-            # Son Çeyrek Garantisi
-            if total < 2: live_emir, conf = "0.5 ÜST", 96
-            else: live_emir, conf = "+0.5 GOL", 92 # Mevcut skora bir gol daha eklenir mi?
+            if total == 0: 
+                live_emir, conf = "0.5 ÜST", 96 # Kilitlenmiş maçın açılma ihtimali
+            elif diff == 0: 
+                live_emir, conf = "KG VAR", 91 # Çekişme devam ediyor
+            elif diff >= 2: 
+                live_emir, conf = "+0.5 GOL", 93 # Dominant taraf durmaz
+            else: 
+                live_emir, conf = "1.5 ÜST", 92
+        elif 70 <= elapsed < 86:
+            # SON ÇEYREK HAKİMİYETİ
+            if total < 2: 
+                live_emir, conf = "0.5 ÜST", 97 # En az bir gol garantisi
+            else: 
+                live_emir, conf = "+0.5 GOL", 94 # Mevcut baskıya bir gol daha
         else:
-            live_emir, conf = "MAÇ SONU +0.5", 89
+            live_emir, conf = "MAÇ SONU +0.5", 90
     else:
         live_emir = "KG VAR" if is_high else "0.5 ÜST"
 
