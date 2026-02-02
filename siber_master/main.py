@@ -187,11 +187,12 @@ else:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
             st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
+    # --- SİBER ARAMA MOTORU (DOKUNULMAZ API YOLLARIYLA ENTEGRE) ---
     search_q = st.text_input("🔍 Siber Arama:", placeholder="Takım/Lig...").strip().lower()
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veri Kayıt İşlemi (ORİJİNAL)
+    # Veri Kayıt İşlemi (API YOLLARI BURADA ÇALIŞIR)
     if mode != "clear":
         for m in st.session_state.get("stored_matches", []):
             fid = str(m['fixture']['id'])
@@ -208,14 +209,17 @@ else:
                 }
             PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
-    if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
+    # MODA GÖRE LİSTE OLUŞTURMA
+    if mode == "archive": 
+        display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
         display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
-    # Siber Arama (ORİJİNAL)
+    # FİLTRELEME (ARAMA KUTUSU) - LİSTEYİ BOZMADAN ÇALIŞIR
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
+    # ARŞİV İSTATİSTİKLERİ
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
@@ -223,6 +227,7 @@ else:
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
+    # GÖRSELLEŞTİRME
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
