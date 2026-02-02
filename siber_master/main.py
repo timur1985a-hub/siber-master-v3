@@ -77,7 +77,8 @@ style_code = (
     ".marquee-text{display:inline-block;padding-left:100%;animation:marquee 100s linear infinite}"
     ".match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}"
     "@keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}"
-    ".marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px}"
+    ".marketing-intro{text-align:center;color:#8b949e;font-size:0.9rem;letter-spacing:2px;font-weight:600;margin-bottom:0px;text-transform:uppercase}"
+    ".marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px;margin-top:0px}"
     ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}"
     ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}"
     ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
@@ -105,7 +106,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (GÜNCELLENMİŞ MOMENTUM TAKİBİ) ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -136,68 +137,41 @@ def siber_engine(m):
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
     diff = abs(gh - ga)
-    
-    # Lig bazlı potansiyel
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE", "EERSTE DIVISIE"]
     is_high = any(x in league for x in high_leagues)
-    
-    # Cansız Emir (Maç Öncesi)
     seed_val = hash(m['teams']['home']['name'] + m['teams']['away']['name']) % 3
     pre_options = ["2.5 ÜST", "KG VAR", "1.5 ÜST"] if is_high else ["0.5 ÜST", "1.5 ÜST", "EV 0.5 ÜST"]
     pre_emir = pre_options[seed_val]
     pre_conf = 91 if is_high else 89
-
-    # --- CANLI MOMENTUM VE REAKSİYON MOTORU ---
-    live_emir = "ANALİZ BEKLENİYOR..."
-    conf = 85
-
+    live_emir, conf = "ANALİZ BEKLENİYOR...", 85
     if elapsed > 0:
-        # Dakika Bazlı Dinamik Karar
         if elapsed < 35:
-            if total == 0: 
-                live_emir, conf = "İLK YARI 0.5 ÜST", 94
-            else: 
-                live_emir, conf = "GOL OLDU! 1.5 ÜST BEKLE", 96
-        
+            if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 94
+            else: live_emir, conf = "GOL OLDU! 1.5 ÜST BEKLE", 96
         elif 35 <= elapsed < 45:
-            if total == 0:
-                live_emir, conf = "İY 0.5 ÜST (RİSKLİ)", 88
-            else:
-                live_emir, conf = "İY SKORU KORU / 2. YARIYI BEKLE", 90
-
+            if total == 0: live_emir, conf = "İY 0.5 ÜST (RİSKLİ)", 88
+            else: live_emir, conf = "İY SKORU KORU / 2. YARIYI BEKLE", 90
         elif 45 <= elapsed < 65:
-            if total == 0:
-                live_emir, conf = "0.5 ÜST (MAÇ GOLÜ)", 98
-            elif total == 1:
-                live_emir, conf = "1.5 ÜST ALINMALI", 95
-            elif total >= 2 and diff == 0:
-                live_emir, conf = "HAKİMİYET KRİTİK: KG VAR", 92
-            else:
-                live_emir, conf = f"{total+0.5} ÜST ANALİZİ AKTİF", 93
-
+            if total == 0: live_emir, conf = "0.5 ÜST (MAÇ GOLÜ)", 98
+            elif total == 1: live_emir, conf = "1.5 ÜST ALINMALI", 95
+            elif total >= 2 and diff == 0: live_emir, conf = "HAKİMİYET KRİTİK: KG VAR", 92
+            else: live_emir, conf = f"{total+0.5} ÜST ANALİZİ AKTİF", 93
         elif 65 <= elapsed < 82:
-            if total < 2:
-                live_emir, conf = "0.5 ÜST (SON BASKI)", 99
-            else:
-                live_emir, conf = "SKOR ODAKLI: +0.5 GOL", 96
-        
-        elif elapsed >= 82:
-            live_emir, conf = "MAÇ SONU +0.5 (SİBER RİSK)", 91
-
-        # Hakimiyet ve Reaksiyon Ekleme
-        if diff >= 2 and elapsed > 60:
-            live_emir = "TARAF BASKIN: SKORU KORU"
-            conf = 97
+            if total < 2: live_emir, conf = "0.5 ÜST (SON BASKI)", 99
+            else: live_emir, conf = "SKOR ODAKLI: +0.5 GOL", 96
+        elif elapsed >= 82: live_emir, conf = "MAÇ SONU +0.5 (SİBER RİSK)", 91
+        if diff >= 2 and elapsed > 60: live_emir, conf = "TARAF BASKIN: SKORU KORU", 97
     else:
-        live_emir = "BAŞLAMA BEKLENİYOR..."
-        conf = pre_conf
-        
+        live_emir, conf = "BAŞLAMA BEKLENİYOR...", pre_conf
     return conf, pre_emir, live_emir
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
+    # --- YENİ TANITIM CÜMLESİ ---
+    st.markdown("<div class='marketing-intro'>MİLYONLARCA VERİ HATTI ÜZERİNDEN CANLI YAPAY ZEKA MAÇ ANALİZİ VE STRATEJİK TAHMİN MOTORU</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>Siber Analiz ve Yapay Zeka Stratejileri</div>", unsafe_allow_html=True)
+    
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
