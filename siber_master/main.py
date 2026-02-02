@@ -123,36 +123,45 @@ else:
         if st.button("🧹 TEMİZLE", use_container_width=True):
             st.session_state["stored_matches"] = []; st.rerun()
 
+    # SİBER ARAMA MOTORU (API & ARŞİV ENTEGRE)
     search_q = st.text_input("🔍 Siber Arama (Takım veya Lig):", placeholder="Takım adını girin...").strip().lower()
 
     mode = st.session_state["view_mode"]
-    
+    display_list = []
+
+    # 1. API VERİLERİNİ İŞLE VE MÜHÜRLE (EĞER ARŞİVDE DEĞİLSEK)
+    raw_matches = st.session_state.get("stored_matches", [])
+    for m in raw_matches:
+        fid = str(m['fixture']['id'])
+        gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
+        status = m['fixture']['status']['short']
+        
+        if fid not in st.session_state["siber_archive"]:
+            seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
+            conf = 85 + (seed_v % 14)
+            st.session_state["siber_archive"][fid] = {
+                "fid": fid, "conf": conf, "league": m['league']['name'],
+                "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
+                "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
+                "score": f"{gh}-{ga}", "status": status
+            }
+        st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status})
+
+    # 2. GÖRÜNTÜLEME LİSTESİNİ OLUŞTUR
     if mode == "archive":
         display_list = list(st.session_state["siber_archive"].values())
     else:
-        display_list = []
-        raw_matches = st.session_state.get("stored_matches", [])
+        # Sadece o anki mod (Live/Pre) kapsamındaki mühürlü maçları listeye ekle
         for m in raw_matches:
             fid = str(m['fixture']['id'])
-            gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-            status = m['fixture']['status']['short']
-            
-            if fid not in st.session_state["siber_archive"]:
-                seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
-                conf = 85 + (seed_v % 14)
-                st.session_state["siber_archive"][fid] = {
-                    "fid": fid, "conf": conf, "league": m['league']['name'],
-                    "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                    "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
-                    "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
-                    "score": f"{gh}-{ga}", "status": status
-                }
-            st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status})
             display_list.append(st.session_state["siber_archive"][fid])
 
+    # 3. GLOBAL ARAMA FİLTRESİ
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
+    # 4. GÖRÜNTÜLEME ÜNİTESİ
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         win_pre = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], gh_v, ga_v) else f"<span class='status-lost'>❌</span>"
@@ -171,12 +180,4 @@ else:
                         <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}
                     </div>
                     <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}
-                    </div>
-                </div>
-                <div class='analysis-box'>Kayıtlı Durum: {arc['status']}</div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
-        st.query_params.clear(); st.session_state.clear(); st.rerun()
+                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live
