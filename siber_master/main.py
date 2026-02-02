@@ -17,7 +17,6 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 @st.cache_resource
 def get_hardcoded_vault():
     v = {}
-    # Her paket için 400 adet, toplam 2000 Lisans
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 401): 
@@ -27,11 +26,16 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d}
     return v
 
+# --- SİBER ARŞİV KALICILIK MÜHRÜ ---
+@st.cache_resource
+def get_persistent_archive():
+    return {} # Uygulama ömrü boyunca burada saklanır
+
 CORE_VAULT = get_hardcoded_vault()
+PERMANENT_ARCHIVE = get_persistent_archive()
 
 if "auth" not in st.session_state: st.session_state["auth"] = False
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
-if "siber_archive" not in st.session_state: st.session_state["siber_archive"] = {}
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
@@ -129,7 +133,6 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # ADMIN LİSANS YÖNETİMİ
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS YÖNETİM MERKEZİ (2000 ADET)"):
             st.info("Lisanslar zaman damgalıdır. Süre bittiğinde 'Lisans Yenile' uyarısı aktif olur.")
@@ -138,7 +141,7 @@ else:
             for t, info in CORE_VAULT.items():
                 if p_filter == "TÜMÜ" or info['label'] == p_filter:
                     license_data.append({"TOKEN": t, "ŞİFRE": info['pass'], "PAKET": info['label'], "SÜRE (GÜN)": info['days']})
-            st.table(pd.DataFrame(license_data).head(100)) # İlk 100 tanesini gösterir
+            st.table(pd.DataFrame(license_data).head(100))
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -152,6 +155,7 @@ else:
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c4:
         if st.button("🧹 TEMİZLE", use_container_width=True):
+            PERMANENT_ARCHIVE.clear() # Kalıcı arşivi temizle
             st.session_state["stored_matches"] = []
             st.session_state["view_mode"] = "clear"; st.rerun()
 
@@ -167,27 +171,27 @@ else:
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed'] or 0
             
-            if fid not in st.session_state["siber_archive"]:
+            if fid not in PERMANENT_ARCHIVE:
                 seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
                 conf = 85 + (seed_v % 14)
-                st.session_state["siber_archive"][fid] = {
+                PERMANENT_ARCHIVE[fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'],
                     "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
                     "date": to_tsi(m['fixture']['date']), "pre_emir": "2.5 ÜST" if conf > 92 else "KG VAR",
                     "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
-            st.session_state["siber_archive"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
+            PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
         if mode == "archive":
-            display_list = list(st.session_state["siber_archive"].values())
+            display_list = list(PERMANENT_ARCHIVE.values())
         else:
             for m in raw_matches:
                 fid = str(m['fixture']['id'])
-                display_list.append(st.session_state["siber_archive"][fid])
+                display_list.append(PERMANENT_ARCHIVE[fid])
 
     if search_q:
-        if mode == "clear": display_list = list(st.session_state["siber_archive"].values())
+        if mode == "clear": display_list = list(PERMANENT_ARCHIVE.values())
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
     for arc in display_list:
