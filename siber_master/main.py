@@ -9,7 +9,7 @@ import pytz
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
@@ -97,45 +97,32 @@ def check_success(emir, gh, ga):
     return False
 
 def siber_engine(m):
-    """GELİŞMİŞ KARAR MEKANİZMASI: DİNAMİK VERİ ANALİZİ"""
     league = m['league']['name'].upper()
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
     
-    # 1. Lig Kalite ve Gol Endeksi
     high_scoring_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "J1 LEAGUE", "ELITESERIEN", "AUSTRIA", "BELGIUM", "CHAMPIONSHIP", "SWITZERLAND"]
     is_elite = any(x in league for x in high_scoring_leagues)
     
-    # 2. Güven Oranı Hesaplama (Zaman ve Gol Parametresi)
     base_conf = 88
     if is_elite: base_conf += 4
-    if total > 0: base_conf += 2 # Gol olan maçta ritim vardır
+    if total > 0: base_conf += 2 
     
-    # 3. Dinamik Emir Belirleme
-    # Maç Öncesi Stratejisi
     pre_emir = "2.5 ÜST" if is_elite else "1.5 ÜST"
     
-    # Canlı Analiz Stratejisi (Maçın içindeki gelişmelere göre)
     if elapsed > 0:
         if elapsed < 35:
-            if total == 0: 
-                live_emir = "İLK YARI 0.5 ÜST"
-                base_conf += 1
-            else: 
-                live_emir = "KG VAR"
+            if total == 0: live_emir = "İLK YARI 0.5 ÜST"
+            else: live_emir = "KG VAR"
         elif 35 <= elapsed <= 65:
-            if total < 2: 
-                live_emir = "MAÇ SONU 1.5 ÜST"
-                base_conf += 2
-            else: 
-                live_emir = "MAÇ SONU 3.5 ÜST"
-        else: # Dakika 65+
+            if total < 2: live_emir = "MAÇ SONU 1.5 ÜST"
+            else: live_emir = "MAÇ SONU 3.5 ÜST"
+        else:
             if total < 1: live_emir = "0.5 ÜST (SON HAMLE)"
             else: live_emir = "SIRADAKİ GOL"
-            base_conf -= 3 # Son dakikalar risklidir
-    else:
-        live_emir = "KG VAR"
+            base_conf -= 3
+    else: live_emir = "KG VAR"
 
     return min(base_conf, 98), pre_emir, live_emir
 
@@ -185,8 +172,14 @@ else:
                             if st.button("DAĞIT", key=f"btn_{tk}"):
                                 st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                                 st.rerun()
-            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear(); st.success("Tüm siber hafıza temizlendi!"); st.rerun()
+            # Dokunulmaz Arşiv Yönetimi (Sadece Admin)
+            st.divider()
+            st.write("### 🛠️ Kritik Sistem Kontrolü")
+            if st.button("🗑️ SİBER HAFIZAYI TEMİZLE (ADMİN)", use_container_width=True):
+                PERMANENT_ARCHIVE.clear()
+                st.session_state["stored_matches"] = []
+                st.success("Siber Arşiv sıfırlandı!")
+                st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
