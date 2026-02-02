@@ -105,7 +105,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU ---
+# --- 3. SİBER ANALİZ MOTORU (GÜNCELLENMİŞ MOMENTUM TAKİBİ) ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -122,12 +122,12 @@ def fetch_siber_data(live=True):
 
 def check_success(emir, gh, ga):
     total = gh + ga
-    if "İLK YARI 0.5 ÜST" in emir: return total > 0
+    if "İLK YARI 0.5" in emir: return total > 0
     if "2.5 ÜST" in emir: return total > 2
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
-    if "+0.5 GOL" in emir: return total > 0
+    if "+0.5" in emir: return total > 0
     return False
 
 def siber_engine(m):
@@ -137,35 +137,60 @@ def siber_engine(m):
     elapsed = m['fixture']['status']['elapsed'] or 0
     diff = abs(gh - ga)
     
-    # --- CANSIZ EMİR (MAÇ ÖNCESİ) GELİŞMİŞ ANALİZ ---
+    # Lig bazlı potansiyel
     high_leagues = ["EREDIVISIE", "BUNDESLIGA", "LALIGA", "PREMIER LEAGUE", "ELITESERIEN", "ICELAND", "U21", "DIVISION 1", "RESERVE", "PRO LEAGUE", "EERSTE DIVISIE"]
     is_high = any(x in league for x in high_leagues)
     
-    if is_high:
-        # Takım isimlerinden sabit bir tohum (seed) üreterek tahmin çeşitlendirilir
-        seed_val = hash(m['teams']['home']['name'] + m['teams']['away']['name']) % 3
-        options = ["2.5 ÜST", "KG VAR", "1.5 ÜST"]
-        pre_emir = options[seed_val]
-        conf = 94 if pre_emir == "1.5 ÜST" else 91
-    else:
-        pre_emir = "0.5 ÜST"
-        conf = 89
+    # Cansız Emir (Maç Öncesi)
+    seed_val = hash(m['teams']['home']['name'] + m['teams']['away']['name']) % 3
+    pre_options = ["2.5 ÜST", "KG VAR", "1.5 ÜST"] if is_high else ["0.5 ÜST", "1.5 ÜST", "EV 0.5 ÜST"]
+    pre_emir = pre_options[seed_val]
+    pre_conf = 91 if is_high else 89
 
-    # --- CANLI EMİR ANALİZİ ---
+    # --- CANLI MOMENTUM VE REAKSİYON MOTORU ---
+    live_emir = "ANALİZ BEKLENİYOR..."
+    conf = 85
+
     if elapsed > 0:
+        # Dakika Bazlı Dinamik Karar
         if elapsed < 35:
-            if total == 0: live_emir, conf = "İLK YARI 0.5 ÜST", 94
-            else: live_emir, conf = "1.5 ÜST", 95
-        elif 35 <= elapsed < 65:
-            if total == 0: live_emir, conf = "0.5 ÜST", 98
-            elif diff == 0: live_emir, conf = "KG VAR", 92
-            else: live_emir, conf = "1.5 ÜST", 93
+            if total == 0: 
+                live_emir, conf = "İLK YARI 0.5 ÜST", 94
+            else: 
+                live_emir, conf = "GOL OLDU! 1.5 ÜST BEKLE", 96
+        
+        elif 35 <= elapsed < 45:
+            if total == 0:
+                live_emir, conf = "İY 0.5 ÜST (RİSKLİ)", 88
+            else:
+                live_emir, conf = "İY SKORU KORU / 2. YARIYI BEKLE", 90
+
+        elif 45 <= elapsed < 65:
+            if total == 0:
+                live_emir, conf = "0.5 ÜST (MAÇ GOLÜ)", 98
+            elif total == 1:
+                live_emir, conf = "1.5 ÜST ALINMALI", 95
+            elif total >= 2 and diff == 0:
+                live_emir, conf = "HAKİMİYET KRİTİK: KG VAR", 92
+            else:
+                live_emir, conf = f"{total+0.5} ÜST ANALİZİ AKTİF", 93
+
         elif 65 <= elapsed < 82:
-            live_emir, conf = ("0.5 ÜST", 99) if total < 2 else ("+0.5 GOL", 96)
-        else:
-            live_emir, conf = "MAÇ SONU +0.5", 91
+            if total < 2:
+                live_emir, conf = "0.5 ÜST (SON BASKI)", 99
+            else:
+                live_emir, conf = "SKOR ODAKLI: +0.5 GOL", 96
+        
+        elif elapsed >= 82:
+            live_emir, conf = "MAÇ SONU +0.5 (SİBER RİSK)", 91
+
+        # Hakimiyet ve Reaksiyon Ekleme
+        if diff >= 2 and elapsed > 60:
+            live_emir = "TARAF BASKIN: SKORU KORU"
+            conf = 97
     else:
-        live_emir = "KG VAR" if is_high else "0.5 ÜST"
+        live_emir = "BAŞLAMA BEKLENİYOR..."
+        conf = pre_conf
         
     return conf, pre_emir, live_emir
 
