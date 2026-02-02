@@ -17,7 +17,7 @@ WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
 @st.cache_resource
 def get_hardcoded_vault():
     v = {}
-    cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
+    cfg = [("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 401): 
             seed = f"V16_FIXED_SEED_{lbl}_{i}_TIMUR_2026"
@@ -62,8 +62,8 @@ style_code = (
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #f85149;box-shadow: 0 4px 15px rgba(0,0,0,0.5)}"
     ".stat-val{font-size:2rem;font-weight:900;color:#2ea043}"
     ".stat-lbl{font-size:0.75rem;color:#8b949e;text-transform:uppercase;font-weight:bold;letter-spacing:1px}"
-    ".market-card{background:#161b22;border:1px solid #30363d;padding:15px;border-radius:10px;text-align:center;transition:0.3s}"
-    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:10px;border-radius:8px;text-decoration:none;font-weight:bold;margin-top:10px}"
+    ".market-card{background:#161b22;border:1px solid #30363d;padding:20px;border-radius:10px;text-align:center;margin-bottom:10px}"
+    ".wa-btn{display:block;text-align:center;background:#2ea043;color:#fff!important;padding:12px;border-radius:8px;text-decoration:none;font-weight:bold;margin:20px auto;max-width:300px; border: 1px solid #fff;}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     "</style>"
 )
@@ -101,8 +101,12 @@ def advanced_decision_engine(m):
             live_emir = "İLK YARI 0.5 ÜST" if total == 0 else "1.5 ÜST"
         elif 40 <= elapsed < 75:
             if total == 0: live_emir = "0.5 ÜST"
-            elif total == 1: live_emir = "X2 (ÇİFTE ŞANS)" if gh == 1 else "1X (ÇİFTE ŞANS)"
-            else: live_emir = "KG VAR"
+            elif total == 1:
+                if gh == 1: live_emir = "X2 (ÇİFTE ŞANS)"
+                else: live_emir = "1X (ÇİFTE ŞANS)"
+            elif total >= 2:
+                if gh > 0 and ga > 0: live_emir = "2.5 ÜST"
+                else: live_emir = "KG VAR"
         else:
             live_emir = "0.5 ÜST" if total == 0 else "0.5 ÜST (SON HAMLE)"
     else: live_emir = "0.5 ÜST"
@@ -133,19 +137,26 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.query_params.update({"s_t": l_t, "s_p": l_p}); st.rerun()
 
-    st.markdown("---")
-    st.markdown("<h3 style='text-align:center;'>💎 SİBER MARKET (PAKETLER)</h3>", unsafe_allow_html=True)
-    m1, m2, m3 = st.columns(3)
-    pkts = [("1 AY SİBER", "350 TL"), ("3 AY SİBER", "850 TL"), ("SINIRSIZ", "2500 TL")]
-    for i, (name, price) in enumerate(pkts):
-        with [m1, m2, m3][i]:
-            st.markdown(f"<div class='market-card'><b style='color:#58a6ff;'>{name}</b><br><h2 style='color:#2ea043;'>{price}</h2></div>", unsafe_allow_html=True)
-            st.markdown(f"<a href='{WA_LINK}' class='wa-btn'>SATIN AL</a>", unsafe_allow_html=True)
+    st.markdown("<a href='"+WA_LINK+"' class='wa-btn'>💬 WHATSAPP İLETİŞİM HATTI</a>", unsafe_allow_html=True)
+    
+    st.markdown("<h3 style='text-align:center; color:#58a6ff;'>💎 SİBER MARKET - PAKETLER</h3>", unsafe_allow_html=True)
+    m1, m2, m3, m4, m5 = st.columns(5)
+    packages = [
+        ("3 AY SİBER", "700 TL"),
+        ("6 AY SİBER", "2000 TL"),
+        ("12 AY KAMPANYA", "500 TL"),
+        ("1000 GÜN ÖZEL", "9000 TL"),
+        ("SINIRSIZ MASTER", "20.000 TL")
+    ]
+    cols = [m1, m2, m3, m4, m5]
+    for i, (name, price) in enumerate(packages):
+        with cols[i]:
+            st.markdown(f"<div class='market-card'><small style='color:#8b949e;'>{name}</small><br><b style='color:#2ea043; font-size:1.2rem;'>{price}</b></div>", unsafe_allow_html=True)
+
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # Butonlar
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1: 
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
@@ -158,57 +169,10 @@ else:
     with c5: 
         if st.button("🧹 TEMİZLE", use_container_width=True): st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
-    # Veri İşleme
     for m in st.session_state.get("stored_matches", []):
         fid = str(m['fixture']['id'])
         gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
         if fid not in PERMANENT_ARCHIVE:
             conf, p_e, l_e = advanced_decision_engine(m)
             PERMANENT_ARCHIVE[fid] = {
-                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0
-            }
-        PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0})
-
-    # Global Başarı Paneli
-    all_data = list(PERMANENT_ARCHIVE.values())
-    finished = [d for d in all_data if d['status'] in ['FT', 'AET', 'PEN']]
-    if finished and st.session_state["view_mode"] != "clear":
-        p_ok = sum(1 for d in finished if check_success(d['pre_emir'], d['score']))
-        l_ok = sum(1 for d in finished if check_success(d['live_emir'], d['score']))
-        st.markdown(f"""
-            <div class='stats-panel'>
-                <div><div class='stat-val'>{len(finished)}</div><div class='stat-lbl'>Siber Kayıt</div></div>
-                <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div>
-                <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(finished))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # Liste Gösterimi
-    display_list = all_data if st.session_state["view_mode"] == "archive" else [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
-
-    for arc in display_list:
-        is_fin = arc['status'] in ['FT', 'AET', 'PEN']
-        win_p = f"<span class='status-win'>✅</span>" if check_success(arc['pre_emir'], arc['score']) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
-        win_l = f"<span class='status-win'>✅</span>" if check_success(arc['live_emir'], arc['score']) else (f"<span class='status-lost'>❌</span>" if is_fin else "")
-        is_live = arc['status'] not in ['NS', 'FT', 'TBD', 'CANC']
-        
-        st.markdown(f"""
-            <div class='decision-card'>
-                <div class='ai-score'>%{arc['conf']}</div>
-                {"<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"}<br>
-                <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
-                <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
-                <div class='score-board'>{arc['score']} {f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""}</div>
-                <div style='display:flex; gap:10px; margin-top:10px;'>
-                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.05); border:1px solid #30363d; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_p}
-                    </div>
-                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.05); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_l}
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"): st.query_params.clear(); st.session_state.clear(); st.rerun()
+                "fid": fid, "conf": conf, "league": m['
