@@ -77,9 +77,9 @@ style_code = (
     ".marquee-text{display:inline-block;padding-left:100%;animation:marquee 100s linear infinite}"
     ".match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}"
     "@keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}"
-    ".marketing-intro{text-align:center;color:#8b949e;font-size:0.9rem;letter-spacing:2px;font-weight:600;margin-bottom:0px;text-transform:uppercase}"
+    ".marketing-intro{text-align:center;color:#8b949e;font-size:0.85rem;letter-spacing:1.5px;font-weight:600;margin-bottom:0px;text-transform:uppercase}"
     ".marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px;margin-top:0px}"
-    ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}"
+    ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px;letter-spacing:1px}"
     ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}"
     ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
     ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
@@ -167,10 +167,10 @@ def siber_engine(m):
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
-    # --- YENİ TANITIM CÜMLESİ ---
-    st.markdown("<div class='marketing-intro'>MİLYONLARCA VERİ HATTI ÜZERİNDEN CANLI YAPAY ZEKA MAÇ ANALİZİ VE STRATEJİK TAHMİN MOTORU</div>", unsafe_allow_html=True)
+    # --- YENİLENMİŞ DİREKT ANLATIM (PAZARLAMA BÖLÜMÜ) ---
+    st.markdown("<div class='marketing-intro'>ANLIK VERİ AKIŞI İLE YÜKSEK BAŞARILI SKOR ÖNGÖRÜ SİSTEMİ</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Siber Analiz ve Yapay Zeka Stratejileri</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>YAPAY ZEKA DESTEKLİ CANLI MAÇ ANALİZ VE TAHMİN MOTORU</div>", unsafe_allow_html=True)
     
     m_data = fetch_siber_data(True)[:10]
     if m_data:
@@ -199,6 +199,7 @@ if not st.session_state["auth"]:
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ VEYA GEÇERSİZ LİSANS")
 else:
+    # --- İÇ PANEL ---
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
