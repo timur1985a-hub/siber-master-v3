@@ -65,12 +65,14 @@ style_code = (
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
     ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
-    ".analysis-box{background:rgba(22,27,34,0.6);border:1px solid #30363d;padding:10px;border-radius:8px;margin-top:10px;font-size:0.9rem}"
     ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:10px}"
     ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:10px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
+    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:15px;border-radius:12px;margin-bottom:20px;display:flex;justify-content:space-around;text-align:center;border-top:3px solid #58a6ff;box-shadow: 0 0 10px rgba(88,166,255,0.1)}"
+    ".stat-val{font-size:1.8rem;font-weight:900;color:#2ea043}"
+    ".stat-lbl{font-size:0.7rem;color:#8b949e;text-transform:uppercase;font-weight:bold;letter-spacing:1px}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     "</style>"
 )
@@ -108,16 +110,7 @@ if not st.session_state["auth"]:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
     
-    st.markdown("""
-        <div class='pkg-row'>
-            <div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div>
-            <div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div>
-            <div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div>
-        </div>
-    """, unsafe_allow_html=True)
-    
+    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
 
     with st.form("auth_f"):
@@ -128,7 +121,6 @@ if not st.session_state["auth"]:
                 st.session_state.update({"auth": True, "role": "admin" if l_t == ADMIN_TOKEN else "user", "current_user": l_t})
                 st.rerun()
 else:
-    # İÇ PANEL
     st.markdown("<div class='internal-welcome'>YAPAY ZEKAYA HOŞ GELDİNİZ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
@@ -142,13 +134,11 @@ else:
                 st.dataframe(pd.DataFrame(license_data).head(50), use_container_width=True)
             with c_admin2:
                 st.subheader("Siber Hafıza")
-                st.warning("Bu işlem geri alınamaz!")
                 if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                     PERMANENT_ARCHIVE.clear()
                     st.success("Tüm siber hafıza temizlendi!")
                     st.rerun()
 
-    # --- KONTROL BUTONLARI ---
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
@@ -158,18 +148,15 @@ else:
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
-            # Mevcut mod neyse (canlı/pre) ona göre veriyi tazeler
             is_live_mode = st.session_state["view_mode"] == "live"
             st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
-            st.toast("Veriler anlık olarak güncellendi!")
             st.rerun()
     with c4:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c5:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
-            st.session_state["stored_matches"] = []
-            st.session_state["view_mode"] = "clear"; st.rerun()
+            st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
 
     search_q = st.text_input("🔍 Siber Arama:", placeholder="Takım/Lig...").strip().lower()
     mode = st.session_state["view_mode"]
@@ -182,7 +169,6 @@ else:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status = m['fixture']['status']['short']
             elapsed = m['fixture']['status']['elapsed'] or 0
-            
             if fid not in PERMANENT_ARCHIVE:
                 seed_v = int(hashlib.md5(fid.encode()).hexdigest(), 16)
                 conf = 85 + (seed_v % 14)
@@ -193,7 +179,6 @@ else:
                     "live_emir": "İLK YARI 0.5 ÜST" if seed_v % 2 == 0 else "2.5 ÜST",
                     "score": f"{gh}-{ga}", "status": status, "min": elapsed
                 }
-            # Hafızadaki veriyi anlık skor ve dakikayla güncelle (Update butonu burayı tetikler)
             PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed})
 
         if mode == "archive":
@@ -204,8 +189,21 @@ else:
                 if fid in PERMANENT_ARCHIVE: display_list.append(PERMANENT_ARCHIVE[fid])
 
     if search_q:
-        if mode == "clear": display_list = list(PERMANENT_ARCHIVE.values())
-        display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
+        display_list = [d for d in (display_list if mode != "clear" else list(PERMANENT_ARCHIVE.values())) if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
+
+    # --- SİLİNMEZ BAŞARI MEKANİZMASI ---
+    if mode == "archive" and display_list:
+        fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
+        if fin:
+            p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
+            l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
+            st.markdown(f"""
+                <div class='stats-panel'>
+                    <div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>Siber Kayıt</div></div>
+                    <div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Cansız Başarı</div></div>
+                    <div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>Canlı Başarı</div></div>
+                </div>
+            """, unsafe_allow_html=True)
 
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
@@ -216,23 +214,7 @@ else:
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
 
-        st.markdown(f"""
-            <div class='decision-card' style='border-left: 6px solid {color};'>
-                <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-                {live_tag}
-                <br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span>
-                <br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span>
-                <br><div class='score-board'>{arc['score']} {min_tag}</div>
-                <div style='display:flex; gap:10px; margin-top:10px;'>
-                    <div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'>
-                        <small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}
-                    </div>
-                    <div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'>
-                        <small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div class='decision-card' style='border-left: 6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre if arc['status'] in ['FT','AET','PEN'] or check_success(arc['pre_emir'], gh_v, ga_v) else ''}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live if arc['status'] in ['FT','AET','PEN'] or check_success(arc['live_emir'], gh_v, ga_v) else ''}</div></div></div>""", unsafe_allow_html=True)
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"): 
         st.query_params.clear(); st.session_state.clear(); st.rerun()
