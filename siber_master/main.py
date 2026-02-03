@@ -26,7 +26,7 @@ def persist_auth_js():
     """, unsafe_allow_html=True)
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
@@ -144,8 +144,8 @@ def hybrid_search_engine(query):
         except: pass
     return found
 
-# TTL 10 Saniyeye Düşürüldü - Momentum Hızlandırıldı
-@st.cache_data(ttl=10)
+# TTL 2 Saniyeye Düşürüldü - Veri senkronizasyonu maksimize edildi
+@st.cache_data(ttl=2)
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
@@ -170,7 +170,7 @@ def check_success(emir, gh, ga):
     if "+0.5 GOL" in emir: return total > 0
     return False
 
-def siber_engine(m, force_refresh=False):
+def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     fid = m['fixture']['id']
@@ -180,7 +180,6 @@ def siber_engine(m, force_refresh=False):
     h_history = check_team_history_detailed(h_id)
     a_history = check_team_history_detailed(a_id)
     
-    # Force refresh aktifse cache'i baypas et
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
 
     h_dom, a_dom = 0, 0
@@ -309,7 +308,7 @@ else:
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
-            # Cache'i temizle ve zorla güncelle
+            # Cache'i tamamen temizle ve zorla güncelle
             st.cache_data.clear()
             is_live_mode = st.session_state["view_mode"] in ["live", "search"]
             st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
