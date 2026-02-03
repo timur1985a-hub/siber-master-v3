@@ -101,8 +101,6 @@ style_code = (
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
-    
-    # Siber Asistan Tasarımı (Mobil Uygun)
     ".siber-assistant-card{background:rgba(13,17,23,0.95); border:1px solid #2ea043; border-radius:15px; padding:15px; margin-top:20px; border-left:5px solid #2ea043; position:relative; overflow:hidden;}"
     ".siber-assistant-header{color:#2ea043; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:1px solid #30363d; padding-bottom:8px;}"
     ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
@@ -240,7 +238,8 @@ if not st.session_state["auth"]:
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
     
     with st.form("auth_f"):
-        l_t = st.text_input("Lisans Kodunuz", placeholder="SBR-XXXX-XXXX-TM", key="username").strip()
+        # LİSANS İBARRESI KALDIRILDI -> KULLANICI ADINIZ YAPILDI
+        l_t = st.text_input("Kullanıcı Adınız", placeholder="SBR-XXXX-XXXX-TM", key="username").strip()
         l_p = st.text_input("Siber Şifreniz", type="password", key="password").strip()
         if st.form_submit_button("AKTİF ET"):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
@@ -257,7 +256,6 @@ if not st.session_state["auth"]:
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 
-    # SİBER ASİSTAN (BOT) BÖLÜMÜ - GİRİŞİN ALTINDA
     st.markdown(f"""
     <div class='siber-assistant-card'>
         <div class='siber-assistant-header'>📡 SİBER ASİSTAN</div>
@@ -297,7 +295,6 @@ else:
                 st.session_state["PERMANENT_ARCHIVE"] = {}
                 st.rerun()
 
-    # --- SİBER ARAMA MOTORU ---
     with st.container():
         st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
         s_col1, s_col2 = st.columns([4,1])
@@ -311,7 +308,6 @@ else:
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- BAŞARI HESAPLAMA ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins, live_wins = 0, 0
@@ -331,7 +327,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # BUTON GRUBU (GÜNCELLE VE TEMİZLE DAHİL)
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
@@ -351,7 +346,6 @@ else:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
             st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
 
-    # --- VERİ GÖSTERİMİ ---
     display_list = []
     current_matches = []
     if st.session_state["view_mode"] == "search" and st.session_state["search_result"]:
