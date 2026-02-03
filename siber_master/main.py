@@ -87,20 +87,15 @@ style_code = (
     ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
     ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
-    ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
-    ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
+    ".ai-score{float:right;font-size:1.8rem;font-weight:900;color:#2ea043;background:rgba(46,160,67,0.1);padding:5px 12px;border-radius:8px;border:1px solid #2ea043}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
-    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
-    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
-    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
-    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
-    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
     ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
     ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
+    ".guide-box{border:1px solid #58a6ff; background:rgba(88,166,255,0.05); padding:10px; border-radius:8px; margin-top:10px;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -178,7 +173,7 @@ def siber_engine(m):
                 stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
     conf = 85
-    pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
+    pre_emir, live_emir = "1.5 ÜST", "ANALİZ EDİLİYOR"
     
     h_iy = sum(1 for x in h_history if x['iy_toplam'] > 0)
     a_iy = sum(1 for x in a_history if x['iy_toplam'] > 0)
@@ -187,7 +182,6 @@ def siber_engine(m):
         pre_emir = "İLK YARI 0.5 ÜST" if (h_iy + a_iy) >= 8 else "1.5 ÜST"
         conf = 92 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
-        # Canlı Domine Analizi
         if elapsed < 40 and total == 0:
             if (h_dom > 25 or a_dom > 25) or (stats_data['h_atk'] + stats_data['a_atk'] > elapsed * 1.8):
                 live_emir, conf = "İLK YARI 0.5 ÜST", 97
@@ -277,17 +271,25 @@ else:
         is_live = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_pre = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
+        win_live = "✅" if check_success(arc['live_emir'], *map(int, arc['score'].split('-'))) else ""
         
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {color};'>
             <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-            <div class='live-pulse' style='display:{"inline-block" if is_live else "none"}'>📡 CANLI</div>
+            <div class='live-pulse' style='display:{"inline-block" if is_live else "none"}'>📡 SİBER ANALİZ</div>
             <b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br>
-            <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <span style='font-size:1.4rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
             <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
-            <div style='display:flex; gap:10px;'>
-                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_pre}</div>
-                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div>
+            
+            <div class='guide-box'>
+                <div style='color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;'>🎯 SONUÇ KILAVUZLAYICI</div>
+                <div style='display:flex; justify-content:space-between; align-items:center;'>
+                    <div>
+                        <span style='color:#f1e05a; font-weight:900;'>YAPAY ZEKA KARARI:</span> 
+                        <span style='color:#fff; font-size:1.15rem; font-weight:800;'>{arc['pre_emir'] if not is_live else arc['live_emir']}</span>
+                        {win_pre if not is_live else win_live}
+                    </div>
+                </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
