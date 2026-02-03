@@ -87,8 +87,11 @@ style_code = (
     ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
     ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
-    ".ai-score{float:right;font-size:1.8rem;font-weight:900;color:#2ea043;background:rgba(46,160,67,0.1);padding:5px 12px;border-radius:8px;border:1px solid #2ea043}"
+    ".ai-score{float:right;font-size:1.8rem;font-weight:900;background:rgba(46,160,67,0.1);padding:5px 10px;border-radius:8px;border:1px solid #2ea043}"
+    ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
+    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
+    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
     ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
@@ -276,17 +279,17 @@ else:
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {color};'>
             <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-            <div class='live-pulse' style='display:{"inline-block" if is_live else "none"}'>📡 SİBER ANALİZ</div>
+            <div class='live-pulse' style='display:{"inline-block" if is_live else "none"}'>📡 CANLI ANALİZ</div>
             <b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br>
             <span style='font-size:1.4rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
             <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
             
             <div class='guide-box'>
-                <div style='color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;'>🎯 SONUÇ KILAVUZLAYICI</div>
+                <div style='color:#8b949e; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; margin-bottom:5px;'>🎯 SİBER SONUÇ KILAVUZLAYICI</div>
                 <div style='display:flex; justify-content:space-between; align-items:center;'>
                     <div>
-                        <span style='color:#f1e05a; font-weight:900;'>YAPAY ZEKA KARARI:</span> 
-                        <span style='color:#fff; font-size:1.15rem; font-weight:800;'>{arc['pre_emir'] if not is_live else arc['live_emir']}</span>
+                        <span style='color:#f1e05a; font-weight:900;'>KARAR:</span> 
+                        <span style='color:#fff; font-size:1.1rem; font-weight:800;'>{arc['pre_emir'] if not is_live else arc['live_emir']}</span>
                         {win_pre if not is_live else win_live}
                     </div>
                 </div>
