@@ -68,7 +68,7 @@ if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MİLİMETRİK RESTORE EDİLDİ) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MİLİMETRİK) ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -91,25 +91,21 @@ style_code = (
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
     ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
-    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
-    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
     ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
     ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
-    ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     ".dominance-bar{background:rgba(88,166,255,0.1); border-radius:4px; height:8px; margin:10px 0; overflow:hidden; display:flex}"
     ".dom-home{background:#58a6ff; height:100%}"
     ".dom-away{background:#f85149; height:100%}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
-    ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. AKILLI ANALİZ MOTORU (UI BOZMADAN ARKA PLANDA ÇALIŞIR) ---
+# --- 3. ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -142,7 +138,6 @@ def siber_engine(m):
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
     
-    # Karar Mekanizması (UI Etkilemez)
     high_score_leagues = ["BUNDESLIGA", "EREDIVISIE", "U21", "ELITESERIEN"]
     is_high = any(l in league for l in high_score_leagues)
     
@@ -167,9 +162,8 @@ def siber_engine(m):
             
     return conf, pre_emir, live_emir, dom_home, dom_away, baski_notu
 
-# --- 4. PANEL (UI DOKUNULMAZ) ---
+# --- 4. PANEL ---
 if not st.session_state["auth"]:
-    # Giriş sayfası tasarımı tamamen korundu
     st.markdown("<div class='marketing-intro'>ANLIK VERİ AKIŞI İLE YÜKSEK BAŞARILI SKOR ÖNGÖRÜ SİSTEMİ</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>YAPAY ZEKA DESTEKLİ CANLI MAÇ ANALİZ VE TAHMİN MOTORU</div>", unsafe_allow_html=True)
@@ -189,16 +183,14 @@ if not st.session_state["auth"]:
             elif l_t in st.session_state["CORE_VAULT"]:
                 ud = st.session_state["CORE_VAULT"][l_t]
                 if ud["pass"] == l_p and ud["issued"]:
-                    st.session_state.update({"auth": True, "role": "user", "current_user": t_param})
+                    st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
                     st.rerun()
 else:
-    # İÇ PANEL - ŞABLON SABİT
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
-            st.divider()
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 PERMANENT_ARCHIVE.clear()
                 st.session_state["stored_matches"] = []
@@ -211,7 +203,6 @@ else:
     with c4: st.button("📜 SİBER ARŞİV", use_container_width=True, on_click=lambda: st.session_state.update({"view_mode": "archive"}))
     with c5: st.button("🧹 EKRANI TEMİZLE", use_container_width=True, on_click=lambda: st.session_state.update({"stored_matches": [], "view_mode": "clear"}))
 
-    # İSTATİSTİK PANELİ (EN ÜSTTEKİ YERİNDE SABİT)
     archive_data = list(PERMANENT_ARCHIVE.values())
     if archive_data:
         fin = [d for d in archive_data if d['status'] in ['FT', 'AET', 'PEN']]
@@ -226,7 +217,6 @@ else:
             </div>
             """, unsafe_allow_html=True)
 
-    # Veri İşleme (Görünmez Mantık)
     if st.session_state["view_mode"] in ["live", "pre"] and st.session_state["stored_matches"]:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
