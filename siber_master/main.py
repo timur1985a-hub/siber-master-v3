@@ -44,13 +44,12 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
-@st.cache_resource
-def get_persistent_archive(): return {}
+# --- HAFIZA YÖNETİMİ GÜNCELLEMESİ ---
+if "PERMANENT_ARCHIVE" not in st.session_state:
+    st.session_state["PERMANENT_ARCHIVE"] = {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-
-PERMANENT_ARCHIVE = get_persistent_archive()
 
 # URL'den Geri Yükleme ve Auth Kontrolü
 params = st.query_params
@@ -206,11 +205,12 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # KESİN SIFIRLAMA BUTONU: Hem belleği hem state'i temizler.
+            # --- ROOT SIFIRLAMA KESİN ÇÖZÜM ---
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear()
+                st.session_state["PERMANENT_ARCHIVE"] = {} # Hem canlı hem cansız temizlenir
                 st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
+                st.cache_resource.clear() # Tüm cache'i temizle
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -242,17 +242,17 @@ else:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
-            if fid not in PERMANENT_ARCHIVE:
-                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
+            if fid not in st.session_state["PERMANENT_ARCHIVE"]:
+                st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
+                    st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
                 else:
-                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
+                    st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{gh}-{ga}", "status": status})
 
-    if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
+    if mode == "archive": display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
     elif mode != "clear":
-        display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
+        display_list = [st.session_state["PERMANENT_ARCHIVE"][str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in st.session_state["PERMANENT_ARCHIVE"]]
 
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
