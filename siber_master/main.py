@@ -44,12 +44,13 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
-# --- HAFIZA YÖNETİMİ GÜNCELLEMESİ ---
-if "PERMANENT_ARCHIVE" not in st.session_state:
-    st.session_state["PERMANENT_ARCHIVE"] = {}
+@st.cache_resource
+def get_persistent_archive(): return {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
+
+PERMANENT_ARCHIVE = get_persistent_archive()
 
 # URL'den Geri Yükleme ve Auth Kontrolü
 params = st.query_params
@@ -129,6 +130,7 @@ def check_success(emir, gh, ga):
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
     if "+0.5 GOL" in emir: return total > 0
+    if "MAÇ SONU +0.5" in emir: return total > 0
     return False
 
 def siber_engine(m):
@@ -205,12 +207,12 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # --- ROOT SIFIRLAMA KESİN ÇÖZÜM ---
+            # KESİN ÇÖZÜM BUTONU
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                st.session_state["PERMANENT_ARCHIVE"] = {} # Hem canlı hem cansız temizlenir
-                st.session_state["stored_matches"] = []
+                PERMANENT_ARCHIVE.clear() # Cache nesnesini boşalt
+                st.session_state["stored_matches"] = [] # Görünümü temizle
                 st.session_state["view_mode"] = "clear"
-                st.cache_resource.clear() # Tüm cache'i temizle
+                st.cache_resource.clear() # TÜM Streamlit Cache'ini temizle (Cansız verilerin silinmesi için şart)
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -242,17 +244,17 @@ else:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
-            if fid not in st.session_state["PERMANENT_ARCHIVE"]:
-                st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
+            if fid not in PERMANENT_ARCHIVE:
+                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
                 else:
-                    st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{gh}-{ga}", "status": status})
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
 
-    if mode == "archive": display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
+    if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
-        display_list = [st.session_state["PERMANENT_ARCHIVE"][str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in st.session_state["PERMANENT_ARCHIVE"]]
+        display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
@@ -263,6 +265,8 @@ else:
             p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
+        else:
+             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>0</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%0.0</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%0.0</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
