@@ -289,4 +289,49 @@ else:
         <div class='decision-card' style='border-left:6px solid {color};'>
             <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
             <div class='live-pulse' style='display:{"inline-block" if is_live_card else "none"}'>📡 CANLI SİSTEM AKTİF</div>
-            <div style='
+            <div style='color:#8b949e; font-size:0.75rem; font-weight:bold; display:{"none" if is_live_card else "block"}'>🔒 SİBER MÜHÜRLÜ ARŞİV</div>
+            <b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br>
+            <span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <div class='score-board'>{arc['score']} <span class='live-min-badge' style='display:{"inline" if is_live_card else "none"}'>{arc['min']}'</span></div>
+            
+            <div style='display:flex; justify-content:space-between; font-size:0.7rem; font-weight:bold; color:#8b949e; margin-bottom:2px;'>
+                <span>EV %{int(arc['h_d'])}</span><span>DEP %{int(arc['a_d'])}</span>
+            </div>
+            <div class='dom-bar-bg'>
+                <div class='dom-bar-home' style='width:{arc['h_d']}%'></div>
+                <div class='dom-bar-away' style='width:{arc['a_d']}%'></div>
+            </div>
+
+            <div class='reasoning-box'>💡 Saha hakimiyeti ve hücum sürekliliği analiz edildi. Siber Motor Onayladı.</div>
+
+            <div style='display:flex; gap:10px;'>
+                <div class='emir-box' style='background:rgba(88,166,255,0.1); border-color:#58a6ff; color:#58a6ff;'>
+                    <small>CANSIZ EMİR</small><br>{arc['pre_emir']} {win_pre}
+                </div>
+                <div class='emir-box' style='background:rgba(46,160,67,0.1); border-color:#2ea043; color:#2ea043;'>
+                    <small>CANLI EMİR</small><br>{arc['live_emir']} {win_live}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander(f"📊 SİBER DETAYLAR: {arc['home']}"):
+            if is_live_card and arc.get('stats'):
+                s = arc['stats']
+                st.markdown(f"""
+                <table style='width:100%; text-align:center;'>
+                    <tr style='color:#8b949e;'><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
+                    <tr style='color:#8b949e;'><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
+                    <tr style='color:#8b949e;'><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr>
+                </table>
+                """, unsafe_allow_html=True)
+            
+            c1, c2 = st.columns(2)
+            if arc.get('h_h'): c1.table(pd.DataFrame(arc['h_h']))
+            if arc.get('a_h'): c2.table(pd.DataFrame(arc['a_h']))
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.query_params.clear()
+        st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
+        st.session_state["auth"] = False
+        st.rerun()
