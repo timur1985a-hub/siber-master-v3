@@ -70,51 +70,37 @@ if "stored_matches" not in st.session_state: st.session_state["stored_matches"] 
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (ULTRA KOMPAKT MOBİL) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
     "header{visibility:hidden}"
-    ".st-emotion-cache-16idsys p {font-size: 0.9rem;}" # Genel paragraf küçültme
-    ".marquee-container{background:rgba(13,17,23,0.9);border-top:1px solid #f85149;border-bottom:1px solid #f85149;padding:8px 0;margin-bottom:10px;overflow:hidden;white-space:nowrap}"
-    ".marquee-text{display:inline-block;padding-left:100%;animation:marquee 60s linear infinite}"
-    ".match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:3px 10px;border-radius:50px;margin-right:15px;font-weight:700;font-size:0.8rem}"
+    ".marquee-container{background:rgba(13,17,23,0.9);border-top:2px solid #f85149;border-bottom:2px solid #f85149;box-shadow:0 0 15px rgba(248,81,73,0.2);padding:15px 0;margin-bottom:25px;overflow:hidden;white-space:nowrap}"
+    ".marquee-text{display:inline-block;padding-left:100%;animation:marquee 100s linear infinite}"
+    ".match-badge{background:#161b22;color:#f85149;border:1px solid #f85149;padding:5px 15px;border-radius:50px;margin-right:30px;font-weight:900;font-family:'Courier New',monospace;font-size:1rem}"
     "@keyframes marquee{0%{transform:translate(0,0)}100%{transform:translate(-100%,0)}}"
-    ".marketing-title{text-align:center;color:#2ea043;font-size:1.8rem;font-weight:900;margin-bottom:2px;line-height:1.1}"
-    ".marketing-subtitle{text-align:center;color:#f85149;font-size:0.9rem;font-weight:600;margin-bottom:10px}"
-    ".internal-welcome{text-align:center;color:#2ea043;font-size:1.5rem;font-weight:800}"
-    ".owner-info{text-align:center;color:#58a6ff;font-size:0.8rem;margin-bottom:10px;border-bottom:1px solid #30363d;padding-bottom:5px}"
-    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important;padding:0.2rem 0.5rem!important;min-height:unset!important}"
-    ".pkg-row{display:flex;gap:4px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}"
-    ".pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:6px;padding:6px;width:calc(19% - 5px);min-width:90px;text-align:center;border-top:2px solid #2ea043}"
-    ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.75rem;margin-top:2px}"
-    ".wa-small{display:block;width:100%;max-width:260px;margin:5px auto 10px auto;background:#238636;color:#fff!important;text-align:center;padding:8px;border-radius:6px;font-weight:700;text-decoration:none;font-size:0.85rem}"
-    ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:4px solid #2ea043;padding:12px;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 4px rgba(0,0,0,0.3)}"
-    ".ai-score{float:right;font-size:1.2rem;font-weight:900;color:#2ea043}"
-    ".score-board{font-size:1.1rem;font-weight:900;color:#fff;background:#161b22;padding:3px 10px;border-radius:6px;border:1px solid #30363d;display:inline-block;margin:5px 0}"
-    ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:1px 6px;border-radius:3px;font-size:0.65rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:3px}"
-    ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:1px 5px;border-radius:3px;font-size:0.7rem;font-family:monospace}"
-    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:10px;border-radius:10px;margin-bottom:15px;display:flex;justify-content:space-around;text-align:center;border-top:3px solid #58a6ff}"
-    ".stat-val{font-size:1.5rem;font-weight:900;color:#2ea043;line-height:1}"
-    ".stat-lbl{font-size:0.65rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:4px}"
-    ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:8px; border-radius:6px; margin-top:5px;}"
-    ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:8px; margin-bottom:15px; border-left:3px solid #58a6ff;}"
-    
-    # --- SİBER ASİSTAN ---
-    ".sbr-assistant{position:fixed; bottom:10px; right:10px; width:220px; background:#0d1117; border:1px solid #2ea043; border-radius:12px; padding:10px; z-index:9999; box-shadow: 0 0 15px rgba(46,160,67,0.3); animation: slide-up 0.5s ease-out;}"
-    ".sbr-assistant h4{color:#2ea043; margin-top:0; font-size:0.9rem; border-bottom:1px solid #30363d; padding-bottom:3px;}"
-    ".sbr-assistant p{font-size:0.75rem; color:#e6edf3; margin:5px 0;}"
-    ".sbr-btn{display:block; background:#2ea043; color:white!important; text-align:center; padding:5px; border-radius:4px; text-decoration:none; font-weight:bold; font-size:0.8rem; margin-top:5px;}"
-    
-    # --- MOBİL CİHAZ ÖZEL AYARLARI ---
-    "@media (max-width: 640px) {"
-        ".marketing-title{font-size:1.4rem!important}"
-        ".sbr-assistant{width:70%!important; left:15%!important; bottom:5px!important; padding:8px!important;}"
-        ".pkg-box{width:calc(31% - 5px)!important; min-width:100px!important; margin-bottom:5px!important;}"
-        ".stTextInput > div > div > input {padding: 5px!important; font-size: 0.8rem!important;}"
-    "}"
-    
-    "@keyframes slide-up{from{transform:translateY(50px); opacity:0} to{transform:translateY(0); opacity:1}}"
+    ".marketing-title{text-align:center;color:#2ea043;font-size:2.5rem;font-weight:900;margin-bottom:5px}"
+    ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}"
+    ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}"
+    ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
+    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
+    ".pkg-row{display:flex;gap:5px;justify-content:center;margin-bottom:15px;flex-wrap:wrap}"
+    ".pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;width:calc(18% - 10px);min-width:120px;text-align:center;border-top:3px solid #2ea043}"
+    ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
+    ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
+    ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
+    ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
+    ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
+    ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
+    ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
+    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
+    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
+    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
+    ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
+    ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
+    ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
+    ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
+    ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -129,7 +115,12 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
-        url = f"{BASE_URL}/fixtures?live=all" if live else f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}"
+        if live:
+            url = f"{BASE_URL}/fixtures?live=all"
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            url = f"{BASE_URL}/fixtures?date={today}"
+        
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         return r.json().get('response', []) if r.status_code == 200 else []
@@ -137,11 +128,15 @@ def fetch_siber_data(live=True):
 
 def search_match_api(query):
     try:
-        r = requests.get(f"{BASE_URL}/fixtures?live=all", headers=HEADERS, timeout=10)
-        found = [m for m in r.json().get('response', []) if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
+        url = f"{BASE_URL}/fixtures?live=all"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        all_live = r.json().get('response', [])
+        found = [m for m in all_live if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
         if not found:
-            r = requests.get(f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}", headers=HEADERS, timeout=10)
-            found = [m for m in r.json().get('response', []) if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
+            today = datetime.now().strftime("%Y-%m-%d")
+            r = requests.get(f"{BASE_URL}/fixtures?date={today}", headers=HEADERS, timeout=10)
+            all_today = r.json().get('response', [])
+            found = [m for m in all_today if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
         return found
     except: return []
 
@@ -149,15 +144,17 @@ def search_match_api(query):
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
-        return r.json().get('response', []) if r.status_code == 200 else []
+        res = r.json().get('response', [])
+        return res if r.status_code == 200 else []
     except: return []
 
 @st.cache_data(ttl=3600)
 def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
+        res = r.json().get('response', [])
         data = []
-        for m in r.json().get('response', []):
+        for m in res:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             iyh, iya = (m['score']['halftime']['home'] or 0), (m['score']['halftime']['away'] or 0)
             data.append({"skor": f"{gh}-{ga}", "iy": f"{iyh}-{iya}", "toplam": gh + ga, "iy_toplam": iyh + iya})
@@ -166,7 +163,7 @@ def check_team_history_detailed(team_id):
 
 def check_success(emir, gh, ga):
     total = gh + ga
-    if "İLK YARI 0.5 ÜST" in emir: return total > 0
+    if "İLK YARI 0.5 ÜST" in emir: return total > 0 # Basit kontrol, iy ayrımı için skor verisi lazım
     if "2.5 ÜST" in emir: return total > 2
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
@@ -176,104 +173,238 @@ def check_success(emir, gh, ga):
 
 def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-    total, fid = gh + ga, m['fixture']['id']
+    total = gh + ga
+    fid = m['fixture']['id']
     elapsed = m['fixture']['status']['elapsed'] or 0
     h_id, a_id = m['teams']['home']['id'], m['teams']['away']['id']
-    h_history, a_history = check_team_history_detailed(h_id), check_team_history_detailed(a_id)
+    
+    h_history = check_team_history_detailed(h_id)
+    a_history = check_team_history_detailed(a_id)
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
+
     h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
+    
     if l_stats:
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
             is_home = team['team']['id'] == h_id
-            score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1)
-            if is_home: h_dom = score; stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
-            else: a_dom = score; stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
-    conf, pre_emir, live_emir = 85, "1.5 ÜST", "BEKLEMEDE"
-    h_iy, a_iy = sum(1 for x in h_history if x['iy_toplam'] > 0), sum(1 for x in a_history if x['iy_toplam'] > 0)
-    if elapsed == 0: pre_emir = "İLK YARI 0.5 ÜST" if (h_iy + a_iy) >= 7 else "1.5 ÜST"; conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
+            # Gelişmiş Momentum Katsayısı: İsabetli Şut (5x) + Korner (3x) + Tehlikeli Atak (1.2x)
+            score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1.2)
+            if is_home:
+                h_dom = score
+                stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
+            else:
+                a_dom = score
+                stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
+
+    conf = 85
+    pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
+    
+    h_iy = sum(1 for x in h_history if x['iy_toplam'] > 0)
+    a_iy = sum(1 for x in a_history if x['iy_toplam'] > 0)
+
+    # --- SİBER STRATEJİ GÜNCELLEMESİ (MOMENTUM ANALİZİ) ---
+    if elapsed == 0:
+        pre_emir = "İLK YARI 0.5 ÜST" if (h_iy + a_iy) >= 7 else "1.5 ÜST"
+        conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
+        # Momentum ve Dakika Bazlı Dinamik Karar Mekanizması
+        atk_per_min = (stats_data['h_atk'] + stats_data['a_atk']) / elapsed if elapsed > 0 else 0
+        
         if elapsed < 42 and total == 0:
-            if (h_dom > 22 or a_dom > 22) or (stats_data['h_atk'] + stats_data['a_atk'] > elapsed * 1.6): live_emir, conf = "İLK YARI 0.5 ÜST", 98
+            if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8):
+                live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 90
-        elif 40 <= elapsed < 78: live_emir, conf = ("+0.5 GOL (BASKI)", 96) if (h_dom > a_dom * 1.4 or a_dom > h_dom * 1.4) else ("0.5 ÜST", 92)
+        elif 45 <= elapsed < 78:
+            # Baskı altındaki maçta gol beklentisi artışı
+            if (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5) and total < 3:
+                live_emir, conf = "+0.5 GOL (YÜKSEK BASKI)", 97
+            else: live_emir, conf = "0.5 ÜST", 92
         else: live_emir, conf = "MAÇ SONU +0.5", 89
+
     return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
-    st.markdown(f"""<div class='sbr-assistant'><h4>📡 SİBER ASİSTAN</h4><p>Şu an <b>{len(fetch_siber_data(True))}</b> canlı maç analiz ediliyor. Başarı: <b>%94.2</b></p><a href='{WA_LINK}' class='sbr-btn'>🔑 ŞİMDİ LİSANS AL</a></div>""", unsafe_allow_html=True)
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analiz ve Strateji Merkezi</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Kesinleşmiş Maç Tahmin Stratejileri</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
         st.markdown(f"<div class='marquee-container'><div class='marquee-text'>{m_html}</div></div>", unsafe_allow_html=True)
-    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>1-AY</small><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>3-AY</small><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>6-AY</small><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>12-AY</small><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>SINIRSIZ</small><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
+    
+    st.markdown("""<div class='pkg-row'><div class='pkg-box'><small>PAKET</small><br><b>1-AY</b><div class='pkg-price'>700 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>3-AY</b><div class='pkg-price'>2.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>6-AY</b><div class='pkg-price'>5.000 TL</div></div><div class='pkg-box'><small>PAKET</small><br><b>12-AY</b><div class='pkg-price'>9.000 TL</div></div><div class='pkg-box'><small>KAMPANYA</small><br><b>SINIRSIZ</b><div class='pkg-price'>20.000 TL</div></div></div>""", unsafe_allow_html=True)
     st.markdown(f"<a href='{WA_LINK}' class='wa-small'>💬 BİZE ULAŞIN (WHATSAPP)</a>", unsafe_allow_html=True)
+    
     with st.form("auth_f"):
-        l_t = st.text_input("Token", key="username", placeholder="Lisans Kodunuz").strip()
-        l_p = st.text_input("Şifre", type="password", key="password", placeholder="Siber Şifreniz").strip()
-        if st.form_submit_button("AKTİF ET", use_container_width=True):
+        l_t = st.text_input("Kullanıcı adı", key="username").strip()
+        l_p = st.text_input("Şifre", type="password", key="password").strip()
+        if st.form_submit_button("AKTİF ET"):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
                 st.session_state.update({"auth": True, "role": "admin", "current_user": "TIMUR-ROOT"})
-                st.query_params.update({"auth": "true", "t": l_t, "p": l_p}); st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True); st.rerun()
+                st.query_params.update({"auth": "true", "t": l_t, "p": l_p})
+                st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True)
+                st.rerun()
             elif l_t in st.session_state["CORE_VAULT"]:
                 ud = st.session_state["CORE_VAULT"][l_t]
                 if ud["pass"] == l_p and ud["issued"]:
                     st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
-                    st.query_params.update({"auth": "true", "t": l_t, "p": l_p}); st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True); st.rerun()
+                    st.query_params.update({"auth": "true", "t": l_t, "p": l_p})
+                    st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True)
+                    st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    
     if st.session_state.get("role") == "admin":
-        with st.expander("🔑 LİSANS YÖNETİMİ"):
-            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "∞"])
-            for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
-                with t_tabs[i]:
-                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
-                    for tk in list(subset.keys())[:5]:
-                        v = subset[tk]; c1_l, c2_l = st.columns([3, 1])
-                        c1_l.write(f"**{tk}** | P: {v['pass']}")
-                        if not v["issued"] and c2_l.button("DAĞIT", key=f"d_{tk}"):
-                            st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])}); st.rerun()
+        c_adm1, c_adm2 = st.columns([4, 1])
+        with c_adm1:
+            with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
+                t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+                for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+                    with t_tabs[i]:
+                        subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
+                        for tk in list(subset.keys())[:10]:
+                            v = subset[tk]
+                            c1_l, c2_l = st.columns([3, 1])
+                            c1_l.markdown(f"<div class='lic-item'><b>{tk}</b><br>P: {v['pass']} | {'✅' if v['issued'] else '⚪'}</div>", unsafe_allow_html=True)
+                            if not v["issued"] and c2_l.button("DAĞIT", key=f"d_{tk}"):
+                                st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
+                                st.rerun()
+        with c_adm2:
+            if st.button("🚨 SİBER SIFIRLA", help="Tüm başarı istatistiklerini ve arşiv kayıtlarını temizler.", use_container_width=True):
+                st.session_state["PERMANENT_ARCHIVE"] = {}
+                st.toast("Siber Arşiv Sıfırlandı!", icon="🔥")
+                st.rerun()
+
+    # --- SİBER ARAMA MOTORU ---
     with st.container():
         st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
         s_col1, s_col2 = st.columns([4,1])
-        query = s_col1.text_input("🔍 Siber Arama...", placeholder="Örn: Galatasaray", label_visibility="collapsed")
+        query = s_col1.text_input("🔍 Siber Arama (Takım veya Maç Yazın...)", placeholder="Örn: Galatasaray veya Milan", label_visibility="collapsed")
         if s_col2.button("ARA", use_container_width=True):
-            if query: st.session_state["search_result"] = search_match_api(query); st.session_state["view_mode"] = "search"; st.rerun()
+            if query:
+                with st.spinner("Siber Uzayda Aranıyor..."):
+                    found_matches = search_match_api(query)
+                    if found_matches:
+                        st.session_state["search_result"] = found_matches
+                        st.session_state["view_mode"] = "search"
+                        st.toast(f"{len(found_matches)} Maç Bulundu!", icon="✅")
+                    else:
+                        st.error("Maç Bulunamadı.")
         st.markdown("</div>", unsafe_allow_html=True)
+
+    # --- BAŞARI HESAPLAMA MANTIK ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
-    pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
+    pre_wins, live_wins = 0, 0
+    
+    for arc in all_archived:
+        gh, ga = map(int, arc['score'].split('-'))
+        if check_success(arc['pre_emir'], gh, ga): pre_wins += 1
+        if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], gh, ga): live_wins += 1
+    
     pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
-    st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>ANALİZ</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>BAŞARI</div></div></div>", unsafe_allow_html=True)
+    live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
+
+    st.markdown(f"""
+    <div class='stats-panel'>
+        <div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div>
+        <div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div>
+        <div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3, c4, c5 = st.columns(5)
-    with c1: 
-        if st.button("♻️ CANLI", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live", "search_result": None}); st.rerun()
-    with c2: 
-        if st.button("💎 BÜLTEN", use_container_width=True): st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
-    with c3: 
-        if st.button("🔄 GÜNCELLE", use_container_width=True): st.session_state["stored_matches"] = fetch_siber_data(st.session_state["view_mode"] == "live"); st.rerun()
-    with c4: 
-        if st.button("📜 ARŞİV", use_container_width=True): st.session_state["view_mode"] = "archive"; st.rerun()
-    with c5: 
-        if st.button("🧹 TEMİZLE", use_container_width=True): st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
+    with c1:
+        if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live", "search_result": None}); st.rerun()
+    with c2:
+        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
+            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
+    with c3:
+        if st.button("🔄 GÜNCELLE", use_container_width=True):
+            is_live_mode = st.session_state["view_mode"] == "live"
+            st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
+            st.rerun()
+    with c4:
+        if st.button("📜 SİBER ARŞİV", use_container_width=True):
+            st.session_state["view_mode"] = "archive"; st.rerun()
+    with c5:
+        if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
+            st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
+
     display_list = []
-    if st.session_state["view_mode"] == "search" and st.session_state["search_result"]: display_list = st.session_state["search_result"]
-    elif st.session_state["view_mode"] in ["live", "pre"]: display_list = st.session_state["stored_matches"]
-    elif st.session_state["view_mode"] == "archive": display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
-    for m in (display_list if st.session_state["view_mode"] == "archive" else display_list):
-        if st.session_state["view_mode"] != "archive":
+    current_matches = []
+    
+    if st.session_state["view_mode"] == "search" and st.session_state["search_result"]:
+        current_matches = st.session_state["search_result"]
+    elif st.session_state["view_mode"] in ["live", "pre"]:
+        current_matches = st.session_state["stored_matches"]
+    elif st.session_state["view_mode"] == "archive":
+        display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
+
+    if current_matches:
+        for m in current_matches:
             fid = str(m['fixture']['id'])
             conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d = siber_engine(m)
-            st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d}
-            arc = st.session_state["PERMANENT_ARCHIVE"][fid]
-        else: arc = m
+            st.session_state["PERMANENT_ARCHIVE"][fid] = {
+                "fid": fid, "conf": conf, "league": m['league']['name'], 
+                "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
+                "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, 
+                "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", 
+                "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, 
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d
+            }
+            display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
+
+    for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
-        st.markdown(f"<div class='decision-card' style='border-left:4px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div><b style='color:#58a6ff; font-size:0.75rem;'>{arc['league']}</b><br><span style='font-size:1rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:5px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:4px; border-radius:4px;'><small>ÖNCE</small><br><b>{arc['pre_emir']}</b></div><div style='flex:1; background:rgba(46,160,67,0.1); padding:4px; border-radius:4px;'><small>CANLI</small><br><b>{arc['live_emir']}</b></div></div></div>", unsafe_allow_html=True)
-    if st.button("🔴 GÜVENLİ ÇIKIŞ", use_container_width=True): st.query_params.clear(); st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True); st.session_state["auth"] = False; st.rerun()
+        win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
+        
+        st.markdown(f"""
+        <div class='decision-card' style='border-left:6px solid {card_color};'>
+            <div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div>
+            <div class='live-pulse' style='display:{"inline-block" if is_live_card else "none"}'>📡 CANLI</div>
+            <b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br>
+            <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
+            <div style='display:flex; gap:10px;'>
+                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div>
+                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        with st.expander(f"🔍 TÜM VERİLERİ GÖR: {arc['home']} vs {arc['away']}"):
+            if is_live_card and arc.get('stats'):
+                s = arc['stats']
+                total_points = (arc['h_d'] + arc['a_d']) or 1
+                hp_val = (arc['h_d'] / total_points) * 100
+                st.markdown(f"""
+                <div class='dom-container'>
+                    <center><b>📊 SİBER MOMENTUM & DOMİNASYON</b></center>
+                    <div style='display:flex; justify-content:space-between;'><small>{arc['home']}</small><small>{arc['away']}</small></div>
+                    <div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div>
+                    <table style='width:100%; text-align:center; font-size:0.8rem;'>
+                        <tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
+                        <tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
+                        <tr><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr>
+                    </table>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            ch_col, ca_col = st.columns(2)
+            ch_col.write(f"🏠 {arc['home']} (Son 5)")
+            if arc.get('h_h'): ch_col.table(pd.DataFrame(arc['h_h']))
+            ca_col.write(f"🚀 {arc['away']} (Son 5)")
+            if arc.get('a_h'): ca_col.table(pd.DataFrame(arc['a_h']))
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.query_params.clear()
+        st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
+        st.session_state["auth"] = False
+        st.rerun()
