@@ -70,7 +70,7 @@ if "stored_matches" not in st.session_state: st.session_state["stored_matches"] 
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MOBİL OPTİMİZASYONLU) ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -107,6 +107,18 @@ style_code = (
     ".sbr-assistant h4{color:#2ea043; margin-top:0; font-size:1.1rem; border-bottom:1px solid #30363d; padding-bottom:5px;}"
     ".sbr-assistant p{font-size:0.85rem; color:#e6edf3; margin:10px 0;}"
     ".sbr-btn{display:block; background:#2ea043; color:white!important; text-align:center; padding:8px; border-radius:5px; text-decoration:none; font-weight:bold; font-size:0.9rem; margin-top:10px;}"
+    
+    # --- MOBİL CİHAZ ÖZEL AYARLARI (YENİ EKLEME) ---
+    "@media (max-width: 640px) {"
+        ".marketing-title{font-size:1.6rem!important}"
+        ".sbr-assistant{width:85%!important; left:7.5%!important; bottom:10px!important; padding:10px!important;}"
+        ".decision-card{padding:12px!important;}"
+        ".ai-score{font-size:1.1rem!important;}"
+        ".score-board{font-size:1.1rem!important; padding:3px 8px!important;}"
+        ".stat-val{font-size:1.5rem!important;}"
+        ".pkg-box{width:calc(45% - 5px)!important; min-width:140px!important; margin-bottom:10px!important;}"
+    "}"
+    
     "@keyframes slide-up{from{transform:translateY(100px); opacity:0} to{transform:translateY(0); opacity:1}}"
     "</style>"
 )
@@ -226,13 +238,12 @@ def siber_engine(m):
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
-    # --- SİBER ASİSTAN (REKLAM İÇİN) ---
+    # --- SİBER ASİSTAN ---
     st.markdown(f"""
         <div class='sbr-assistant'>
             <h4>📡 SİBER ASİSTAN</h4>
-            <p>Şu an yapay zekamız dünya genelindeki <b>{len(fetch_siber_data(True))}</b> canlı maçı saniye saniye analiz ediyor.</p>
+            <p>Şu an yapay zekamız dünya genelindeki <b>{len(fetch_siber_data(True))}</b> canlı maçı analiz ediyor.</p>
             <p>Bugünkü başarı oranımız: <b>%94.2</b></p>
-            <p>Şansını siber verilere bırak, hemen bir lisans alarak kasandaki serveti yönetmeye başla!</p>
             <a href='{WA_LINK}' class='sbr-btn'>🔑 ŞİMDİ LİSANS AL</a>
         </div>
     """, unsafe_allow_html=True)
@@ -279,31 +290,27 @@ else:
                         for tk in list(subset.keys())[:10]:
                             v = subset[tk]
                             c1_l, c2_l = st.columns([3, 1])
-                            c1_l.markdown(f"<div class='lic-item'><b>{tk}</b><br>P: {v['pass']} | {'✅' if v['issued'] else '⚪'}</div>", unsafe_allow_html=True)
+                            c1_l.markdown(f"**{tk}** | P: {v['pass']} | {'✅' if v['issued'] else '⚪'}")
                             if not v["issued"] and c2_l.button("DAĞIT", key=f"d_{tk}"):
                                 st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
                                 st.rerun()
         with c_adm2:
-            if st.button("🚨 SİBER SIFIRLA", help="Tüm başarı istatistiklerini ve arşiv kayıtlarını temizler.", use_container_width=True):
+            if st.button("🚨 SİBER SIFIRLA", use_container_width=True):
                 st.session_state["PERMANENT_ARCHIVE"] = {}
-                st.toast("Siber Arşiv Sıfırlandı!", icon="🔥")
                 st.rerun()
 
     # --- SİBER ARAMA MOTORU ---
     with st.container():
         st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
         s_col1, s_col2 = st.columns([4,1])
-        query = s_col1.text_input("🔍 Siber Arama (Takım veya Maç Yazın...)", placeholder="Örn: Galatasaray veya Milan", label_visibility="collapsed")
+        query = s_col1.text_input("🔍 Siber Arama...", placeholder="Örn: Galatasaray", label_visibility="collapsed")
         if s_col2.button("ARA", use_container_width=True):
             if query:
-                with st.spinner("Siber Uzayda Aranıyor..."):
-                    found_matches = search_match_api(query)
-                    if found_matches:
-                        st.session_state["search_result"] = found_matches
-                        st.session_state["view_mode"] = "search"
-                        st.toast(f"{len(found_matches)} Maç Bulundu!", icon="✅")
-                    else:
-                        st.error("Maç Bulunamadı.")
+                found_matches = search_match_api(query)
+                if found_matches:
+                    st.session_state["search_result"] = found_matches
+                    st.session_state["view_mode"] = "search"
+                    st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
@@ -321,17 +328,17 @@ else:
     st.markdown(f"""
     <div class='stats-panel'>
         <div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div>
-        <div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div>
-        <div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div>
+        <div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>MAÇ ÖNCESİ</div></div>
+        <div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI</div></div>
     </div>
     """, unsafe_allow_html=True)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
-        if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
+        if st.button("♻️ CANLI", use_container_width=True):
             st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live", "search_result": None}); st.rerun()
     with c2:
-        if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
+        if st.button("💎 BÜLTEN", use_container_width=True):
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
@@ -339,10 +346,10 @@ else:
             st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
             st.rerun()
     with c4:
-        if st.button("📜 SİBER ARŞİV", use_container_width=True):
+        if st.button("📜 ARŞİV", use_container_width=True):
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c5:
-        if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
+        if st.button("🧹 TEMİZLE", use_container_width=True):
             st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
 
     display_list = []
@@ -382,34 +389,31 @@ else:
             <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
             <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
             <div style='display:flex; gap:10px;'>
-                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div>
-                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div>
+                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>ÖNCE</small><br><b>{arc['pre_emir']}</b> {win_status}</div>
+                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI</small><br><b>{arc['live_emir']}</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        with st.expander(f"🔍 TÜM VERİLERİ GÖR: {arc['home']} vs {arc['away']}"):
+        with st.expander(f"🔍 DETAY: {arc['home']} vs {arc['away']}"):
             if is_live_card and arc.get('stats'):
                 s = arc['stats']
                 total_points = (arc['h_d'] + arc['a_d']) or 1
                 hp_val = (arc['h_d'] / total_points) * 100
                 st.markdown(f"""
                 <div class='dom-container'>
-                    <center><b>📊 SİBER DOMİNASYON GÖSTERGESİ</b></center>
+                    <center><b>📊 DOMİNASYON</b></center>
                     <div style='display:flex; justify-content:space-between;'><small>{arc['home']}</small><small>{arc['away']}</small></div>
                     <div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div>
                     <table style='width:100%; text-align:center; font-size:0.8rem;'>
-                        <tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
+                        <tr><td>{s['h_sht']}</td><td><b>ŞUT</b></td><td>{s['a_sht']}</td></tr>
                         <tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
-                        <tr><td>{s['h_atk']}</td><td><b>T. ATAK</b></td><td>{s['a_atk']}</td></tr>
                     </table>
                 </div>
                 """, unsafe_allow_html=True)
             
             ch_col, ca_col = st.columns(2)
-            ch_col.write(f"🏠 {arc['home']} (Son 5)")
             if arc.get('h_h'): ch_col.table(pd.DataFrame(arc['h_h']))
-            ca_col.write(f"🚀 {arc['away']} (Son 5)")
             if arc.get('a_h'): ca_col.table(pd.DataFrame(arc['a_h']))
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
