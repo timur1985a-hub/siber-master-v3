@@ -101,8 +101,6 @@ style_code = (
     ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
-    ".emir-box{flex:1; padding:8px; border-radius:6px; border:1px solid; font-size:0.85rem; font-weight:bold;}"
-    ".reasoning-box{background:rgba(255,255,255,0.03); border:1px dashed #30363d; padding:8px; border-radius:6px; margin-top:10px; font-size:0.75rem; color:#8b949e; font-style:italic;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -117,6 +115,7 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
+        # API Yollarını Kontrol Et ve Güncelle
         if live:
             url = f"{BASE_URL}/fixtures?live=all"
         else:
@@ -149,19 +148,15 @@ def check_team_history_detailed(team_id):
         return data
     except: return []
 
-def check_success(emir, score_str):
-    try:
-        gh, ga = map(int, score_str.split('-'))
-        total = gh + ga
-        if "BEKLEMEDE" in emir: return None
-        if "İLK YARI 0.5 ÜST" in emir: return total > 0
-        if "2.5 ÜST" in emir: return total > 2
-        if "1.5 ÜST" in emir: return total > 1
-        if "0.5 ÜST" in emir: return total > 0
-        if "KG VAR" in emir: return gh > 0 and ga > 0
-        if "+0.5 GOL" in emir or "MACH SONU +0.5" in emir or "MAÇ SONU +0.5" in emir: return total > 0
-        return False
-    except: return False
+def check_success(emir, gh, ga):
+    total = gh + ga
+    if "İLK YARI 0.5 ÜST" in emir: return total > 0
+    if "2.5 ÜST" in emir: return total > 2
+    if "1.5 ÜST" in emir: return total > 1
+    if "0.5 ÜST" in emir: return total > 0
+    if "KG VAR" in emir: return gh > 0 and ga > 0
+    if "+0.5 GOL" in emir: return total > 0
+    return False
 
 def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
@@ -288,55 +283,33 @@ else:
     for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
+        win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         
-        # Sonuç Hesaplama Mekanizması
-        pre_win = check_success(arc['pre_emir'], arc['score'])
-        live_win = check_success(arc['live_emir'], arc['score'])
-        
-        pre_icon = "<span class='status-win'>✅</span>" if pre_win else ("<span class='status-lost'>❌</span>" if pre_win == False else "")
-        live_icon = "<span class='status-win'>✅</span>" if live_win else ("<span class='status-lost'>❌</span>" if live_win == False else "")
-
-        # Karşılaştırma Barı Hesaplaması
-        total_d = (arc['h_d'] + arc['a_d']) or 100
-        hp_val = (arc['h_d'] / total_d) * 100
-        ap_val = 100 - hp_val
-
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {card_color};'>
             <div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div>
             <div class='live-pulse' style='display:{"inline-block" if is_live_card else "none"}'>📡 CANLI</div>
             <b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br>
-            <span style='font-size:1.1rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
+            <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
             <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
-            
-            <div style='display:flex; justify-content:space-between; font-size:0.7rem; font-weight:bold; color:#8b949e; margin-bottom:2px;'>
-                <span>EV %{hp_val:.1f}</span><span>DEP %{ap_val:.1f}</span>
-            </div>
-            <div class='dom-bar-bg'>
-                <div class='dom-bar-home' style='width:{hp_val}%'></div>
-                <div class='dom-bar-away' style='width:{ap_val}%'></div>
-            </div>
-
-            <div class='reasoning-box'>💡 Saha hakimiyeti ve hücum sürekliliği analiz edildi. Siber Motor Onayladı.</div>
-
-            <div style='display:flex; gap:10px; margin-top:10px;'>
-                <div class='emir-box' style='background:rgba(88,166,255,0.05); border-color:#58a6ff; color:#58a6ff;'>
-                    <small>CANSIZ EMİR</small><br>{arc['pre_emir']} {pre_icon}
-                </div>
-                <div class='emir-box' style='background:rgba(46,160,67,0.05); border-color:#2ea043; color:#2ea043;'>
-                    <small>CANLI EMİR</small><br>{arc['live_emir']} {live_icon}
-                </div>
+            <div style='display:flex; gap:10px;'>
+                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div>
+                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
         with st.expander(f"🔍 TÜM VERİLERİ GÖR: {arc['home']} vs {arc['away']}"):
-            if arc.get('stats'):
+            if is_live_card and arc.get('stats'):
                 s = arc['stats']
+                total_points = (arc['h_d'] + arc['a_d']) or 1
+                hp_val = (arc['h_d'] / total_points) * 100
                 st.markdown(f"""
                 <div class='dom-container'>
-                    <center><b>📊 CANLI İSTATİSTİK VERİLERİ</b></center>
-                    <table style='width:100%; text-align:center; font-size:0.8rem; margin-top:10px;'>
+                    <center><b>📊 SİBER DOMİNASYON GÖSTERGESİ</b></center>
+                    <div style='display:flex; justify-content:space-between;'><small>{arc['home']}</small><small>{arc['away']}</small></div>
+                    <div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div>
+                    <table style='width:100%; text-align:center; font-size:0.8rem;'>
                         <tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
                         <tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
                         <tr><td>{s['h_atk']}</td><td><b>T. ATAK</b></td><td>{s['a_atk']}</td></tr>
