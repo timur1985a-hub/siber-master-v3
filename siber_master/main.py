@@ -83,7 +83,11 @@ style_code = (
     ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}"
     ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}"
     ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
-    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
+    
+    # --- FORM VE BUTON GÜNCELLEMESİ (İSTEDİĞİNİZ DEĞİŞİKLİK) ---
+    ".stButton>button{background-color:#2ea043!important;border:1px solid #2ea043!important;color:#ffffff!important;font-weight:800!important;border-radius:8px!important;height:45px!important;transition:all 0.3s ease-in-out!important;width:100%!important;}"
+    ".stButton>button:hover{background-color:#238636!important;box-shadow:0 0 15px rgba(46,160,67,0.4)!important;transform:scale(1.02);}"
+    
     ".pkg-row{display:flex;gap:5px;justify-content:center;margin-bottom:15px;flex-wrap:wrap}"
     ".pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;width:calc(18% - 10px);min-width:120px;text-align:center;border-top:3px solid #2ea043}"
     ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
@@ -102,12 +106,11 @@ style_code = (
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
     
-    # Siber Asistan Tasarımı (Mobil Uygun)
     ".siber-assistant-card{background:rgba(13,17,23,0.95); border:1px solid #2ea043; border-radius:15px; padding:15px; margin-top:20px; border-left:5px solid #2ea043; position:relative; overflow:hidden;}"
     ".siber-assistant-header{color:#2ea043; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:1px solid #30363d; padding-bottom:8px;}"
     ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
     ".siber-assistant-highlight{color:#fff; font-weight:bold;}"
-    ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
+    ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important; height:45px!important;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -242,6 +245,7 @@ if not st.session_state["auth"]:
     with st.form("auth_f"):
         l_t = st.text_input("Lisans Kodunuz", placeholder="SBR-XXXX-XXXX-TM", key="username").strip()
         l_p = st.text_input("Siber Şifreniz", type="password", key="password").strip()
+        # Bu buton artık CSS ile yeşil, parlak ve mobil uyumlu
         if st.form_submit_button("AKTİF ET"):
             if (l_t == ADMIN_TOKEN and l_p == ADMIN_PASS):
                 st.session_state.update({"auth": True, "role": "admin", "current_user": "TIMUR-ROOT"})
@@ -257,7 +261,6 @@ if not st.session_state["auth"]:
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 
-    # SİBER ASİSTAN (BOT) BÖLÜMÜ - GİRİŞİN ALTINDA
     st.markdown(f"""
     <div class='siber-assistant-card'>
         <div class='siber-assistant-header'>📡 SİBER ASİSTAN</div>
@@ -297,7 +300,6 @@ else:
                 st.session_state["PERMANENT_ARCHIVE"] = {}
                 st.rerun()
 
-    # --- SİBER ARAMA MOTORU ---
     with st.container():
         st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
         s_col1, s_col2 = st.columns([4,1])
@@ -311,7 +313,6 @@ else:
                     st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- BAŞARI HESAPLAMA ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins, live_wins = 0, 0
@@ -331,7 +332,6 @@ else:
     </div>
     """, unsafe_allow_html=True)
 
-    # BUTON GRUBU (GÜNCELLE VE TEMİZLE DAHİL)
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
@@ -351,7 +351,6 @@ else:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
             st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
 
-    # --- VERİ GÖSTERİMİ ---
     display_list = []
     current_matches = []
     if st.session_state["view_mode"] == "search" and st.session_state["search_result"]:
