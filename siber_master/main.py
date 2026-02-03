@@ -45,13 +45,12 @@ def get_hardcoded_vault():
     return v
 
 @st.cache_resource
-def get_persistent_archive(): 
-    return {}
+def get_persistent_archive(): return {}
 
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-# Arşiv bağlantısını al
+# Global Arşiv Erişimi
 PERMANENT_ARCHIVE = get_persistent_archive()
 
 # URL'den Geri Yükleme ve Auth Kontrolü
@@ -208,12 +207,12 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # ROOT SIFIRLAMA BUTONU - KESİN ÇÖZÜM
+            # KESİN ÇÖZÜM: Arşiv Temizleme Butonu Güçlendirildi
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear() # Cache içindeki sözlüğü temizle (Cansızlar burada tutuluyor)
-                st.session_state["stored_matches"] = [] # Mevcut oturumu temizle
+                PERMANENT_ARCHIVE.clear() # Cache Resource temizliği
+                st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
-                st.success("Tüm Siber Arşiv (Canlı & Cansız) başarıyla sıfırlandı.")
+                st.cache_resource.clear() # Tüm Streamlit önbelleğini zorla boşalt
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -260,12 +259,15 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    if mode == "archive" and display_list:
+    if mode == "archive":
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
             p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
+        else:
+            # Arşiv boşsa veya sıfırlanmışsa %0 göster
+            st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>0</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%0.0</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%0.0</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
