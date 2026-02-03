@@ -52,10 +52,6 @@ if "CORE_VAULT" not in st.session_state:
 if "PERMANENT_ARCHIVE" not in st.session_state:
     st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
 
-# CHAT BOT HAFIZASI
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
-
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -105,9 +101,6 @@ style_code = (
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
-    ".chat-bot-box{background:#0d1117; border:1px solid #30363d; border-radius:12px; padding:15px; margin-top:30px; border-top:4px solid #f1e05a;}"
-    ".chat-msg-user{color:#58a6ff; margin-bottom:10px; font-weight:bold;}"
-    ".chat-msg-ai{color:#2ea043; margin-bottom:15px; border-left:2px solid #2ea043; padding-left:10px;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -170,7 +163,7 @@ def check_team_history_detailed(team_id):
 
 def check_success(emir, gh, ga):
     total = gh + ga
-    if "İLK YARI 0.5 ÜST" in emir: return total > 0 
+    if "İLK YARI 0.5 ÜST" in emir: return total > 0 # Basit kontrol, iy ayrımı için skor verisi lazım
     if "2.5 ÜST" in emir: return total > 2
     if "1.5 ÜST" in emir: return total > 1
     if "0.5 ÜST" in emir: return total > 0
@@ -196,6 +189,7 @@ def siber_engine(m):
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
             is_home = team['team']['id'] == h_id
+            # Gelişmiş Momentum Katsayısı: İsabetli Şut (5x) + Korner (3x) + Tehlikeli Atak (1.2x)
             score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1.2)
             if is_home:
                 h_dom = score
@@ -210,16 +204,20 @@ def siber_engine(m):
     h_iy = sum(1 for x in h_history if x['iy_toplam'] > 0)
     a_iy = sum(1 for x in a_history if x['iy_toplam'] > 0)
 
+    # --- SİBER STRATEJİ GÜNCELLEMESİ (MOMENTUM ANALİZİ) ---
     if elapsed == 0:
         pre_emir = "İLK YARI 0.5 ÜST" if (h_iy + a_iy) >= 7 else "1.5 ÜST"
         conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
+        # Momentum ve Dakika Bazlı Dinamik Karar Mekanizması
         atk_per_min = (stats_data['h_atk'] + stats_data['a_atk']) / elapsed if elapsed > 0 else 0
+        
         if elapsed < 42 and total == 0:
             if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8):
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 90
         elif 45 <= elapsed < 78:
+            # Baskı altındaki maçta gol beklentisi artışı
             if (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5) and total < 3:
                 live_emir, conf = "+0.5 GOL (YÜKSEK BASKI)", 97
             else: live_emir, conf = "0.5 ÜST", 92
@@ -405,40 +403,8 @@ else:
             ca_col.write(f"🚀 {arc['away']} (Son 5)")
             if arc.get('a_h'): ca_col.table(pd.DataFrame(arc['a_h']))
 
-    # --- 5. CHAT BOT ÜNİTESİ (YENİ EKLENEN) ---
-    st.markdown("<div class='chat-bot-box'>", unsafe_allow_html=True)
-    st.markdown("<h3 style='color:#f1e05a; text-align:center; margin-bottom:15px;'>🤖 TIMUR AI SOHBET ANALİZİ</h3>", unsafe_allow_html=True)
-    
-    # Sohbet geçmişini görüntüle
-    for chat in st.session_state["chat_history"]:
-        st.markdown(f"<div class='chat-msg-user'>👤 SİZ: {chat['u']}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='chat-msg-ai'>🤖 TIMUR: {chat['a']}</div>", unsafe_allow_html=True)
-
-    with st.form("chat_form", clear_on_submit=True):
-        u_input = st.text_input("Yapay zekaya analiz sorusu sorun...", placeholder="Örn: Bugünkü en güvenli maç hangisi?")
-        c_sub = st.form_submit_button("GÖNDER")
-        
-        if c_sub and u_input:
-            # Basit bir AI yanıt mantığı (Geliştirilebilir)
-            ai_resp = "Siber veriler analiz ediliyor... "
-            if "güven" in u_input.lower():
-                high_conf = [a for a in display_list if a['conf'] > 90]
-                if high_conf:
-                    ai_resp += f"Şu an sitemdeki en güvenli maç: {high_conf[0]['home']} vs {high_conf[0]['away']} (%{high_conf[0]['conf']})."
-                else:
-                    ai_resp += "Şu an %90 üzeri güvenli maç bulunmuyor, arşivi kontrol edin."
-            else:
-                ai_resp += "Stratejik predictor modülü aktif. Veri havuzundaki maçları 'Canlı' veya 'Maç Öncesi' butonlarıyla filtreleyip en yüksek yüzdeli olanlara odaklanmanı öneririm."
-            
-            st.session_state["chat_history"].append({"u": u_input, "a": ai_resp})
-            st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
-
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
         st.query_params.clear()
         st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
         st.session_state["auth"] = False
         st.rerun()
-
-# --- DOĞRULAMA BİLGİSİ ---
-# KOD DOĞRULANDI: Yazılım kurallarına uygundur ve hata içermez.
