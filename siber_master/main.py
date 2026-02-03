@@ -49,7 +49,9 @@ def get_persistent_archive(): return {}
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-PERMANENT_ARCHIVE = get_persistent_archive()
+# Arşivin session_state üzerinden yönetilmesi sıfırlama için kritiktir
+if "PERMANENT_ARCHIVE" not in st.session_state:
+    st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
 
 params = st.query_params
 if "auth" not in st.session_state:
@@ -88,10 +90,7 @@ style_code = (
     ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
-    ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
-    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
-    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
@@ -237,21 +236,28 @@ else:
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     if st.session_state.get("role") == "admin":
-        with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
-            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
-            for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
-                with t_tabs[i]:
-                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
-                    for tk in list(subset.keys())[:10]:
-                        v = subset[tk]
-                        c1, c2 = st.columns([3, 1])
-                        c1.markdown(f"<div class='lic-item'><b>{tk}</b><br>P: {v['pass']} | {'✅' if v['issued'] else '⚪'}</div>", unsafe_allow_html=True)
-                        if not v["issued"] and c2.button("DAĞIT", key=f"d_{tk}"):
-                            st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
-                            st.rerun()
+        c_adm1, c_adm2 = st.columns([4, 1])
+        with c_adm1:
+            with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
+                t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+                for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+                    with t_tabs[i]:
+                        subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
+                        for tk in list(subset.keys())[:10]:
+                            v = subset[tk]
+                            c1_l, c2_l = st.columns([3, 1])
+                            c1_l.markdown(f"<div class='lic-item'><b>{tk}</b><br>P: {v['pass']} | {'✅' if v['issued'] else '⚪'}</div>", unsafe_allow_html=True)
+                            if not v["issued"] and c2_l.button("DAĞIT", key=f"d_{tk}"):
+                                st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
+                                st.rerun()
+        with c_adm2:
+            if st.button("🚨 SİBER SIFIRLA", help="Tüm başarı istatistiklerini ve arşiv kayıtlarını temizler.", use_container_width=True):
+                st.session_state["PERMANENT_ARCHIVE"] = {}
+                st.toast("Siber Arşiv Sıfırlandı!", icon="🔥")
+                st.rerun()
 
-    # --- BAŞARI HESAPLAMA MANTIK (YENİ) ---
-    all_archived = list(PERMANENT_ARCHIVE.values())
+    # --- BAŞARI HESAPLAMA MANTIK ---
+    all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins, live_wins = 0, 0
     
@@ -295,10 +301,10 @@ else:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
             conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d = siber_engine(m)
-            PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d}
-        display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state["stored_matches"] if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
+            st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d}
+        display_list = [st.session_state["PERMANENT_ARCHIVE"][str(m['fixture']['id'])] for m in st.session_state["stored_matches"] if str(m['fixture']['id']) in st.session_state["PERMANENT_ARCHIVE"]]
     elif st.session_state["view_mode"] == "archive":
-        display_list = list(PERMANENT_ARCHIVE.values())
+        display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
 
     for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
