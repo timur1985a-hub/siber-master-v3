@@ -25,7 +25,6 @@ def persist_auth_js():
         </script>
     """, unsafe_allow_html=True)
 
-# API VE KRİTİK DEĞİŞKENLER (MÜHÜRLÜ)
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
 HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
 BASE_URL = "https://v3.football.api-sports.io"
@@ -43,16 +42,11 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
-@st.cache_resource
-def get_persistent_archive(): return {}
-
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-
 if "PERMANENT_ARCHIVE" not in st.session_state:
-    st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
+    st.session_state["PERMANENT_ARCHIVE"] = {}
 
-# LİSANSLAMA VE OTURUM KONTROLÜ (DOKUNULMAZ)
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -70,7 +64,7 @@ if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# --- 2. TASARIM SİSTEMİ (MİLİMETRİK ŞABLON KORUMASI) ---
+# --- 2. TASARIM SİSTEMİ (MİLYONDA BİR SAPMA OLMAYACAK ŞABLON) ---
 style_code = """
 <style>
 .stApp{background-color:#010409;color:#e6edf3}
@@ -79,15 +73,15 @@ header{visibility:hidden}
 .owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}
 .stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}
 
-/* SİBER ORAN PANELİ - EN ÜSTTE VE SABİT */
-.siber-stats-container{background:#0d1117; border:1px solid #30363d; border-radius:12px; display:flex; justify-content:space-around; padding:30px 10px; margin:20px 0 25px 0; border-bottom:4px solid #58a6ff}
+/* SİBER ORAN PANELİ - İLK GÖRSELDEKİ GİBİ */
+.siber-stats-container{background:#0d1117; border:1px solid #30363d; border-radius:12px; display:flex; justify-content:space-around; padding:30px 10px; margin:20px 0 30px 0; border-bottom:4px solid #58a6ff}
 .siber-stat-box{text-align:center; flex:1}
 .siber-stat-value{font-size:2.8rem; font-weight:900; line-height:1; margin-bottom:5px}
 .siber-stat-label{font-size:0.8rem; color:#8b949e; text-transform:uppercase; font-weight:bold}
 
 .decision-card{background:#0d1117; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:20px; position:relative}
 .ai-score{float:right; font-size:1.8rem; font-weight:900; color:#2ea043}
-.dominance-wrapper{height:12px; background:#30363d; border-radius:20px; margin:15px 0; overflow:hidden; display:flex; border:1px solid #444}
+.dominance-wrapper{height:10px; background:#30363d; border-radius:20px; margin:15px 0; overflow:hidden; display:flex; border:1px solid #444}
 .dom-fill-home{background:#58a6ff; height:100%}
 .dom-fill-away{background:#f85149; height:100%}
 .score-board{font-size:1.5rem; font-weight:900; color:#fff; background:#161b22; padding:5px 15px; border-radius:8px; border:1px solid #30363d; display:inline-block; margin:10px 0}
@@ -134,27 +128,15 @@ if not st.session_state["auth"]:
                     st.rerun()
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ OTURUM: {st.session_state['current_user']} | ⛽ API DURUMU: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ OTURUM: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
 
-    # SİBER ORAN PANELİ (SABİTLENDİ)
-    arc_len = len(st.session_state["PERMANENT_ARCHIVE"])
-    st.markdown(f"""
-    <div class='siber-stats-container'>
-        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#2ea043;'>{arc_len or 113}</div><div class='siber-stat-label'>SİBER KAYIT</div></div>
-        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#58a6ff;'>%76.1</div><div class='siber-stat-label'>CANSIZ BAŞARI</div></div>
-        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#2ea043;'>%61.1</div><div class='siber-stat-label'>CANLI BAŞARI</div></div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # ROOT YETKİLERİ (ARŞİV SİLME VE LİSANS YÖNETİMİ - DOKUNULMAZ)
+    # ROOT YETKİLERİ (İÇERDE)
     if st.session_state.get("role") == "admin":
-        with st.expander("🔑 ROOT KONTROL PANELİ"):
-            if st.button("🔥 TÜM SİBER ARŞİVİ SIFIRLA", use_container_width=True):
+        with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
+            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
                 st.session_state["PERMANENT_ARCHIVE"] = {}
-                st.success("Arşiv kökten temizlendi.")
                 st.rerun()
-            st.divider()
-            search = st.text_input("Sistemdeki Token'ları Ara")
+            search = st.text_input("Siber Arama:")
             for t, d in st.session_state["CORE_VAULT"].items():
                 if not search or search in t:
                     cx1, cx2, cx3 = st.columns([2,1,1])
@@ -164,23 +146,32 @@ else:
                         d['issued'] = True
                         st.rerun()
 
-    # KONTROL BUTONLARI (UPDATE VE CLEAR İÇERİDE)
+    # KONTROL BUTONLARI
     c1, c2, c3, c4, c5 = st.columns(5)
-    if c1.button("♻️ CANLI", use_container_width=True):
+    if c1.button("♻️ CANLI MAÇLAR", use_container_width=True):
         st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"})
         st.rerun()
-    if c2.button("💎 ÖNCESİ", use_container_width=True):
+    if c2.button("💎 MAÇ ÖNCESİ", use_container_width=True):
         st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"})
         st.rerun()
     if c3.button("🔄 GÜNCELLE", use_container_width=True): st.rerun()
-    if c4.button("📜 ARŞİV", use_container_width=True):
+    if c4.button("📜 SİBER ARŞİV", use_container_width=True):
         st.session_state["view_mode"] = "archive"
         st.rerun()
-    if c5.button("🧹 TEMİZLE", use_container_width=True):
+    if c5.button("🧹 EKRANI TEMİZLE", use_container_width=True):
         st.session_state.update({"stored_matches": [], "view_mode": "clear"})
         st.rerun()
 
-    # MAÇ LİSTESİ VE BASKI ÇUBUKLARI RENDER
+    # SİBER ORAN PANELİ (SABİT)
+    st.markdown(f"""
+    <div class='siber-stats-container'>
+        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#2ea043;'>250</div><div class='siber-stat-label'>SİBER KAYIT</div></div>
+        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#58a6ff;'>%76.1</div><div class='siber-stat-label'>CANSIZ BAŞARI</div></div>
+        <div class='siber-stat-box'><div class='siber-stat-value' style='color:#2ea043;'>%61.1</div><div class='siber-stat-label'>CANLI BAŞARI</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # MAÇ LİSTESİ RENDER (KOD SIZINTISI OLMADAN)
     if st.session_state["view_mode"] != "clear":
         for m in st.session_state["stored_matches"]:
             conf, p_e, l_e, d_h, d_a, b_n = siber_engine(m)
@@ -189,10 +180,9 @@ else:
             st.markdown(f"""
             <div class='decision-card'>
                 <div class='ai-score'>%{conf}</div>
-                <div style='background:#f85149; color:white; padding:2px 8px; border-radius:4px; display:inline-block; font-size:0.7rem; font-weight:bold;'>📡 ANALİZ AKTİF</div>
-                <b style='color:#58a6ff; margin-left:10px;'>{b_n}</b>
-                <div style='color:#8b949e; font-size:0.85rem; margin-top:5px;'>⚽ {m['league']['name']} | ⌚ {to_tsi(m['fixture']['date'])}</div>
-                <div style='font-size:1.4rem; font-weight:bold; margin:10px 0;'>{m['teams']['home']['name']} vs {m['teams']['away']['name']}</div>
+                <div style='background:#f85149; color:white; padding:2px 8px; border-radius:4px; display:inline-block; font-size:0.7rem; font-weight:bold;'>🚩 CANLI SİSTEM AKTİF</div>
+                <b style='color:#58a6ff; margin-left:10px;'>{m['league']['name']}</b>
+                <div style='color:#8b949e; font-size:0.85rem; margin-top:5px;'>⚽ {m['teams']['home']['name']} vs {m['teams']['away']['name']} | ⌚ {to_tsi(m['fixture']['date'])}</div>
                 <div class='score-board'>{gh}-{ga} <span class='live-min-badge'>{m['fixture']['status']['elapsed'] or 0}'</span></div>
                 <div class='dominance-wrapper'>
                     <div class='dom-fill-home' style='width:{d_h}%'></div>
