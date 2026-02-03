@@ -88,14 +88,19 @@ style_code = (
     ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
+    ".tsi-time{color:#f1e05a!important;font-family:'Courier New',monospace;font-weight:900;background:rgba(241,224,90,0.1);padding:2px 6px;border-radius:4px;border:1px solid rgba(241,224,90,0.2)}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
+    ".status-win{color:#2ea043;font-weight:bold;border:1px solid #2ea043;padding:2px 5px;border-radius:4px;margin-left:5px}"
+    ".status-lost{color:#f85149;font-weight:bold;border:1px solid #f85149;padding:2px 5px;border-radius:4px;margin-left:5px}"
     ".live-pulse{display:inline-block;background:#f85149;color:#fff;padding:2px 10px;border-radius:4px;font-size:0.75rem;font-weight:bold;animation:pulse-red 2s infinite;margin-bottom:5px}"
     ".live-min-badge{background:rgba(241,224,90,0.1);color:#f1e05a;border:1px solid #f1e05a;padding:2px 8px;border-radius:4px;font-weight:bold;margin-left:10px;font-family:monospace}"
+    ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
+    ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
+    ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
+    ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
     ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
-    ".dom-bar-home{height:100%; background:#58a6ff; transition:width 0.5s;}"
+    ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
-    ".reasoning-box{background:rgba(255,255,255,0.03); border:1px solid #30363d; padding:10px; border-radius:6px; margin:10px 0; font-size:0.85rem; color:#8b949e;}"
-    ".emir-box{flex:1; padding:10px; border-radius:8px; text-align:center; font-weight:bold; border:1px solid;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -110,7 +115,13 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
-        url = f"{BASE_URL}/fixtures?live=all" if live else f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}"
+        # API Yollarını Kontrol Et ve Güncelle
+        if live:
+            url = f"{BASE_URL}/fixtures?live=all"
+        else:
+            today = datetime.now().strftime("%Y-%m-%d")
+            url = f"{BASE_URL}/fixtures?date={today}"
+        
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         return r.json().get('response', []) if r.status_code == 200 else []
@@ -120,7 +131,8 @@ def fetch_siber_data(live=True):
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
-        return r.json().get('response', [])
+        res = r.json().get('response', [])
+        return res if r.status_code == 200 else []
     except: return []
 
 @st.cache_data(ttl=3600)
@@ -157,24 +169,24 @@ def siber_engine(m):
     a_history = check_team_history_detailed(a_id)
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
 
-    h_dom_p, a_dom_p = 1, 1 
+    h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
     
     if l_stats:
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
+            is_home = team['team']['id'] == h_id
             score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1)
-            if team['team']['id'] == h_id:
-                h_dom_p = max(1, score); stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
+            if is_home:
+                h_dom = score
+                stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
             else:
-                a_dom_p = max(1, score); stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
-    
-    total_dom = h_dom_p + a_dom_p
-    h_dom = (h_dom_p / total_dom) * 100
-    a_dom = 100 - h_dom
+                a_dom = score
+                stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
+    
     h_iy = sum(1 for x in h_history if x['iy_toplam'] > 0)
     a_iy = sum(1 for x in a_history if x['iy_toplam'] > 0)
 
@@ -183,10 +195,11 @@ def siber_engine(m):
         conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
         if elapsed < 42 and total == 0:
-            if h_dom > 62 or a_dom > 62: live_emir, conf = "İLK YARI 0.5 ÜST", 98
+            if (h_dom > 22 or a_dom > 22) or (stats_data['h_atk'] + stats_data['a_atk'] > elapsed * 1.6):
+                live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 90
         elif 40 <= elapsed < 78:
-            live_emir, conf = ("+0.5 GOL (BASKI)", 96) if (h_dom > 65 or a_dom > 65) else ("0.5 ÜST", 92)
+            live_emir, conf = ("+0.5 GOL (BASKI)", 96) if (h_dom > a_dom * 1.4 or a_dom > h_dom * 1.4) else ("0.5 ÜST", 92)
         else: live_emir, conf = "MAÇ SONU +0.5", 89
 
     return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom
@@ -224,6 +237,20 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
+    if st.session_state.get("role") == "admin":
+        with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
+            t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
+            for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
+                with t_tabs[i]:
+                    subset = {k: v for k, v in st.session_state["CORE_VAULT"].items() if v["label"] == pkg}
+                    for tk in list(subset.keys())[:10]:
+                        v = subset[tk]
+                        c1, c2 = st.columns([3, 1])
+                        c1.markdown(f"<div class='lic-item'><b>{tk}</b><br>P: {v['pass']} | {'✅' if v['issued'] else '⚪'}</div>", unsafe_allow_html=True)
+                        if not v["issued"] and c2.button("DAĞIT", key=f"d_{tk}"):
+                            st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
+                            st.rerun()
+
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
@@ -233,7 +260,8 @@ else:
             st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
-            st.session_state["stored_matches"] = fetch_siber_data(st.session_state["view_mode"] == "live")
+            is_live_mode = st.session_state["view_mode"] == "live"
+            st.session_state["stored_matches"] = fetch_siber_data(is_live_mode)
             st.rerun()
     with c4:
         if st.button("📜 SİBER ARŞİV", use_container_width=True):
@@ -253,54 +281,47 @@ else:
         display_list = list(PERMANENT_ARCHIVE.values())
 
     for arc in display_list:
-        is_live = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
-        color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
-        win_pre = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
+        is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
+        card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
+        win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         
-        # --- İSTEDİĞİN MİLİMETRİK GÖRSEL TASARIM ---
         st.markdown(f"""
-        <div class='decision-card' style='border-left:6px solid {color};'>
-            <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
-            <div class='live-pulse' style='display:{"inline-block" if is_live else "none"}'>📡 CANLI</div>
+        <div class='decision-card' style='border-left:6px solid {card_color};'>
+            <div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div>
+            <div class='live-pulse' style='display:{"inline-block" if is_live_card else "none"}'>📡 CANLI</div>
             <b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br>
             <span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br>
             <div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div>
-            
-            <div style='display:flex; justify-content:space-between; font-size:0.65rem; font-weight:bold; color:#8b949e; margin-bottom:2px;'>
-                <span>EV %{int(arc['h_d'])}</span><span>DEP %{int(arc['a_d'])}</span>
-            </div>
-            <div class='dom-bar-bg'>
-                <div class='dom-bar-home' style='width:{arc['h_d']}%'></div>
-                <div class='dom-bar-away' style='width:{arc['a_d']}%'></div>
-            </div>
-
-            <div class='reasoning-box'>💡 Saha hakimiyeti ve hücum sürekliliği analiz edildi. Siber Motor Onayladı.</div>
-
             <div style='display:flex; gap:10px;'>
-                <div class='emir-box' style='background:rgba(88,166,255,0.1); border-color:#58a6ff; color:#58a6ff;'>
-                    <small>CANSIZ EMİR</small><br>{arc['pre_emir']} {win_pre}
-                </div>
-                <div class='emir-box' style='background:rgba(46,160,67,0.1); border-color:#2ea043; color:#2ea043;'>
-                    <small>CANLI EMİR</small><br>{arc['live_emir']}
-                </div>
+                <div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div>
+                <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-
-        with st.expander(f"🔍 ANALİZ VERİLERİ: {arc['home']} vs {arc['away']}"):
-            if is_live and arc.get('stats'):
+        
+        with st.expander(f"🔍 TÜM VERİLERİ GÖR: {arc['home']} vs {arc['away']}"):
+            if is_live_card and arc.get('stats'):
                 s = arc['stats']
+                total_points = (arc['h_d'] + arc['a_d']) or 1
+                hp_val = (arc['h_d'] / total_points) * 100
                 st.markdown(f"""
-                <table style='width:100%; text-align:center;'>
-                    <tr style='color:#8b949e;'><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
-                    <tr style='color:#8b949e;'><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
-                    <tr style='color:#8b949e;'><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr>
-                </table>
+                <div class='dom-container'>
+                    <center><b>📊 SİBER DOMİNASYON GÖSTERGESİ</b></center>
+                    <div style='display:flex; justify-content:space-between;'><small>{arc['home']}</small><small>{arc['away']}</small></div>
+                    <div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div>
+                    <table style='width:100%; text-align:center; font-size:0.8rem;'>
+                        <tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr>
+                        <tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr>
+                        <tr><td>{s['h_atk']}</td><td><b>T. ATAK</b></td><td>{s['a_atk']}</td></tr>
+                    </table>
+                </div>
                 """, unsafe_allow_html=True)
             
-            c1, c2 = st.columns(2)
-            if arc.get('h_h'): c1.table(pd.DataFrame(arc['h_h']))
-            if arc.get('a_h'): c2.table(pd.DataFrame(arc['a_h']))
+            ch_col, ca_col = st.columns(2)
+            ch_col.write(f"🏠 {arc['home']} (Son 5)")
+            if arc.get('h_h'): ch_col.table(pd.DataFrame(arc['h_h']))
+            ca_col.write(f"🚀 {arc['away']} (Son 5)")
+            if arc.get('a_h'): ca_col.table(pd.DataFrame(arc['a_h']))
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
         st.query_params.clear()
