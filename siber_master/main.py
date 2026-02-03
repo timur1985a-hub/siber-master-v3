@@ -10,8 +10,7 @@ import json
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
-# Oturum Kodu: SBR-MASTER-2026-ARCHIVE-RESET-V1
-
+# Yerel Depolama (Refresh Koruması) İçin Görünmez JavaScript
 def persist_auth_js():
     st.markdown("""
         <script>
@@ -45,7 +44,7 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
-# Arşivi session_state içinde tutarak tam kontrol sağlıyoruz
+# Arşiv artık cache_resource değil, session_state üzerinden yönetiliyor
 if "PERMANENT_ARCHIVE" not in st.session_state:
     st.session_state["PERMANENT_ARCHIVE"] = {}
 
@@ -130,6 +129,7 @@ def check_success(emir, gh, ga):
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
     if "+0.5 GOL" in emir: return total > 0
+    if "MAÇ SONU +0.5" in emir: return total > 0
     return False
 
 def siber_engine(m):
@@ -206,12 +206,13 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # ROOT SIFIRLAMA BUTONU - TÜM HAFIZAYI (CANLI VE CANSIZ) SİLER
+            # KESİN ÇÖZÜM: Hem session_state temizliği hem de cache_resource temizliği
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                st.session_state["PERMANENT_ARCHIVE"] = {} # Ana veri kaynağını boşalt
-                st.session_state["stored_matches"] = []    # Ekrandaki listeyi boşalt
-                st.session_state["view_mode"] = "clear"    # Görünümü temizle
-                st.toast("🛡️ Siber Arşiv ve Geçmiş Veriler Tamamen Sıfırlandı!")
+                st.session_state["PERMANENT_ARCHIVE"] = {} # Cansız ve Canlı tüm geçmiş veriler temizlenir
+                st.session_state["stored_matches"] = []
+                st.session_state["view_mode"] = "clear"
+                st.cache_resource.clear() # Sunucu tarafındaki gizli bellek temizlenir
+                st.success("✅ Tüm siber kayıtlar ve başarı oranları sıfırlandı!")
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -237,7 +238,7 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veri İşleme - Arşive Yazma
+    # Veri İşleme
     if mode in ["live", "pre"] and st.session_state["stored_matches"]:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
@@ -258,7 +259,6 @@ else:
                 else:
                     st.session_state["PERMANENT_ARCHIVE"][fid].update({"score": f"{gh}-{ga}", "status": status})
 
-    # Görüntüleme Listesi Oluşturma
     if mode == "archive": 
         display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
     elif mode != "clear":
@@ -267,7 +267,7 @@ else:
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    # İstatistik Paneli
+    # İstatistik Paneli (Sadece Arşiv Modunda ve Kayıt Varsa)
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
@@ -275,10 +275,9 @@ else:
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
         else:
-            # Kayıt yoksa %0 göster (Test edebilmeniz için)
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>0</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%0.0</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%0.0</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
-    # Maç Kartları
+    # Kart Listeleme
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
