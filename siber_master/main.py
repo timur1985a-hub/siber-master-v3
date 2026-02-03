@@ -8,6 +8,7 @@ import re
 import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
+# [2026-01-30] Şablon ve lisans sistemi sabitlendi.
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -97,9 +98,9 @@ style_code = (
     ".stats-panel{background:#0d1117;border:1px solid #30363d;padding:20px;border-radius:12px;margin-bottom:25px;display:flex;justify-content:space-around;text-align:center;border-top:4px solid #58a6ff;box-shadow:0 10px 20px rgba(0,0,0,0.4)}"
     ".stat-val{font-size:2.2rem;font-weight:900;color:#2ea043;line-height:1}"
     ".stat-lbl{font-size:0.8rem;color:#8b949e;text-transform:uppercase;font-weight:bold;margin-top:8px;letter-spacing:1px}"
-    ".dom-container{background:rgba(255,255,255,0.03); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
+    ".dom-container{background:rgba(46,160,67,0.05); border:1px solid #30363d; padding:12px; border-radius:8px; margin-top:10px;}"
     ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
-    ".dom-bar-home{height:100%; background:#58a6ff; transition:width 0.5s;}"
+    ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".reasoning-box{background:rgba(255,255,255,0.03); border:1px solid #30363d; padding:10px; border-radius:6px; margin:10px 0; font-size:0.85rem; color:#8b949e;}"
     ".emir-box{flex:1; padding:10px; border-radius:8px; text-align:center; font-weight:bold; border:1px solid;}"
@@ -172,9 +173,11 @@ def siber_engine(m):
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
             score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1)
             if team['team']['id'] == h_id:
-                h_dom_p = max(1, score); stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
+                h_dom_p = max(1, score)
+                stats_data.update({"h_sht": s.get('Shots on Goal', 0), "h_atk": s.get('Dangerous Attacks', 0), "h_crn": s.get('Corner Kicks', 0)})
             else:
-                a_dom_p = max(1, score); stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
+                a_dom_p = max(1, score)
+                stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
     h_dom = (h_dom_p / (h_dom_p + a_dom_p)) * 100
     a_dom = 100 - h_dom
@@ -228,7 +231,7 @@ if not st.session_state["auth"]:
                 else: st.error("❌ HATALI GİRİŞ")
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='owner-info'>🛡️ Oturum Aktif | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
@@ -335,3 +338,5 @@ else:
         st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
         st.session_state["auth"] = False
         st.rerun()
+
+# Oturum Kodu: CANLI_DOMINASYON_VE_YUZDE_FIX_2026
