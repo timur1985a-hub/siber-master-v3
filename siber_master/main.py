@@ -50,6 +50,7 @@ def get_persistent_archive(): return {}
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
+# Arşive Doğrudan Erişim
 PERMANENT_ARCHIVE = get_persistent_archive()
 
 # URL'den Geri Yükleme ve Auth Kontrolü
@@ -130,7 +131,6 @@ def check_success(emir, gh, ga):
     if "0.5 ÜST" in emir: return total > 0
     if "KG VAR" in emir: return gh > 0 and ga > 0
     if "+0.5 GOL" in emir: return total > 0
-    if "MAÇ SONU +0.5" in emir: return total > 0
     return False
 
 def siber_engine(m):
@@ -207,12 +207,16 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # KESİN ÇÖZÜM BUTONU
-            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                PERMANENT_ARCHIVE.clear() # Cache nesnesini boşalt
-                st.session_state["stored_matches"] = [] # Görünümü temizle
+            # DÜNKÜ BAŞARILI "FORCE RESET" METODU
+            if st.button("🔥 TÜM SİBER ARŞİVİ KAZI (KESİN ÇÖZÜM)", use_container_width=True):
+                # 1. Adım: Sözlüğü boşalt
+                PERMANENT_ARCHIVE.clear()
+                # 2. Adım: Streamlit'in kendi önbellek fonksiyonunu temizle (Global Temizlik)
+                get_persistent_archive.clear()
+                # 3. Adım: Session verilerini temizle
+                st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
-                st.cache_resource.clear() # TÜM Streamlit Cache'ini temizle (Cansız verilerin silinmesi için şart)
+                st.success("Tüm sistem sıfırlandı, yeni veri akışı için hazır!")
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -265,8 +269,6 @@ else:
             p_ok = sum(1 for d in fin if check_success(d['pre_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
-        else:
-             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>0</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%0.0</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%0.0</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
