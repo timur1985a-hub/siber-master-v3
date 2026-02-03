@@ -10,6 +10,7 @@ import json
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
+# Yerel Depolama (Refresh Koruması) İçin Görünmez JavaScript
 def persist_auth_js():
     st.markdown("""
         <script>
@@ -50,11 +51,10 @@ def get_persistent_archive():
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-# Arşivi hem değişkene hem session_state'e bağlıyoruz ki Root silme işlemi her iki tarafa da vursun
+# Arşiv bağlantısını al
 PERMANENT_ARCHIVE = get_persistent_archive()
-if "PERMANENT_STORE" not in st.session_state:
-    st.session_state["PERMANENT_STORE"] = PERMANENT_ARCHIVE
 
+# URL'den Geri Yükleme ve Auth Kontrolü
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -72,7 +72,7 @@ if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (MİLİMETRİK KORUMA) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -118,8 +118,8 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
-        p = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=p, timeout=15)
+        params = {"live": "all"} if live else {"date": datetime.now().strftime("%Y-%m-%d")}
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params=params, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
@@ -194,7 +194,6 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # ROOT YETKİLERİ (GÜNCELLENDİ: CANSIZ VE CANLI TÜMÜNÜ SİLER)
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS VE HAFIZA YÖNETİMİ"):
             t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
@@ -209,12 +208,12 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now(pytz.timezone("Europe/Istanbul")) + timedelta(days=v["days"])})
                             st.rerun()
             st.divider()
-            # ROOT SİLME: HEM CACHE HEM SESSION STATE'İ KESİN OLARAK SIFIRLAR (CANSIZ TAHMİNLER DAHİL)
-            if st.button("🔥 TÜM SİBER ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                st.session_state["PERMANENT_STORE"] = {}
-                st.session_state["stored_matches"] = []
+            # ROOT SIFIRLAMA BUTONU - KESİN ÇÖZÜM
+            if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
+                PERMANENT_ARCHIVE.clear() # Cache içindeki sözlüğü temizle (Cansızlar burada tutuluyor)
+                st.session_state["stored_matches"] = [] # Mevcut oturumu temizle
                 st.session_state["view_mode"] = "clear"
-                st.success("Tüm siber veri (Cansız/Canlı) kökten silindi.")
+                st.success("Tüm Siber Arşiv (Canlı & Cansız) başarıyla sıfırlandı.")
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -240,29 +239,27 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # VERİ YÖNETİMİ
     if mode in ["live", "pre"] and st.session_state["stored_matches"]:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
             conf, p_emir, l_emir = siber_engine(m)
-            if fid not in st.session_state["PERMANENT_STORE"]:
-                st.session_state["PERMANENT_STORE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
+            if fid not in PERMANENT_ARCHIVE:
+                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    st.session_state["PERMANENT_STORE"][fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
                 else:
-                    st.session_state["PERMANENT_STORE"][fid].update({"score": f"{gh}-{ga}", "status": status})
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
 
-    if mode == "archive": display_list = list(st.session_state["PERMANENT_STORE"].values())
+    if mode == "archive": display_list = list(PERMANENT_ARCHIVE.values())
     elif mode != "clear":
-        display_list = [st.session_state["PERMANENT_STORE"][str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in st.session_state["PERMANENT_STORE"]]
+        display_list = [PERMANENT_ARCHIVE[str(m['fixture']['id'])] for m in st.session_state.get("stored_matches", []) if str(m['fixture']['id']) in PERMANENT_ARCHIVE]
 
     if search_q:
         display_list = [d for d in display_list if search_q in d['home'].lower() or search_q in d['away'].lower() or search_q in d['league'].lower()]
 
-    # SİBER ARŞİV İSTATİSTİK PANELİ (DOKUNULMAZ GÖRSEL)
     if mode == "archive" and display_list:
         fin = [d for d in display_list if d['status'] in ['FT', 'AET', 'PEN']]
         if fin:
@@ -270,7 +267,6 @@ else:
             l_ok = sum(1 for d in fin if check_success(d['live_emir'], int(d['score'].split('-')[0]), int(d['score'].split('-')[1])))
             st.markdown(f"""<div class='stats-panel'><div><div class='stat-val'>{len(fin)}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val' style='color:#58a6ff;'>%{ (p_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val' style='color:#2ea043;'>%{ (l_ok/len(fin))*100:.1f}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>""", unsafe_allow_html=True)
 
-    # KART RENDER
     for arc in display_list:
         gh_v, ga_v = map(int, arc['score'].split('-'))
         is_fin = arc['status'] in ['FT', 'AET', 'PEN']
