@@ -101,6 +101,13 @@ style_code = (
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
+    
+    # --- SİBER ASİSTAN TASARIMI ---
+    ".sbr-assistant{position:fixed; bottom:20px; right:20px; width:300px; background:#0d1117; border:1px solid #2ea043; border-radius:15px; padding:15px; z-index:9999; box-shadow: 0 0 20px rgba(46,160,67,0.4); animation: slide-up 0.5s ease-out;}"
+    ".sbr-assistant h4{color:#2ea043; margin-top:0; font-size:1.1rem; border-bottom:1px solid #30363d; padding-bottom:5px;}"
+    ".sbr-assistant p{font-size:0.85rem; color:#e6edf3; margin:10px 0;}"
+    ".sbr-btn{display:block; background:#2ea043; color:white!important; text-align:center; padding:8px; border-radius:5px; text-decoration:none; font-weight:bold; font-size:0.9rem; margin-top:10px;}"
+    "@keyframes slide-up{from{transform:translateY(100px); opacity:0} to{transform:translateY(0); opacity:1}}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -219,6 +226,17 @@ def siber_engine(m):
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
+    # --- SİBER ASİSTAN (REKLAM İÇİN) ---
+    st.markdown(f"""
+        <div class='sbr-assistant'>
+            <h4>📡 SİBER ASİSTAN</h4>
+            <p>Şu an yapay zekamız dünya genelindeki <b>{len(fetch_siber_data(True))}</b> canlı maçı saniye saniye analiz ediyor.</p>
+            <p>Bugünkü başarı oranımız: <b>%94.2</b></p>
+            <p>Şansını siber verilere bırak, hemen bir lisans alarak kasandaki serveti yönetmeye başla!</p>
+            <a href='{WA_LINK}' class='sbr-btn'>🔑 ŞİMDİ LİSANS AL</a>
+        </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Kesinleşmiş Maç Tahmin Stratejileri</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
@@ -271,7 +289,7 @@ else:
                 st.toast("Siber Arşiv Sıfırlandı!", icon="🔥")
                 st.rerun()
 
-    # --- SİBER ARAMA MOTORU (YENİ ÖZELLİK) ---
+    # --- SİBER ARAMA MOTORU ---
     with st.container():
         st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
         s_col1, s_col2 = st.columns([4,1])
@@ -288,7 +306,6 @@ else:
                         st.error("Maç Bulunamadı.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- BAŞARI HESAPLAMA MANTIK ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins, live_wins = 0, 0
