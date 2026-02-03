@@ -49,7 +49,6 @@ def get_persistent_archive(): return {}
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
-# Arşivin session_state üzerinden yönetilmesi sıfırlama için kritiktir
 if "PERMANENT_ARCHIVE" not in st.session_state:
     st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
 
@@ -69,6 +68,7 @@ if "auth" not in st.session_state:
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
+if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
 # --- 2. DEĞİŞMEZ TASARIM SİSTEMİ ---
 style_code = (
@@ -100,6 +100,7 @@ style_code = (
     ".dom-bar-bg{height:8px; background:#30363d; border-radius:10px; margin:10px 0; overflow:hidden; display:flex;}"
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
+    ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -123,6 +124,20 @@ def fetch_siber_data(live=True):
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         return r.json().get('response', []) if r.status_code == 200 else []
+    except: return []
+
+def search_match_api(query):
+    try:
+        url = f"{BASE_URL}/fixtures?live=all"
+        r = requests.get(url, headers=HEADERS, timeout=10)
+        all_live = r.json().get('response', [])
+        found = [m for m in all_live if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
+        if not found:
+            today = datetime.now().strftime("%Y-%m-%d")
+            r = requests.get(f"{BASE_URL}/fixtures?date={today}", headers=HEADERS, timeout=10)
+            all_today = r.json().get('response', [])
+            found = [m for m in all_today if query.lower() in m['teams']['home']['name'].lower() or query.lower() in m['teams']['away']['name'].lower()]
+        return found
     except: return []
 
 @st.cache_data(ttl=60)
@@ -256,6 +271,23 @@ else:
                 st.toast("Siber Arşiv Sıfırlandı!", icon="🔥")
                 st.rerun()
 
+    # --- SİBER ARAMA MOTORU (YENİ ÖZELLİK) ---
+    with st.container():
+        st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
+        s_col1, s_col2 = st.columns([4,1])
+        query = s_col1.text_input("🔍 Siber Arama (Takım veya Maç Yazın...)", placeholder="Örn: Galatasaray veya Milan", label_visibility="collapsed")
+        if s_col2.button("ARA", use_container_width=True):
+            if query:
+                with st.spinner("Siber Uzayda Aranıyor..."):
+                    found_matches = search_match_api(query)
+                    if found_matches:
+                        st.session_state["search_result"] = found_matches
+                        st.session_state["view_mode"] = "search"
+                        st.toast(f"{len(found_matches)} Maç Bulundu!", icon="✅")
+                    else:
+                        st.error("Maç Bulunamadı.")
+        st.markdown("</div>", unsafe_allow_html=True)
+
     # --- BAŞARI HESAPLAMA MANTIK ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
@@ -280,10 +312,10 @@ else:
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live"}); st.rerun()
+            st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live", "search_result": None}); st.rerun()
     with c2:
         if st.button("💎 MAÇ ÖNCESİ", use_container_width=True):
-            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre"}); st.rerun()
+            st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
     with c3:
         if st.button("🔄 GÜNCELLE", use_container_width=True):
             is_live_mode = st.session_state["view_mode"] == "live"
@@ -294,17 +326,31 @@ else:
             st.session_state["view_mode"] = "archive"; st.rerun()
     with c5:
         if st.button("🧹 EKRANI TEMİZLE", use_container_width=True):
-            st.session_state["stored_matches"] = []; st.session_state["view_mode"] = "clear"; st.rerun()
+            st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
 
     display_list = []
-    if st.session_state["view_mode"] in ["live", "pre"]:
-        for m in st.session_state["stored_matches"]:
-            fid = str(m['fixture']['id'])
-            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d = siber_engine(m)
-            st.session_state["PERMANENT_ARCHIVE"][fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d}
-        display_list = [st.session_state["PERMANENT_ARCHIVE"][str(m['fixture']['id'])] for m in st.session_state["stored_matches"] if str(m['fixture']['id']) in st.session_state["PERMANENT_ARCHIVE"]]
+    current_matches = []
+    
+    if st.session_state["view_mode"] == "search" and st.session_state["search_result"]:
+        current_matches = st.session_state["search_result"]
+    elif st.session_state["view_mode"] in ["live", "pre"]:
+        current_matches = st.session_state["stored_matches"]
     elif st.session_state["view_mode"] == "archive":
         display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
+
+    if current_matches:
+        for m in current_matches:
+            fid = str(m['fixture']['id'])
+            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d = siber_engine(m)
+            st.session_state["PERMANENT_ARCHIVE"][fid] = {
+                "fid": fid, "conf": conf, "league": m['league']['name'], 
+                "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
+                "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, 
+                "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", 
+                "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, 
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d
+            }
+            display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
     for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
