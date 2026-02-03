@@ -95,7 +95,7 @@ style_code = (
     ".dom-bar-home{height:100%; background:#58a6ff; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".reasoning-box{background:rgba(255,255,255,0.03); border:1px solid #30363d; padding:10px; border-radius:6px; margin:10px 0; font-size:0.85rem; color:#8b949e;}"
-    ".emir-box{flex:1; padding:10px; border-radius:8px; text-align:center; font-weight:bold;}"
+    ".emir-box{flex:1; padding:10px; border-radius:8px; text-align:center; font-weight:bold; border:1px solid;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -169,7 +169,8 @@ def siber_engine(m):
             else:
                 a_dom_p = max(1, score); stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
     
-    h_dom = (h_dom_p / (h_dom_p + a_dom_p)) * 100
+    total_dom = h_dom_p + a_dom_p
+    h_dom = (h_dom_p / total_dom) * 100
     a_dom = 100 - h_dom
 
     conf = 85
@@ -256,7 +257,7 @@ else:
         color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_pre = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         
-        # --- TASARIM BLOĞU (İSTEDİĞİN GİBİ MİLİMETRİK) ---
+        # --- İSTEDİĞİN MİLİMETRİK GÖRSEL TASARIM ---
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {color};'>
             <div class='ai-score' style='color:{color};'>%{arc['conf']}</div>
@@ -276,10 +277,10 @@ else:
             <div class='reasoning-box'>💡 Saha hakimiyeti ve hücum sürekliliği analiz edildi. Siber Motor Onayladı.</div>
 
             <div style='display:flex; gap:10px;'>
-                <div class='emir-box' style='background:rgba(88,166,255,0.1); border:1px solid #58a6ff; color:#58a6ff;'>
+                <div class='emir-box' style='background:rgba(88,166,255,0.1); border-color:#58a6ff; color:#58a6ff;'>
                     <small>CANSIZ EMİR</small><br>{arc['pre_emir']} {win_pre}
                 </div>
-                <div class='emir-box' style='background:rgba(46,160,67,0.1); border:1px solid #2ea043; color:#2ea043;'>
+                <div class='emir-box' style='background:rgba(46,160,67,0.1); border-color:#2ea043; color:#2ea043;'>
                     <small>CANLI EMİR</small><br>{arc['live_emir']}
                 </div>
             </div>
