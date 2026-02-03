@@ -250,6 +250,27 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
                             st.rerun()
 
+    # --- BAŞARI HESAPLAMA MANTIK (YENİ) ---
+    all_archived = list(PERMANENT_ARCHIVE.values())
+    total_analyzed = len(all_archived)
+    pre_wins, live_wins = 0, 0
+    
+    for arc in all_archived:
+        gh, ga = map(int, arc['score'].split('-'))
+        if check_success(arc['pre_emir'], gh, ga): pre_wins += 1
+        if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], gh, ga): live_wins += 1
+    
+    pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
+    live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
+
+    st.markdown(f"""
+    <div class='stats-panel'>
+        <div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div>
+        <div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div>
+        <div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
