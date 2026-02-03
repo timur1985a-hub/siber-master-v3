@@ -50,6 +50,7 @@ def get_persistent_archive(): return {}
 if "CORE_VAULT" not in st.session_state:
     st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 
+# Arşivi Başlat
 PERMANENT_ARCHIVE = get_persistent_archive()
 
 # URL'den Geri Yükleme ve Auth Kontrolü
@@ -183,7 +184,7 @@ if not st.session_state["auth"]:
             elif l_t in st.session_state["CORE_VAULT"]:
                 ud = st.session_state["CORE_VAULT"][l_t]
                 if ud["pass"] == l_p and ud["issued"] and (ud["exp"] is None or now < ud["exp"]):
-                    st.session_state.update({"auth": True, "role": "user", "current_user": t_param if 't_param' in locals() else l_t})
+                    st.session_state.update({"auth": True, "role": "user", "current_user": l_t})
                     st.query_params.update({"auth": "true", "t": l_t, "p": l_p})
                     st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True)
                     st.rerun()
@@ -207,12 +208,14 @@ else:
                             st.rerun()
             st.divider()
             if st.button("🔥 TÜM ARŞİVİ SIFIRLA (ROOT)", use_container_width=True):
-                # Önbelleği (cache) temizle - Bu, PERMANENT_ARCHIVE'ı bellekte tamamen sıfırlar.
+                # 1. KESİN ÇÖZÜM: Cache mekanizmasını bellekten kazı
                 st.cache_resource.clear()
-                # Mevcut oturumdaki listeyi boşalt
+                # 2. Sözlüğü temizle
+                PERMANENT_ARCHIVE.clear()
+                # 3. Oturum verilerini sıfırla
                 st.session_state["stored_matches"] = []
                 st.session_state["view_mode"] = "clear"
-                st.success("SİBER ARŞİV VE TÜM ORANLAR BAŞARIYLA SIFIRLANDI.")
+                # 4. Sayfayı zorla yenile
                 st.rerun()
 
     c1, c2, c3, c4, c5 = st.columns(5)
@@ -238,7 +241,6 @@ else:
     mode = st.session_state["view_mode"]
     display_list = []
 
-    # Veriyi kalıcı arşive işle (Eğer sıfırlandıysa buradan itibaren dolmaya başlar)
     if mode in ["live", "pre"] and st.session_state["stored_matches"]:
         for m in st.session_state["stored_matches"]:
             fid = str(m['fixture']['id'])
