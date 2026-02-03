@@ -115,7 +115,6 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
-        # API Yollarını Kontrol Et ve Güncelle
         if live:
             url = f"{BASE_URL}/fixtures?live=all"
         else:
@@ -207,7 +206,7 @@ def siber_engine(m):
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Siber Analiz ve Yapay Zeka Stratejileri</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Kesinleşmiş Maç Tahmin Stratejileri</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
