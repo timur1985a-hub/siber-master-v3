@@ -102,12 +102,13 @@ style_code = (
     ".archive-badge{display:inline-block;background:rgba(248,81,73,0.1);color:#f85149;border:1px solid #f85149;padding:2px 8px;border-radius:4px;font-size:0.75rem;margin-bottom:5px;font-weight:bold}"
     "@keyframes pulse-red{0%{box-shadow:0 0 0 0 rgba(248,81,73,0.7)}70%{box-shadow:0 0 0 10px rgba(248,81,73,0)}100%{box-shadow:0 0 0 0 rgba(248,81,73,0)}}"
     ".lic-item{background:#161b22; padding:10px; border-radius:6px; margin-bottom:5px; border-left:3px solid #f1e05a; font-family:monospace; font-size:0.85rem;}"
+    ".data-box{background:rgba(48,54,61,0.2); border:1px solid #30363d; border-radius:4px; padding:10px; margin-top:5px; font-family:monospace; font-size:0.8rem;}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (GÜNCELLENEN TARAMA SİSTEMİ) ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -123,23 +124,23 @@ def fetch_siber_data(live=True):
     except: return []
 
 @st.cache_data(ttl=3600)
-def check_team_history(team_id, mode="iy_gol"):
-    """Takımın son 5 maçlık performansını tarar"""
+def check_team_history_detailed(team_id):
+    """Takımın son 5 maçlık verilerini detaylı getirir"""
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
         res = r.json().get('response', [])
-        if len(res) < 5: return False
-        
-        matches_count = 0
+        data = []
         for m in res:
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
-            if mode == "iy_gol":
-                iyh, iya = m['score']['halftime']['home'] or 0, m['score']['halftime']['away'] or 0
-                if (iyh + iya) > 0: matches_count += 1
-            elif mode == "2.5_ust":
-                if (gh + ga) > 2: matches_count += 1
-        return matches_count == 5 # Son 5 maçın tamamında şart sağlanmalı
-    except: return False
+            iyh, iya = m['score']['halftime']['home'] or 0, m['score']['halftime']['away'] or 0
+            data.append({
+                "skor": f"{gh}-{ga}",
+                "iy": f"{iyh}-{iya}",
+                "toplam": gh + ga,
+                "iy_toplam": iyh + iya
+            })
+        return data
+    except: return []
 
 def check_success(emir, gh, ga):
     total = gh + ga
@@ -152,37 +153,39 @@ def check_success(emir, gh, ga):
     return False
 
 def siber_engine(m):
-    # Bu kısım senin istediğin 'Son 5 Maç' ve 'İstatistik' taramasına göre revize edildi.
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     elapsed = m['fixture']['status']['elapsed'] or 0
     h_id, a_id = m['teams']['home']['id'], m['teams']['away']['id']
     
-    # Varsayılan değerler
+    # Detaylı verileri çek
+    h_history = check_team_history_detailed(h_id)
+    a_history = check_team_history_detailed(a_id)
+    
     conf = 85
     pre_emir = "0.5 ÜST"
     live_emir = "BEKLEMEDE"
 
-    # Tarama: Maç Öncesi Filtresi (Son 5 maçın tamamı 2.5 Üst mü?)
+    # Mantık İşleme
+    h_25 = sum(1 for x in h_history if x['toplam'] > 2)
+    a_25 = sum(1 for x in a_history if x['toplam'] > 2)
+    h_iy = sum(1 for x in h_history if x['iy_toplam'] > 0)
+    a_iy = sum(1 for x in a_history if x['iy_toplam'] > 0)
+
     if elapsed == 0:
-        if check_team_history(h_id, "2.5_ust") and check_team_history(a_id, "2.5_ust"):
-            pre_emir, conf = "2.5 ÜST", 96
-        else:
-            pre_emir, conf = "1.5 ÜST", 89
+        if h_25 == 5 and a_25 == 5: pre_emir, conf = "2.5 ÜST", 96
+        else: pre_emir, conf = "1.5 ÜST", 89
         live_emir = "YÜKLENİYOR..."
-    
-    # Tarama: Canlı Maç Filtresi (Son 5 maçın tamamında IY Gol oldu mu?)
     else:
-        iy_history = check_team_history(h_id, "iy_gol") and check_team_history(a_id, "iy_gol")
         if elapsed < 40 and total == 0:
-            if iy_history: live_emir, conf = "İLK YARI 0.5 ÜST", 98
+            if h_iy == 5 and a_iy == 5: live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 91
         elif 40 <= elapsed < 75:
             live_emir, conf = ("+0.5 GOL", 94) if total > 0 else ("0.5 ÜST", 97)
         else:
             live_emir, conf = "MAÇ SONU +0.5", 90
             
-    return conf, pre_emir, live_emir
+    return conf, pre_emir, live_emir, h_history, a_history
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
@@ -266,12 +269,12 @@ else:
             fid = str(m['fixture']['id'])
             gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
             status, elapsed = m['fixture']['status']['short'], m['fixture']['status']['elapsed'] or 0
-            conf, p_emir, l_emir = siber_engine(m)
+            conf, p_emir, l_emir, h_hist, a_hist = siber_engine(m)
             if fid not in PERMANENT_ARCHIVE:
-                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed}
+                PERMANENT_ARCHIVE[fid] = {"fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, "live_emir": l_emir, "score": f"{gh}-{ga}", "status": status, "min": elapsed, "h_hist": h_hist, "a_hist": a_hist}
             else:
                 if status not in ['FT', 'AET', 'PEN']:
-                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf})
+                    PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status, "min": elapsed, "live_emir": l_emir, "conf": conf, "h_hist": h_hist, "a_hist": a_hist})
                 else:
                     PERMANENT_ARCHIVE[fid].update({"score": f"{gh}-{ga}", "status": status})
 
@@ -298,7 +301,26 @@ else:
         is_live = arc['status'] not in ['TBD', 'NS', 'FT', 'AET', 'PEN', 'P', 'CANC', 'ABD', 'AWD', 'WO']
         live_tag = "<div class='live-pulse'>📡 CANLI SİSTEM AKTİF</div>" if is_live else "<div class='archive-badge'>🔒 SİBER MÜHÜR</div>"
         min_tag = f"<span class='live-min-badge'>{arc['min']}'</span>" if is_live else ""
+        
+        # Kartı Çiz
         st.markdown(f"""<div class='decision-card' style='border-left:6px solid {color};'><div class='ai-score' style='color:{color};'>%{arc['conf']}</div>{live_tag}<br><b style='color:#58a6ff;'>⚽ {arc['league']}</b> | <span class='tsi-time'>⌚ {arc['date']}</span><br><span style='font-size:1.3rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} {min_tag}</div><div style='display:flex; gap:10px; margin-top:10px;'><div style='flex:1; padding:8px; background:rgba(88,166,255,0.1); border:1px solid #58a6ff; border-radius:6px;'><small style='color:#58a6ff;'>CANSIZ EMİR</small><br><b>{arc['pre_emir']}</b> {win_pre}</div><div style='flex:1; padding:8px; background:rgba(46,160,67,0.1); border:1px solid #2ea043; border-radius:6px;'><small style='color:#2ea043;'>CANLI EMİR</small><br><b>{arc['live_emir']}</b> {win_live}</div></div></div>""", unsafe_allow_html=True)
+        
+        # SİBER VERİ GÖSTERİMİ (YENİ BÖLÜM)
+        with st.expander(f"📊 SİBER ANALİZ DETAYLARI: {arc['home']}"):
+            col_h, col_a = st.columns(2)
+            with col_h:
+                st.write(f"🏠 **{arc['home']}** (Son 5 Maç)")
+                if arc.get('h_hist'):
+                    df_h = pd.DataFrame(arc['h_hist'])
+                    st.table(df_h)
+                else: st.info("Veri yükleniyor...")
+            with col_a:
+                st.write(f"🚀 **{arc['away']}** (Son 5 Maç)")
+                if arc.get('a_hist'):
+                    df_a = pd.DataFrame(arc['a_hist'])
+                    st.table(df_a)
+                else: st.info("Veri yükleniyor...")
+            st.caption("🔍 Sistem Notu: Eğer tüm 'toplam' değerleri 2'den büyükse 2.5 ÜST emri verilir. Tüm 'iy_toplam' değerleri 0'dan büyükse İLK YARI GOL emri tetiklenir.")
 
     if st.button("🔴 GÜVENLİ ÇIKIŞ"):
         st.query_params.clear()
