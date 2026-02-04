@@ -193,7 +193,10 @@ def siber_engine(m):
     h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
     
+    # Canlı Veri Analizi
+    live_data_found = False
     if l_stats:
+        live_data_found = True
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
             is_home = team['team']['id'] == h_id
@@ -218,17 +221,14 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- SİBER GÜÇ ANALİZİ (GELİŞMİŞ HAKİMİYET) ---
+    # --- SİBER GÜÇ ANALİZİ ---
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
-    
     h_score_bonus = 35 if gh > ga else (15 if gh == ga else 0)
     a_score_bonus = 35 if ga > gh else (15 if ga == gh else 0)
     
-    # Veri olmasa bile geçmiş galibiyetler ve skor bonusu ile güç belirle
     h_power = (h_past_wins * 15) + h_score_bonus + (h_dom * 0.8)
     a_power = (a_past_wins * 15) + a_score_bonus + (a_dom * 0.8)
-    
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
     a_prob = 100 - h_prob
@@ -240,11 +240,20 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     
+    # --- HİBRİT ALARM KARAR MEKANİZMASI ---
     iy_alarm_active = False
     if 0 < elapsed < 40 and total == 0:
-        atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
-        if (h_iy_hits + a_iy_hits) >= 7 and (atk_per_min > 1.8 or momentum_boost):
-            iy_alarm_active = True
+        # Kural: İY Gol geçmişi güçlü (7+)
+        if (h_iy_hits + a_iy_hits) >= 7:
+            if live_data_found:
+                # Canlı veri varsa atak/momentum kontrolü
+                atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
+                if atk_per_min > 1.8 or momentum_boost:
+                    iy_alarm_active = True
+            else:
+                # Canlı veri yoksa: Geçmişe dayanarak 22. dakikadan sonra 'Makul Risk' alarmı
+                if (h_iy_hits + a_iy_hits) >= 9 or elapsed > 22:
+                    iy_alarm_active = True
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
@@ -255,7 +264,7 @@ def siber_engine(m):
     else:
         atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
         if elapsed < 42 and total == 0:
-            if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8) or momentum_boost:
+            if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8) or momentum_boost or iy_alarm_active:
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98 if momentum_boost else 94
             else: live_emir, conf = "0.5 ÜST", 90
         elif 45 <= elapsed < 78:
@@ -338,7 +347,6 @@ else:
                     else: st.warning("Maç bulunamadı.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- İSTATİSTİK HESAPLAMA PANELİ ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
@@ -346,7 +354,6 @@ else:
     
     pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
     live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
-    # Tahmin Yüzdesi (Canlı ve Cansız başarının hibrit ortalaması)
     formula_ratio = round((pre_ratio + live_ratio) / 2, 1) if total_analyzed > 0 else 0
 
     st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{formula_ratio}</div><div class='stat-lbl'>TAHMİN YÜZDESİ</div></div></div>", unsafe_allow_html=True)
@@ -397,7 +404,6 @@ else:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
-        
         alarm_html = "<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = "<span class='momentum-boost'>⚡ HIZLI ATAK</span>" if arc.get('m_boost') else ""
         hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER PROJEKSİYON (GÜÇ ANALİZİ):</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
