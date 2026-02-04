@@ -106,6 +106,8 @@ style_code = (
     ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
     ".siber-assistant-highlight{color:#fff; font-weight:bold;}"
     ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
+    ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
+    "@keyframes pulse-red{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}"
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
@@ -156,7 +158,6 @@ def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
         res = r.json().get('response', [])
-        # 'iy' ve 'skor' anahtarlarını tablo uyumu için tutuyoruz
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
@@ -196,13 +197,22 @@ def siber_engine(m):
                 a_dom = score
                 stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
+    # --- SESSİZ ALARM MANTIĞI (SİSTEME DOKUNMADAN) ---
+    h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
+    a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
+    
+    # Alarm Şartı: Tarihsel %70+ ve Mevcut Dakika Momentum > 1.8
+    iy_alarm_active = False
+    if elapsed > 0 and elapsed < 40 and total == 0:
+        atk_per_min = (stats_data['h_atk'] + stats_data['a_atk']) / elapsed if elapsed > 0 else 0
+        if (h_iy_hits + a_iy_hits) >= 7 and atk_per_min > 1.8:
+            iy_alarm_active = True
+
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
-    h_iy = sum(1 for x in h_history if x['İY_GOL'] > 0)
-    a_iy = sum(1 for x in a_history if x['İY_GOL'] > 0)
-
+    
     if elapsed == 0:
-        pre_emir = "İLK YARI 0.5 ÜST" if (h_iy + a_iy) >= 7 else "1.5 ÜST"
+        pre_emir = "İLK YARI 0.5 ÜST" if (h_iy_hits + a_iy_hits) >= 7 else "1.5 ÜST"
         conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
         atk_per_min = (stats_data['h_atk'] + stats_data['a_atk']) / elapsed if elapsed > 0 else 0
@@ -216,12 +226,12 @@ def siber_engine(m):
             else: live_emir, conf = "0.5 ÜST", 92
         else: live_emir, conf = "MAÇ SONU +0.5", 89
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active
 
 # --- 4. PANEL ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Kesinleşmiş Maç Tahmin Stratejileri</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Alarm Sistemi</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
@@ -248,7 +258,7 @@ if not st.session_state["auth"]:
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 
-    st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Şu an yapay zekamız dünya genelindeki <span class='siber-assistant-highlight'>{len(m_data) if m_data else "6"} canlı maçı</span> saniye saniye analiz ediyor.<br><br>Bugünkü başarı oranımız: <span class='siber-assistant-highlight'>%94.2</span><br><br>Şansını siber verilere bırak, hemen bir lisans alarak kasandaki serveti yönetmeye başla!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Şu an siber gözlemcilerimiz <span class='siber-assistant-highlight'>{len(m_data) if m_data else "6"} maçı</span> alarm modunda takip ediyor.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%94.2</span><br><br>Gecikmeden yerini al!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
 
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
@@ -329,14 +339,14 @@ else:
     if current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d = siber_engine(m)
+            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_alarm = siber_engine(m)
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], 
                 "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
                 "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, 
                 "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", 
                 "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, 
-                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_alarm
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
@@ -345,15 +355,17 @@ else:
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         
-        st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div></div></div>", unsafe_allow_html=True)
+        alarm_html = "<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         
-        with st.expander(f"🔍 GEÇMİŞ MAÇLAR VE PUAN LİSTESİ: {arc['home']} vs {arc['away']}"):
+        st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div></div></div>", unsafe_allow_html=True)
+        
+        with st.expander(f"🔍 DETAYLI ANALİZ: {arc['home']} vs {arc['away']}"):
             if is_live_card and arc.get('stats'):
                 s = arc['stats']
                 hp_val = (arc['h_d'] / ((arc['h_d'] + arc['a_d']) or 1)) * 100
                 st.markdown(f"<div class='dom-container'><center><b>📊 SİBER MOMENTUM</b></center><div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div><table style='width:100%; text-align:center; font-size:0.8rem;'><tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr><tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr><tr><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr></table></div>", unsafe_allow_html=True)
             
-            st.write("### 🏟️ Takım Skor Geçmişi (Son 5 Maç)")
+            st.write("### 🏟️ Takım Skor Geçmişi")
             ch_col, ca_col = st.columns(2)
             with ch_col:
                 st.markdown(f"**🏠 {arc['home']}**")
