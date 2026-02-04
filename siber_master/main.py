@@ -193,12 +193,11 @@ def siber_engine(m):
     h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
     
-    # Canlı Veri Analizi
     live_data_found = False
     if l_stats:
-        live_data_found = True
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
+            if any(v > 0 for v in s.values()): live_data_found = True
             is_home = team['team']['id'] == h_id
             score = (int(s.get('Shots on Goal', 0)) * 5) + (int(s.get('Corner Kicks', 0)) * 3) + (int(s.get('Dangerous Attacks', 0)) * 1.2)
             if is_home:
@@ -210,14 +209,11 @@ def siber_engine(m):
 
     current_total_atk = stats_data['h_atk'] + stats_data['a_atk']
     momentum_boost = False
-    
     if fid in st.session_state["MOMENTUM_TRACKER"]:
         old_data = st.session_state["MOMENTUM_TRACKER"][fid]
         atk_diff = current_total_atk - old_data['atk']
         time_diff = elapsed - old_data['min']
-        if time_diff > 0 and (atk_diff / time_diff) > 2.2:
-            momentum_boost = True
-    
+        if time_diff > 0 and (atk_diff / time_diff) > 2.2: momentum_boost = True
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
@@ -226,7 +222,6 @@ def siber_engine(m):
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
     h_score_bonus = 35 if gh > ga else (15 if gh == ga else 0)
     a_score_bonus = 35 if ga > gh else (15 if ga == gh else 0)
-    
     h_power = (h_past_wins * 15) + h_score_bonus + (h_dom * 0.8)
     a_power = (a_past_wins * 15) + a_score_bonus + (a_dom * 0.8)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
@@ -239,43 +234,41 @@ def siber_engine(m):
 
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
-    
-    # --- HİBRİT ALARM KARAR MEKANİZMASI ---
+    total_iy_history = h_iy_hits + a_iy_hits
+    avg_total_goals = sum(x['TOPLAM'] for x in h_history + a_history) / 10 if (h_history + a_history) else 0
+
+    # --- GELİŞMİŞ HİBRİT KARAR MEKANİZMASI (REFORM) ---
     iy_alarm_active = False
     if 0 < elapsed < 40 and total == 0:
-        # Kural: İY Gol geçmişi güçlü (7+)
-        if (h_iy_hits + a_iy_hits) >= 7:
-            if live_data_found:
-                # Canlı veri varsa atak/momentum kontrolü
-                atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
-                if atk_per_min > 1.8 or momentum_boost:
-                    iy_alarm_active = True
-            else:
-                # Canlı veri yoksa: Geçmişe dayanarak 22. dakikadan sonra 'Makul Risk' alarmı
-                if (h_iy_hits + a_iy_hits) >= 9 or elapsed > 22:
-                    iy_alarm_active = True
+        if total_iy_history >= 7:
+            if not live_data_found or (current_total_atk / elapsed if elapsed > 0 else 0) > 1.8 or momentum_boost:
+                iy_alarm_active = True
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
     
     if elapsed == 0:
-        pre_emir = "İLK YARI 0.5 ÜST" if (h_iy_hits + a_iy_hits) >= 7 else "1.5 ÜST"
+        pre_emir = "İLK YARI 0.5 ÜST" if total_iy_history >= 7 else "1.5 ÜST"
         conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
-        atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
+        # CANLI ANALİZ REFORMU: Geçmiş verinin gücünü canlıya enjekte et
         if elapsed < 42 and total == 0:
-            if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8) or momentum_boost or iy_alarm_active:
-                live_emir, conf = "İLK YARI 0.5 ÜST", 98 if momentum_boost else 94
-            else: live_emir, conf = "0.5 ÜST", 90
-        elif 45 <= elapsed < 78:
-            if (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5) and total < 3:
-                live_emir, conf = "+0.5 GOL (YÜKSEK BASKI)", 97
-            else: live_emir, conf = "0.5 ÜST", 92
-        else: live_emir, conf = "MAÇ SONU +0.5", 89
+            if iy_alarm_active: live_emir, conf = "İLK YARI 0.5 ÜST", 96
+            else: live_emir, conf = "0.5 ÜST", 91
+        elif 45 <= elapsed < 80:
+            # 4-1 biten maçlardaki gibi yüksek potansiyeli yakala
+            if avg_total_goals > 3.2 and total < 3:
+                live_emir, conf = "2.5 ÜST (GEÇMİŞ GOL GÜCÜ)", 94
+            elif avg_total_goals > 2.6 and total < 2:
+                live_emir, conf = "1.5 ÜST (POTANSİYEL)", 93
+            else:
+                live_emir, conf = "+0.5 GOL (DİNAMİK)", 92
+        else:
+            live_emir, conf = "MAÇ SONU +0.5", 89
 
     return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj
 
-# --- 4. PANEL ---
+# --- 4. PANEL (DOKUNULMAZ TASARIM) ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>Yapay Zeka Destekli Skor Analizi ve Alarm Sistemi</div>", unsafe_allow_html=True)
@@ -304,7 +297,6 @@ if not st.session_state["auth"]:
                     st.markdown(f"<script>localStorage.setItem('sbr_token', '{l_t}'); localStorage.setItem('sbr_pass', '{l_p}');</script>", unsafe_allow_html=True)
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
-
     st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Şu an siber gözlemcilerimiz <span class='siber-assistant-highlight'>{len(m_data) if m_data else "6"} maçı</span> alarm modunda takip ediyor.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%94.2</span><br><br>Gecikmeden yerini al!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
 
 else:
@@ -351,11 +343,9 @@ else:
     total_analyzed = len(all_archived)
     pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
     live_wins = sum(1 for arc in all_archived if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], *map(int, arc['score'].split('-'))))
-    
     pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
     live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
     formula_ratio = round((pre_ratio + live_ratio) / 2, 1) if total_analyzed > 0 else 0
-
     st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{formula_ratio}</div><div class='stat-lbl'>TAHMİN YÜZDESİ</div></div></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4, c5 = st.columns(5)
