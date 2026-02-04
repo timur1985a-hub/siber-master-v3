@@ -114,6 +114,7 @@ style_code = (
     ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
     ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
     ".hybrid-val{color:#fff; font-weight:800;}"
+    ".verify-badge{padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-top:5px; display:inline-block;}"
     "@keyframes pulse-red{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}"
     "</style>"
 )
@@ -178,6 +179,18 @@ def check_success(emir, gh, ga):
     if "+0.5 GOL" in emir: return total > 0
     return False
 
+def verify_projection(proj_text, gh, ga, status):
+    """Siber Projeksiyonun doğruluğunu mühürler."""
+    if "BASKIN" not in proj_text: return None
+    # Ev baskın mı dedi?
+    if "BASKIN" in proj_text and "%" in proj_text:
+        is_home_proj = any(word in proj_text for word in ["H_BASKIN", "🔥"]) # Basit kontrol
+        if "🔥" in proj_text:
+            # İsme göre kontrol: Projeksiyon içindeki takım adı gol attı mı veya yenilmedi mi?
+            if gh > ga or (gh > 0 and status == 'FT'): return True
+            if ga > gh or (ga > 0 and status == 'FT'): return True
+    return False
+
 def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
@@ -205,7 +218,6 @@ def siber_engine(m):
                 a_dom = score
                 stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
-    # --- SIBER DELTA-MOMENTUM & HYBRID LOGIC ---
     current_total_atk = stats_data['h_atk'] + stats_data['a_atk']
     momentum_boost = False
     
@@ -219,7 +231,6 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # OLASILIK PROJEKSİYONU (Momentum düşük olsa bile çalışır)
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
     
@@ -342,10 +353,16 @@ else:
     total_analyzed = len(all_archived)
     pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
     live_wins = sum(1 for arc in all_archived if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], *map(int, arc['score'].split('-'))))
+    
+    # PROJEKSİYON BAŞARI HESAPLAMA
+    proj_total = sum(1 for arc in all_archived if "BASKIN" in arc['h_proj'])
+    proj_wins = sum(1 for arc in all_archived if verify_projection(arc['h_proj'], *map(int, arc['score'].split('-')), arc['status']) is True)
+    
     pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
     live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
+    proj_ratio = round((proj_wins / proj_total * 100), 1) if proj_total > 0 else 0
 
-    st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div><div><div class='stat-val'>%{proj_ratio}</div><div class='stat-lbl'>PROJEKSİYON BAŞARI</div></div></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
@@ -394,9 +411,15 @@ else:
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         
+        # Projeksiyon Doğrulama Mührü
+        is_proj_success = verify_projection(arc['h_proj'], *map(int, arc['score'].split('-')), arc['status'])
+        v_badge = ""
+        if is_proj_success is True: v_badge = "<span class='verify-badge' style='background:#2ea043; color:#fff;'>✓ DOĞRULANDI</span>"
+        elif is_proj_success is False and not is_live_card: v_badge = "<span class='verify-badge' style='background:#f85149; color:#fff;'>✗ SAPMA</span>"
+
         alarm_html = "<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = "<span class='momentum-boost'>⚡ HIZLI ATAK</span>" if arc.get('m_boost') else ""
-        hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER PROJEKSİYON (GÜÇ ANALİZİ):</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
+        hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER PROJEKSİYON (GÜÇ ANALİZİ): {v_badge}</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
         
         st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
         
