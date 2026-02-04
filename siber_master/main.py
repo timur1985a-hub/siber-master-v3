@@ -205,7 +205,6 @@ def siber_engine(m):
                 a_dom = score
                 stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
-    # --- SIBER DELTA-MOMENTUM & HYBRID LOGIC ---
     current_total_atk = stats_data['h_atk'] + stats_data['a_atk']
     momentum_boost = False
     
@@ -219,22 +218,23 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # OLASILIK PROJEKSİYONU (DOKUNULMAZ HAKİMİYET SİSTEMİ)
+    # --- SİBER GÜÇ ANALİZİ (GELİŞMİŞ HAKİMİYET) ---
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
     
     h_score_bonus = 35 if gh > ga else (15 if gh == ga else 0)
     a_score_bonus = 35 if ga > gh else (15 if ga == gh else 0)
     
-    h_power = (h_past_wins * 12) + h_score_bonus + (h_dom * 0.7)
-    a_power = (a_past_wins * 12) + a_score_bonus + (a_dom * 0.7)
+    # Veri olmasa bile geçmiş galibiyetler ve skor bonusu ile güç belirle
+    h_power = (h_past_wins * 15) + h_score_bonus + (h_dom * 0.8)
+    a_power = (a_past_wins * 15) + a_score_bonus + (a_dom * 0.8)
     
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
     a_prob = 100 - h_prob
 
-    if h_prob > 65: h_proj = f"🔥 {h_name} BASKIN (%{h_prob})"
-    elif a_prob > 65: h_proj = f"🔥 {a_name} BASKIN (%{a_prob})"
+    if h_prob > 60: h_proj = f"🔥 {h_name} BASKIN (%{h_prob})"
+    elif a_prob > 60: h_proj = f"🔥 {a_name} BASKIN (%{a_prob})"
     else: h_proj = f"⚖️ DENGE/BERABERLİK (%{h_prob}-%{a_prob})"
 
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
@@ -338,15 +338,18 @@ else:
                     else: st.warning("Maç bulunamadı.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # --- BAŞARI HESAPLAMA MOTORU (DOKUNULMAZ) ---
+    # --- İSTATİSTİK HESAPLAMA PANELİ ---
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
     live_wins = sum(1 for arc in all_archived if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], *map(int, arc['score'].split('-'))))
+    
     pre_ratio = round((pre_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
     live_ratio = round((live_wins / total_analyzed * 100), 1) if total_analyzed > 0 else 0
+    # Tahmin Yüzdesi (Canlı ve Cansız başarının hibrit ortalaması)
+    formula_ratio = round((pre_ratio + live_ratio) / 2, 1) if total_analyzed > 0 else 0
 
-    st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>{total_analyzed}</div><div class='stat-lbl'>SİBER KAYIT</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI</div></div><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI</div></div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='stats-panel'><div><div class='stat-val'>%{live_ratio}</div><div class='stat-lbl'>CANLI BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{pre_ratio}</div><div class='stat-lbl'>CANSIZ BAŞARI GÜCÜ</div></div><div><div class='stat-val'>%{formula_ratio}</div><div class='stat-lbl'>TAHMİN YÜZDESİ</div></div></div>", unsafe_allow_html=True)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
