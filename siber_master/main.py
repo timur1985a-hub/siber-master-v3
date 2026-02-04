@@ -73,7 +73,7 @@ if "stored_matches" not in st.session_state: st.session_state["stored_matches"] 
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
-# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (DOKUNULMAZ) ---
+# --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (GÜNCELLENMİŞ MOBİL GERİ BİLDİRİM) ---
 style_code = (
     "<style>"
     ".stApp{background-color:#010409;color:#e6edf3}"
@@ -86,11 +86,18 @@ style_code = (
     ".marketing-subtitle{text-align:center;color:#f85149;font-size:1.1rem;font-weight:700;margin-bottom:15px}"
     ".internal-welcome{text-align:center;color:#2ea043;font-size:2rem;font-weight:800}"
     ".owner-info{text-align:center;color:#58a6ff;font-size:1rem;margin-bottom:20px;border-bottom:1px solid #30363d;padding-bottom:10px}"
-    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important}"
+    
+    # Butonlar için geliştirilmiş dokunma hissiyatı
+    ".stButton>button{background-color:#0d1117!important;border:1px solid #2ea043!important;color:#2ea043!important;font-weight:700!important;border-radius:6px!important;transition:all 0.1s ease-in-out!important;}"
+    ".stButton>button:active{transform:scale(0.95)!important; background-color:#2ea043!important; color:#fff!important; box-shadow:0 0 15px rgba(46,160,67,0.4)!important;}"
+    ".stButton>button:hover{border-color:#58a6ff!important; color:#58a6ff!important;}"
+    
     ".pkg-row{display:flex;gap:5px;justify-content:center;margin-bottom:15px;flex-wrap:wrap}"
     ".pkg-box{background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px;width:calc(18% - 10px);min-width:120px;text-align:center;border-top:3px solid #2ea043}"
     ".pkg-price{color:#f1e05a;font-weight:800;font-size:0.9rem;margin-top:5px}"
-    ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043}"
+    ".wa-small{display:block;width:100%;max-width:300px;margin:10px auto 20px auto;background:#238636;color:#fff!important;text-align:center;padding:12px;border-radius:8px;font-weight:700;text-decoration:none;border:1px solid #2ea043;transition:transform 0.1s;}"
+    ".wa-small:active{transform:scale(0.95);}"
+    
     ".decision-card{background:#0d1117;border:1px solid #30363d;border-left:6px solid #2ea043;padding:18px;border-radius:12px;margin-bottom:15px;box-shadow:0 4px 6px rgba(0,0,0,0.3)}"
     ".ai-score{float:right;font-size:1.5rem;font-weight:900;color:#2ea043}"
     ".score-board{font-size:1.5rem;font-weight:900;color:#fff;background:#161b22;padding:5px 15px;border-radius:8px;border:1px solid #30363d;display:inline-block;margin:10px 0}"
@@ -108,7 +115,8 @@ style_code = (
     ".siber-assistant-header{color:#2ea043; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:1px solid #30363d; padding-bottom:8px;}"
     ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
     ".siber-assistant-highlight{color:#fff; font-weight:bold;}"
-    ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
+    ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important; transition:transform 0.1s!important;}"
+    ".siber-asistan-btn:active{transform:scale(0.96)!important; opacity:0.8!important;}"
     ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
     ".hybrid-target{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
@@ -236,7 +244,6 @@ def siber_engine(m):
     elif a_prob > 60: h_proj = f"🔥 {a_name} BASKIN (%{a_prob})"
     else: h_proj = f"⚖️ DENGE/BERABERLİK (%{h_prob}-%{a_prob})"
 
-    # --- HİBRİT ALARMLAR (MUKAYESE SİSTEMİ) ---
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] > 2)
@@ -244,10 +251,10 @@ def siber_engine(m):
 
     iy_alarm_active = False
     if 0 < elapsed < 40 and total == 0:
-        if (h_iy_hits + a_iy_hits) >= 11: iy_alarm_active = True # Mukayese: %70+ İY gol oranı
+        if (h_iy_hits + a_iy_hits) >= 11: iy_alarm_active = True 
 
     strat_target = False
-    if (h_25_hits + a_25_hits) >= 10: strat_target = True # Mukayese: %60+ 2.5 ÜST geçmişi
+    if (h_25_hits + a_25_hits) >= 10: strat_target = True 
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
