@@ -216,6 +216,7 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
+    # --- HASSASİYET GÜNCELLEMESİ (DOSYA ANALİZİNE GÖRE) ---
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] > 2)
     a_25_hits = sum(1 for x in a_history if x['TOPLAM'] > 2)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] > 1)
@@ -223,9 +224,10 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
 
-    s25_kesin = (h_25_hits + a_25_hits >= 12) 
-    s15_kesin = (h_15_hits + a_15_hits >= 13)
-    iy_kesin = (h_iy_hits + a_iy_hits >= 12)
+    # 12-13 olan eşikleri, verilerdeki gollü maçları yakalamak için 10-11 bandına çektik.
+    s25_kesin = (h_25_hits + a_25_hits >= 10) 
+    s15_kesin = (h_15_hits + a_15_hits >= 11)
+    iy_kesin = (h_iy_hits + a_iy_hits >= 10)
 
     conf = 85
     pre_emir, live_emir = "GOL ANALİZİ", "BEKLEMEDE"
