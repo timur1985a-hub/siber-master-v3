@@ -37,7 +37,12 @@ def get_hardcoded_vault():
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 10001): 
-            seed = f"V16_ULTRA_FIXED_{lbl}_{i}_TIMUR_2026"
+            # Sadece SINIRSIZ paket için seed güncellendi, diğerleri sabit kaldı.
+            if lbl == "SINIRSIZ":
+                seed = f"V17_ULTRA_UNLIMITED_PRIVATE_{lbl}_{i}_TIMUR_2026"
+            else:
+                seed = f"V16_ULTRA_FIXED_{lbl}_{i}_TIMUR_2026"
+                
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
@@ -204,7 +209,6 @@ def siber_engine(m):
                 a_dom = score
                 stats_data.update({"a_atk": s.get('Dangerous Attacks', 0), "a_sht": s.get('Shots on Goal', 0), "a_crn": s.get('Corner Kicks', 0)})
 
-    # --- SİBER MOMENTUM VE ANALİZ ---
     current_total_atk = safe_to_int(stats_data['h_atk']) + safe_to_int(stats_data['a_atk'])
     momentum_boost = False
     if fid in st.session_state["MOMENTUM_TRACKER"]:
@@ -216,7 +220,6 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- GELİŞMİŞ HİBRİT FORMÜL MEKANİZMASI (GÜNCELLENDİ) ---
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
     a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
@@ -224,23 +227,19 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
 
-    # Eşik Değerler (Senin Hafızadaki %90+ Verimlilik Verilerin)
     is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
     is_15_formula = (h_15_hits + a_15_hits) >= 11
     is_25_formula = (h_25_hits + a_25_hits) >= 10
 
-    # Kesin Alarm Koşulları
     iy_alarm_active = False
     if 8 < elapsed < 42 and total == 0:
         if is_iy_formula or (h_dom + a_dom) > 30:
             iy_alarm_active = True
 
-    # --- KESİN EMİR VE ALARM TİPLERİ ---
     conf = 85
     pre_emir = "ANALİZ BEKLENİYOR"
     s_target_label = ""
     
-    # Sıralama: Önce en yüksek hedefi kontrol et
     if is_25_formula: 
         pre_emir = "KESİN 2.5 ÜST"
         s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
@@ -262,7 +261,6 @@ def siber_engine(m):
         else:
             live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
-    # Güç Tahmini
     h_avg_g = sum(int(x['SKOR'].split('-')[0]) for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(int(x['SKOR'].split('-')[1]) for x in a_history) / 8 if a_history else 0
     h_power = (h_avg_g * 12) + (h_dom * 1.5)
