@@ -109,10 +109,10 @@ style_code = (
     ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
     ".siber-assistant-highlight{color:#fff; font-weight:bold;}"
     ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
-    ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
+    ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px; border:1px solid #fff;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
-    ".hybrid-target-15{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px; border:1px solid #fff;}"
-    ".hybrid-target-25{background:#f1e05a; color:#000; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px; border:1px solid #000;}"
+    ".hybrid-target-15{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px; border:1px solid #fff; animation:pulse-red 1.2s infinite;}"
+    ".hybrid-target-25{background:#f1e05a; color:#000; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px; border:1px solid #000; animation:pulse-red 1.5s infinite;}"
     ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
     ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
     ".hybrid-val{color:#fff; font-weight:800;}"
@@ -197,7 +197,6 @@ def siber_engine(m):
         for team in l_stats:
             s = {item['type']: item['value'] or 0 for item in team['statistics']}
             is_home = team['team']['id'] == h_id
-            # Hassas güç puanlaması
             score = (safe_to_int(s.get('Shots on Goal', 0)) * 8) + (safe_to_int(s.get('Corner Kicks', 0)) * 4) + (safe_to_int(s.get('Dangerous Attacks', 0)) * 2.0)
             if is_home:
                 h_dom = score
@@ -217,7 +216,6 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- MATEMATİKSEL KESİNLİK HESAPLAYICI ---
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] > 2)
     a_25_hits = sum(1 for x in a_history if x['TOPLAM'] > 2)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] > 1)
@@ -225,7 +223,6 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
 
-    # Matematiksel Kesinlik Eşiği (Toplam maçların %75+ gol istikrarı olması lazım)
     s25_kesin = (h_25_hits + a_25_hits >= 12) 
     s15_kesin = (h_15_hits + a_15_hits >= 13)
     iy_kesin = (h_iy_hits + a_iy_hits >= 12)
