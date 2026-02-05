@@ -217,7 +217,7 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- GELİŞMİŞ MUKAYESE VE KESİN ÜST ALARMLARI ---
+    # --- HİBRİT PROJEKSİYON MATEMATİĞİ (GÜNCELLENDİ) ---
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
     a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
@@ -225,9 +225,8 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
 
-    # %85+ Olasılık Hesaplama
-    is_15_solid = (h_15_hits + a_15_hits) >= 13 # Son 16 maçın 13'ü 1.5 Üst bitmişse
-    is_25_solid = (h_25_hits + a_25_hits) >= 11 # Son 16 maçın 11'ü 2.5 Üst bitmişse
+    is_15_solid = (h_15_hits + a_15_hits) >= 13
+    is_25_solid = (h_25_hits + a_25_hits) >= 11
     
     iy_alarm_active = False
     if 10 < elapsed < 40 and total == 0:
@@ -235,20 +234,24 @@ def siber_engine(m):
 
     strat_target = is_15_solid or is_25_solid
     
-    # Güç Projeksiyonu
+    # HİBRİT GÜÇ PROJEKSİYONU: (Geçmiş Galibiyet * 10) + (Geçmiş Gol Ort * 10) + (Anlık Momentum * 1.5)
+    h_avg_g = sum(int(x['SKOR'].split('-')[0]) for x in h_history) / 8 if h_history else 0
+    a_avg_g = sum(int(x['SKOR'].split('-')[1]) for x in a_history) / 8 if a_history else 0
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
-    h_power = (h_past_wins * 15) + (h_dom * 0.8)
-    a_power = (a_past_wins * 15) + (a_dom * 0.8)
+    
+    h_power = (h_past_wins * 10) + (h_avg_g * 10) + (h_dom * 1.5)
+    a_power = (a_past_wins * 10) + (a_avg_g * 10) + (a_dom * 1.5)
+    
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
     a_prob = 100 - h_prob
-    h_proj = f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 60 else (f"🔥 {a_name} BASKIN (%{a_prob})" if a_prob > 60 else "⚖️ DENGE ANALİZİ")
+    
+    h_proj = f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 62 else (f"🔥 {a_name} BASKIN (%{a_prob})" if a_prob > 62 else "⚖️ STRATEJİK DENGE ANALİZİ")
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
     
-    # Kesin Emir Kararları
     if is_25_solid: pre_emir = "KESİN 2.5 ÜST"
     elif is_15_solid: pre_emir = "KESİN 1.5 ÜST"
 
@@ -256,9 +259,9 @@ def siber_engine(m):
         atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
         if elapsed < 75:
             if is_25_solid and total < 3:
-                live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (atk_per_min > 2.0 or momentum_boost) else 91
+                live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (atk_per_min > 2.2 or momentum_boost) else 91
             elif is_15_solid and total < 2:
-                live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 98 if (atk_per_min > 1.8 or momentum_boost) else 93
+                live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 98 if (atk_per_min > 1.9 or momentum_boost) else 93
             else:
                 live_emir, conf = "0.5 ÜST", 88
         else:
@@ -402,7 +405,7 @@ else:
         alarm_html = "<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = "<span class='momentum-boost'>⚡ HIZLI ATAK</span>" if arc.get('m_boost') else ""
         target_html = "<span class='hybrid-target'>🎯 KESİN ÜST ADAYI</span>" if arc.get('s_target') else ""
-        hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER PROJEKSİYON (GÜÇ ANALİZİ):</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
+        hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 HİBRİT SİBER PROJEKSİYON (GÜÇ ANALİZİ):</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
         
         st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}{target_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
         
