@@ -217,7 +217,8 @@ def siber_engine(m):
         old_data = st.session_state["MOMENTUM_TRACKER"][fid]
         atk_diff = current_total_atk - old_data['atk']
         time_diff = elapsed - old_data['min']
-        if time_diff > 0 and (atk_diff / time_diff) > 2.2:
+        # MİLİMETRİK MOMENTUM TAKİBİ (2.0 HASSASİYET)
+        if time_diff > 0 and (atk_diff / time_diff) > 2.0:
             momentum_boost = True
     
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
@@ -228,11 +229,13 @@ def siber_engine(m):
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] > 2)
     a_25_hits = sum(1 for x in a_history if x['TOPLAM'] > 2)
 
-    strat_target = (h_25_hits + a_25_hits) >= 10 or cross_power > 1.8
+    # --- KESKİN 2.5 ÜST HEDEFLEME ---
+    # Eğer toplam geçmiş 2.5 üst yüzdesi %50 üzerindeyse veya gol potansiyeli yüksekse hedef 2.5 ÜST olur.
+    strat_target = (h_25_hits + a_25_hits) >= 8 or cross_power > 1.6
 
     iy_alarm_active = False
     if 0 < elapsed < 40 and total == 0:
-        if (h_iy_hits + a_iy_hits) >= 11: iy_alarm_active = True
+        if (h_iy_hits + a_iy_hits) >= 10: iy_alarm_active = True
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
@@ -241,13 +244,16 @@ def siber_engine(m):
         if strat_target: pre_emir, conf = "STRATEJİK 2.5 ÜST", 94
         else: pre_emir, conf = "1.5 ÜST", 91
     else:
+        # ANLIK BAŞARI KONTROLÜ (GOL OLURSA HEMEN KAZANDIYA ÇEKER)
         if elapsed < 42 and total == 0:
             if momentum_boost or iy_alarm_active:
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 90
-        elif 45 <= elapsed < 78:
-            if strat_target and total >= 1: live_emir, conf = "STRATEJİK 2.5 ÜST", 96
-            elif (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5):
+        elif 45 <= elapsed < 80:
+            # Bangkok gibi maçlarda 2-1 (3 gol) olduktan sonra beklemez, yeni barem açar
+            if total >= 3: live_emir, conf = "MAÇ SONU +0.5", 98
+            elif strat_target and total >= 1: live_emir, conf = "STRATEJİK 2.5 ÜST", 96
+            elif (h_dom > a_dom * 1.4 or a_dom > h_dom * 1.4):
                 live_emir, conf = "+0.5 GOL (BASKI)", 97
             else: live_emir, conf = "0.5 ÜST", 92
         else: live_emir, conf = "MAÇ SONU +0.5", 89
@@ -394,7 +400,6 @@ else:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         g_h, g_a = map(int, arc['score'].split('-'))
         
-        # --- DİNAMİK BAŞARI TAKİPÇİSİ (METİN GÜNCELLEME) ---
         p_status = "✅ KAZANDI" if check_success(arc['pre_emir'], g_h, g_a) else arc['pre_emir']
         l_status = "✅ KAZANDI" if arc['live_emir'] != "BEKLEMEDE" and check_success(arc['live_emir'], g_h, g_a) else arc['live_emir']
         
