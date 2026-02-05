@@ -166,7 +166,7 @@ def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 8}, timeout=10)
         res = r.json().get('response', [])
-        return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
+        return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0), "HOME_ID": m['teams']['home']['id']} for m in res]
     except: return []
 
 def check_success(emir, gh, ga):
@@ -191,6 +191,13 @@ def siber_engine(m):
     a_history = check_team_history_detailed(a_id)
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
 
+    # --- ÇAPRAZ HESAPLAMA MANTIĞI ---
+    # Ev sahibi evinde ne kadar gol atıyor? Deplasman dışarıda ne kadar gol yiyor?
+    h_home_scored = sum(int(x['SKOR'].split('-')[0]) for x in h_history if x['HOME_ID'] == h_id)
+    a_away_conceded = sum(int(x['SKOR'].split('-')[0]) for x in a_history if x['HOME_ID'] != a_id)
+    
+    cross_power = (h_home_scored + a_away_conceded) / 16 # Normalize değer
+    
     h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
     
@@ -219,16 +226,14 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- HİBRİT MUKAYESE VE 2.5 ÜST ALARM SİSTEMİ ---
+    # --- HİBRİT ANALİZ VE ÇAPRAZ ALARM ---
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] > 2)
     a_25_hits = sum(1 for x in a_history if x['TOPLAM'] > 2)
 
-    # 2.5 ÜST Stratejik Alarmı: Her iki takımın da son 8 maçının en az 5'inde 2.5 ÜST olmuşsa (Toplam 10+)
-    strat_target = False
-    if (h_25_hits + a_25_hits) >= 10: 
-        strat_target = True
+    # 2.5 ÜST Stratejik Alarmı
+    strat_target = (h_25_hits + a_25_hits) >= 10 or cross_power > 1.8
 
     iy_alarm_active = False
     if 0 < elapsed < 40 and total == 0:
@@ -238,20 +243,17 @@ def siber_engine(m):
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
     
     if elapsed == 0:
-        if strat_target:
-            pre_emir, conf = "STRATEJİK 2.5 ÜST", 94
+        if strat_target: pre_emir, conf = "STRATEJİK 2.5 ÜST", 94
         else:
             pre_emir = "İLK YARI 0.5 ÜST" if (h_iy_hits + a_iy_hits) >= 11 else "1.5 ÜST"
             conf = 91
     else:
-        atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
         if elapsed < 42 and total == 0:
             if momentum_boost or iy_alarm_active:
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98
             else: live_emir, conf = "0.5 ÜST", 90
         elif 45 <= elapsed < 78:
-            if strat_target and total >= 1:
-                live_emir, conf = "STRATEJİK 2.5 ÜST", 96
+            if strat_target and total >= 1: live_emir, conf = "STRATEJİK 2.5 ÜST", 96
             elif (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5):
                 live_emir, conf = "+0.5 GOL (BASKI)", 97
             else: live_emir, conf = "0.5 ÜST", 92
@@ -259,7 +261,7 @@ def siber_engine(m):
 
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
     a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
-    h_power = (h_past_wins * 15) + (35 if gh > ga else 0) + (h_dom * 0.8)
+    h_power = (h_past_wins * 15) + (35 if gh > ga else 0) + (h_dom * 0.8) + (cross_power * 10)
     a_power = (a_past_wins * 15) + (35 if ga > gh else 0) + (a_dom * 0.8)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
