@@ -112,6 +112,7 @@ style_code = (
     ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
     ".hybrid-target{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
+    ".hybrid-target-25{background:#f1e05a; color:#000; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
     ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
     ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
     ".hybrid-val{color:#fff; font-weight:800;}"
@@ -166,7 +167,7 @@ def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 8}, timeout=10)
         res = r.json().get('response', [])
-        return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
+        return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "GH": m['goals']['home'] or 0, "GA": m['goals']['away'] or 0, "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
 def check_success(emir, gh, ga):
@@ -217,24 +218,35 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # Siber Projeksiyon Mantığı
-    h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
-    a_past_wins = sum(1 for x in a_history if int(x['SKOR'].split('-')[1]) > int(x['SKOR'].split('-')[0]))
+    # --- SİBER HİBRİT FORMÜL (BEKLENEN GOL ANALİZİ) ---
+    h_avg_atilan = sum(x['GH'] for x in h_history) / 8 if h_history else 0
+    h_avg_yenen = sum(x['GA'] for x in h_history) / 8 if h_history else 0
+    a_avg_atilan = sum(x['GA'] for x in a_history) / 8 if a_history else 0
+    a_avg_yenen = sum(x['GH'] for x in a_history) / 8 if a_history else 0
+    
+    xg_siber = ((h_avg_atilan + a_avg_yenen) + (a_avg_atilan + h_avg_yenen)) / 2
+    
+    target_label, target_class = "", ""
+    if xg_siber >= 2.85:
+        target_label, target_class = "STRATEJİK 2.5 ÜST", "hybrid-target-25"
+    elif xg_siber >= 1.85:
+        target_label, target_class = "STRATEJİK 1.5 ÜST", "hybrid-target"
+
+    h_past_wins = sum(1 for x in h_history if x['GH'] > x['GA'])
+    a_past_wins = sum(1 for x in a_history if x['GA'] > x['GH'])
     h_power = (h_past_wins * 15) + (35 if gh > ga else 15 if gh == ga else 0) + (h_dom * 0.8)
     a_power = (a_past_wins * 15) + (35 if ga > gh else 15 if ga == gh else 0) + (a_dom * 0.8)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
-    h_prob, a_prob = round((h_power / sum_pow) * 100), round((a_power / sum_pow) * 100)
+    h_prob = round((h_power / sum_pow) * 100)
+    a_prob = 100 - h_prob
 
     if h_prob > 60: h_proj = f"🔥 {h_name} BASKIN (%{h_prob})"
     elif a_prob > 60: h_proj = f"🔥 {a_name} BASKIN (%{a_prob})"
     else: h_proj = f"⚖️ ANALİZ: DENGELİ (%{h_prob}-%{a_prob})"
 
-    # Hibrit Alarmlar
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     iy_alarm_active = (0 < elapsed < 40 and total == 0 and (h_iy_hits + a_iy_hits) >= 11)
-    
-    strat_target = (sum(1 for x in h_history if x['TOPLAM'] > 2) + sum(1 for x in a_history if x['TOPLAM'] > 2)) >= 10
 
     pre_emir, live_emir, conf = "1.5 ÜST", "BEKLEMEDE", 85
     if elapsed == 0:
@@ -250,7 +262,7 @@ def siber_engine(m):
             live_emir, conf = ("+0.5 GOL (YÜKSEK BASKI)", 97) if (h_dom > a_dom * 1.5 or a_dom > h_dom * 1.5) and total < 3 else ("0.5 ÜST", 92)
         else: live_emir, conf = "MAÇ SONU +0.5", 89
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, strat_target
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, target_label, target_class
 
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
@@ -328,7 +340,6 @@ else:
                     else: st.warning("Maç bulunamadı.")
         st.markdown("</div>", unsafe_allow_html=True)
 
-    # İstatistik Paneli
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
     pre_wins = sum(1 for arc in all_archived if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))))
@@ -369,14 +380,15 @@ else:
     if current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_al, m_bo, h_pr, s_ta = siber_engine(m)
+            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_al, m_bo, h_pr, t_lbl, t_cls = siber_engine(m)
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], 
                 "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
                 "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, 
                 "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", 
                 "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, 
-                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_al, "m_boost": m_bo, "h_proj": h_pr, "s_target": s_ta
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_al, "m_boost": m_bo, "h_proj": h_pr, 
+                "t_lbl": t_lbl, "t_cls": t_cls
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
@@ -386,9 +398,8 @@ else:
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         alarm_html = f"<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = f"<span class='momentum-boost'>⚡ HIZLI ATAK</span>" if arc.get('m_boost') else ""
-        target_html = f"<span class='hybrid-target'>🎯 STRATEJİK 1.5 ÜST</span>" if arc.get('s_target') else ""
+        target_html = f"<span class='{arc['t_cls']}'>🎯 {arc['t_lbl']}</span>" if arc.get('t_lbl') else ""
         
-        # Talep Edilen Hibrit Yapı
         hybrid_html = f"""
         <div class='hybrid-box'>
             <small class='hybrid-label'>SİBER ANALİZ:</small>
