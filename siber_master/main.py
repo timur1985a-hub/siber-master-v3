@@ -246,8 +246,10 @@ def siber_engine(m):
     if 0 < elapsed < 40 and total == 0:
         if (h_iy_hits + a_iy_hits) >= 11: iy_alarm_active = True # Mukayese: %70+ İY gol oranı
 
-    strat_target = False
-    if (h_25_hits + a_25_hits) >= 10: strat_target = True # Mukayese: %60+ 2.5 ÜST geçmişi
+    # --- STRATEJİK 2.5 ÜST ALGORİTMASI ---
+    strat_25_target = False
+    if (h_25_hits + a_25_hits) >= 12: 
+        strat_25_target = True
 
     conf = 85
     pre_emir, live_emir = "1.5 ÜST", "BEKLEMEDE"
@@ -257,7 +259,10 @@ def siber_engine(m):
         conf = 93 if pre_emir == "İLK YARI 0.5 ÜST" else 88
     else:
         atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
-        if elapsed < 42 and total == 0:
+        # Stratejik 2.5 ÜST Tetikleyici (2-0/0-2 durumu ve Dakika < 78)
+        if strat_25_target and ((gh == 2 and ga == 0) or (gh == 0 and ga == 2)) and elapsed < 78:
+            live_emir, conf = "2.5 ÜST (STRATEJİK)", 98
+        elif elapsed < 42 and total == 0:
             if (h_dom > 25 or a_dom > 25) or (atk_per_min > 1.8) or momentum_boost or iy_alarm_active:
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98 if momentum_boost else 94
             else: live_emir, conf = "0.5 ÜST", 90
@@ -267,7 +272,7 @@ def siber_engine(m):
             else: live_emir, conf = "0.5 ÜST", 92
         else: live_emir, conf = "MAÇ SONU +0.5", 89
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, strat_target
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, strat_25_target
 
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
@@ -404,7 +409,7 @@ else:
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         alarm_html = "<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = "<span class='momentum-boost'>⚡ HIZLI ATAK</span>" if arc.get('m_boost') else ""
-        target_html = "<span class='hybrid-target'>🎯 STRATEJİK 1.5 ÜST</span>" if arc.get('s_target') else ""
+        target_html = "<span class='hybrid-target'>🎯 STRATEJİK 2.5 ÜST</span>" if arc.get('s_target') else ""
         hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER PROJEKSİYON (GÜÇ ANALİZİ):</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
         
         st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}{target_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>MAÇ ÖNCESİ</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI ANALİZ</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
