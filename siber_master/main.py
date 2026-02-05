@@ -217,7 +217,7 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- HİBRİT PROJEKSİYON MATEMATİĞİ (GÜNCELLENDİ) ---
+    # --- HİBRİT PROJEKSİYON VE ALARM MANTIĞI (GÜNCELLEME BURADA) ---
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
     a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
@@ -228,13 +228,17 @@ def siber_engine(m):
     is_15_solid = (h_15_hits + a_15_hits) >= 13
     is_25_solid = (h_25_hits + a_25_hits) >= 11
     
+    # Veri alamasa bile beklemede kalmayan alarm:
     iy_alarm_active = False
     if 10 < elapsed < 40 and total == 0:
-        if (h_iy_hits + a_iy_hits) >= 12 and (h_dom + a_dom) > 40: iy_alarm_active = True
+        # ŞART: Matematiksel değerler tutuyorsa (Veri olsa da olmasa da tetiklenir)
+        if (h_iy_hits + a_iy_hits) >= 12:
+            # Canlı veri varsa baskıya bak, yoksa sadece matematiğe güven
+            if (h_dom + a_dom) > 40 or (h_iy_hits >= 7 and a_iy_hits >= 7):
+                iy_alarm_active = True
 
     strat_target = is_15_solid or is_25_solid
     
-    # HİBRİT GÜÇ PROJEKSİYONU: (Geçmiş Galibiyet * 10) + (Geçmiş Gol Ort * 10) + (Anlık Momentum * 1.5)
     h_avg_g = sum(int(x['SKOR'].split('-')[0]) for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(int(x['SKOR'].split('-')[1]) for x in a_history) / 8 if a_history else 0
     h_past_wins = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > int(x['SKOR'].split('-')[1]))
