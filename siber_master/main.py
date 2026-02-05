@@ -104,11 +104,6 @@ style_code = (
     ".dom-bar-home{height:100%; background:#2ea043; transition:width 0.5s;}"
     ".dom-bar-away{height:100%; background:#f85149; transition:width 0.5s;}"
     ".search-box-sbr{border:1px solid #30363d; background:#0d1117; border-radius:8px; padding:10px; margin-bottom:20px; border-left:4px solid #58a6ff;}"
-    ".siber-assistant-card{background:rgba(13,17,23,0.95); border:1px solid #2ea043; border-radius:15px; padding:15px; margin-top:20px; border-left:5px solid #2ea043; position:relative; overflow:hidden;}"
-    ".siber-assistant-header{color:#2ea043; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:1px solid #30363d; padding-bottom:8px;}"
-    ".siber-assistant-body{color:#8b949e; font-size:0.9rem; line-height:1.4;}"
-    ".siber-assistant-highlight{color:#fff; font-weight:bold;}"
-    ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
     ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
     ".hybrid-target{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
@@ -122,7 +117,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state["auth"]: persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (HİBRİT VE GÜÇLÜ) ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
     try:
         dt = datetime.fromisoformat(utc_str.replace("Z", "+00:00"))
@@ -140,13 +135,21 @@ def fetch_siber_data(live=True):
 def hybrid_search_engine(query):
     query = query.lower().strip()
     if not query: return []
+    # 1. Aşama: Sistemdeki (Archive/Stored) Maçlarda Ara
     pool = st.session_state.get("stored_matches", [])
     found = [m for m in pool if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+    
+    # 2. Aşama: Bulunamazsa Doğrudan API Live/Today Havuzunda Ara
     if not found:
         try:
             r_live = requests.get(f"{BASE_URL}/fixtures?live=all", headers=HEADERS, timeout=10)
             live_list = r_live.json().get('response', [])
             found = [m for m in live_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+            if not found:
+                today = datetime.now().strftime("%Y-%m-%d")
+                r_today = requests.get(f"{BASE_URL}/fixtures?date={today}", headers=HEADERS, timeout=10)
+                today_list = r_today.json().get('response', [])
+                found = [m for m in today_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
         except: pass
     return found
 
@@ -212,24 +215,21 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- HİBRİT SİBER KALE FORMÜLÜ (GÜÇLENDİRİLMİŞ) ---
     h_avg_atilan = sum(x['GH'] for x in h_history) / 8 if h_history else 0
     h_avg_yenen = sum(x['GA'] for x in h_history) / 8 if h_history else 0
     a_avg_atilan = sum(x['GA'] for x in a_history) / 8 if a_history else 0
     a_avg_yenen = sum(x['GH'] for x in a_history) / 8 if a_history else 0
     
-    # Siber XG: Takımların geçmişteki gol refleksini anlık veriyle hibritler
     siber_xg = ((h_avg_atilan + a_avg_yenen) * 1.3 + (a_avg_atilan + h_avg_yenen) * 1.3) / 2
     
     target_label, target_class = "", ""
     pre_emir, conf = "1.5 ÜST", 85
     
-    # Siber Projeksiyon ve Mühürleme
     if siber_xg >= 3.2:
-        target_label, target_class = "SİBER 2.5 ÜST (KESİN)", "hybrid-target-25"
+        target_label, target_class = "SİBER 2.5 ÜST", "hybrid-target-25"
         pre_emir, conf = "2.5 ÜST", 97
     elif siber_xg >= 2.0:
-        target_label, target_class = "SİBER 1.5 ÜST (YÜKSEK)", "hybrid-target"
+        target_label, target_class = "SİBER 1.5 ÜST", "hybrid-target"
         pre_emir, conf = "1.5 ÜST", 94
 
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
@@ -238,17 +238,15 @@ def siber_engine(m):
 
     live_emir = "ANALİZ SÜRÜYOR"
     if elapsed > 0:
-        atk_per_min = current_total_atk / elapsed if elapsed > 0 else 0
         if elapsed < 42 and total == 0:
-            if (h_dom > 30 or a_dom > 30) or (atk_per_min > 2.0) or momentum_boost or iy_alarm_active:
+            if (h_dom > 30 or a_dom > 30) or momentum_boost or iy_alarm_active:
                 live_emir, conf = "İLK YARI 0.5 ÜST", 98 if momentum_boost else 95
         elif 45 <= elapsed < 80:
-            if momentum_boost or (h_dom > 80 or a_dom > 80) or siber_xg > 2.5:
-                live_emir, conf = "+0.5 GOL (SİBER ONAYLI)", 96
+            if momentum_boost or (h_dom > 80 or a_dom > 80):
+                live_emir, conf = "+0.5 GOL (SİBER)", 96
             else: live_emir = "0.5 ÜST"
     
-    h_prob = round((h_dom / (h_dom + a_dom + 1)) * 100)
-    h_proj = f"🔥 {h_name} DOMİNASYON" if h_prob > 65 else f"🔥 {a_name} DOMİNASYON" if h_prob < 35 else "⚖️ SİBER DENGE"
+    h_proj = f"🔥 {h_name} BASKIN" if h_dom > a_dom * 2 else f"🔥 {a_name} BASKIN" if a_dom > h_dom * 2 else "⚖️ SİBER DENGE"
 
     return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, target_label, target_class
 
@@ -256,10 +254,10 @@ def safe_to_int(val):
     try: return int(val) if val is not None else 0
     except: return 0
 
-# --- 4. PANEL (DOKUNULMAZ ARAYÜZ) ---
+# --- 4. PANEL ---
 if not st.session_state["auth"]:
     st.markdown("<div class='marketing-title'>STRATEJİK SİBER KALE</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>HİBRİT FORMÜLLERLE ANALİZİNİ SAVUNAN YAPI</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>HİBRİT FORMÜLLERLE ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
@@ -289,6 +287,7 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
+    # ADMIN PANELİ
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
             t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
@@ -303,6 +302,22 @@ else:
                             st.session_state["CORE_VAULT"][tk].update({"issued": True, "exp": datetime.now() + timedelta(days=v["days"])})
                             st.rerun()
 
+    # --- SİBER ARAMA ÇUBUĞU (GERİ YÜKLENDİ) ---
+    st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
+    s_col1, s_col2 = st.columns([4,1])
+    query = s_col1.text_input("🔍 Siber Arama...", placeholder="Takım veya Lig Adı Yazın", label_visibility="collapsed")
+    if s_col2.button("SİSTEMDE ARA", use_container_width=True):
+        if query:
+            with st.spinner("Siber Veriler taranıyor..."):
+                found_matches = hybrid_search_engine(query)
+                if found_matches:
+                    st.session_state["search_result"] = found_matches
+                    st.session_state["view_mode"] = "search"
+                    st.rerun()
+                else: st.warning("Eşleşen maç bulunamadı.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # BUTON GRUBU
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         if st.button("♻️ CANLI MAÇLAR", use_container_width=True):
@@ -324,7 +339,11 @@ else:
 
     display_list = []
     current_matches = []
-    if st.session_state["view_mode"] in ["live", "pre"]:
+    
+    # GÖRÜNTÜLEME MANTIĞI
+    if st.session_state["view_mode"] == "search" and st.session_state["search_result"]:
+        current_matches = st.session_state["search_result"]
+    elif st.session_state["view_mode"] in ["live", "pre"]:
         current_matches = st.session_state["stored_matches"]
     elif st.session_state["view_mode"] == "archive":
         display_list = list(st.session_state["PERMANENT_ARCHIVE"].values())
@@ -344,6 +363,7 @@ else:
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
+    # KARTLARI ÇİZ
     for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
@@ -354,7 +374,7 @@ else:
         
         hybrid_html = f"""
         <div class='hybrid-box'>
-            <small class='hybrid-label'>SİBER SAVUNMA MODU:</small>
+            <small class='hybrid-label'>SİBER ANALİZ PROJEKSİYONU:</small>
             <span class='hybrid-val'><b>{arc['h_proj']} | {arc['t_lbl']}</b></span>
         </div>
         """
