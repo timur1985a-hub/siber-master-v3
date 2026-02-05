@@ -216,7 +216,7 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # --- GELİŞMİŞ HİBRİT FORMÜL MEKANİZMASI ---
+    # --- GELİŞMİŞ HİBRİT FORMÜL MEKANİZMASI (GÜNCELLENDİ) ---
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
     a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
@@ -224,19 +224,44 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
 
-    # Dünkü başarılı eşikler + Yeni 2.5 Üst eşiği
-    is_15_solid = (h_15_hits + a_15_hits) >= 11
-    is_25_solid = (h_25_hits + a_25_hits) >= 10
-    is_iy_solid = (h_iy_hits + a_iy_hits) >= 12
+    # Eşik Değerler (Senin Hafızadaki %90+ Verimlilik Verilerin)
+    is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
+    is_15_formula = (h_15_hits + a_15_hits) >= 11
+    is_25_formula = (h_25_hits + a_25_hits) >= 10
 
-    # Kesin Alarm Koşulları (Veri olmasa bile siber geçmişe güven)
+    # Kesin Alarm Koşulları
     iy_alarm_active = False
     if 8 < elapsed < 42 and total == 0:
-        if is_iy_solid or (h_dom + a_dom) > 30:
+        if is_iy_formula or (h_dom + a_dom) > 30:
             iy_alarm_active = True
 
-    strat_target = is_15_solid or is_25_solid or is_iy_solid
+    # --- KESİN EMİR VE ALARM TİPLERİ ---
+    conf = 85
+    pre_emir = "ANALİZ BEKLENİYOR"
+    s_target_label = ""
     
+    # Sıralama: Önce en yüksek hedefi kontrol et
+    if is_25_formula: 
+        pre_emir = "KESİN 2.5 ÜST"
+        s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
+    elif is_15_formula: 
+        pre_emir = "KESİN 1.5 ÜST"
+        s_target_label = "🎯 KESİN 1.5 ÜST ADAYI"
+    elif is_iy_formula: 
+        pre_emir = "KESİN İLK YARI GOL"
+        s_target_label = "🎯 KESİN İLK YARI GOL ADAYI"
+
+    live_emir = "ANALİZ SÜRÜYOR"
+    if elapsed > 0:
+        if iy_alarm_active and total == 0:
+            live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
+        elif is_25_formula and total < 3:
+            live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
+        elif is_15_formula and total < 2:
+            live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 98 if (momentum_boost or (h_dom+a_dom)>35) else 95
+        else:
+            live_emir, conf = "MAÇ SONU +0.5 GOL", 90
+
     # Güç Tahmini
     h_avg_g = sum(int(x['SKOR'].split('-')[0]) for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(int(x['SKOR'].split('-')[1]) for x in a_history) / 8 if a_history else 0
@@ -244,28 +269,9 @@ def siber_engine(m):
     a_power = (a_avg_g * 12) + (a_dom * 1.5)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
-    a_prob = 100 - h_prob
     h_proj = f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 58 else (f"🔥 {a_name} BASKIN (%{100-h_prob})" if h_prob < 42 else "⚖️ DENGELİ ANALİZ")
 
-    # --- KESİN EMİRLER ---
-    conf = 85
-    pre_emir = "ANALİZ BEKLENİYOR"
-    if is_25_solid: pre_emir = "KESİN 2.5 ÜST"
-    elif is_15_solid: pre_emir = "KESİN 1.5 ÜST"
-    elif is_iy_solid: pre_emir = "KESİN İLK YARI GOL"
-
-    live_emir = "ANALİZ SÜRÜYOR"
-    if elapsed > 0:
-        if iy_alarm_active and total == 0:
-            live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
-        elif is_25_solid and total < 3:
-            live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
-        elif is_15_solid and total < 2:
-            live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 98 if (momentum_boost or (h_dom+a_dom)>35) else 95
-        else:
-            live_emir, conf = "MAÇ SONU +0.5 GOL", 90
-
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, strat_target
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, h_proj, s_target_label
 
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
@@ -401,7 +407,7 @@ else:
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         alarm_html = "<span class='iy-alarm'>🚨 MUTLAK IY GOL ALARMI</span>" if arc.get('iy_alarm') else ""
         boost_html = "<span class='momentum-boost'>⚡ KESİN HIZLANMA</span>" if arc.get('m_boost') else ""
-        target_html = "<span class='hybrid-target'>🎯 KESİN ÜST ADAYI</span>" if arc.get('s_target') else ""
+        target_html = f"<span class='hybrid-target'>{arc.get('s_target', '')}</span>" if arc.get('s_target') else ""
         hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 SİBER GÜÇ PROJEKSİYONU:</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
         
         st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}{target_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>SİBER EMİR</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI EMİR</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
