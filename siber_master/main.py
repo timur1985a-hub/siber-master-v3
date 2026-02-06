@@ -171,13 +171,14 @@ def check_team_history_detailed(team_id):
 
 @st.cache_data(ttl=3600)
 def check_h2h_limit_v2(h_id, a_id):
-    """SADECE ALARM İÇİN H2H KONTROLÜ (4+ GOL)"""
+    """SİBER VİZE: GEÇMİŞTEKİ SON RANDEVUDA 4+ GOL KONTROLÜ"""
     try:
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
         res = r.json().get('response', [])
         if res:
             m = res[0]
-            return ((m['goals']['home'] or 0) + (m['goals']['away'] or 0)) >= 4
+            total_h2h_goals = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
+            return total_h2h_goals >= 4
         return False
     except: return False
 
@@ -279,13 +280,17 @@ def siber_engine(m):
             live_emir, conf = "KESİN KG VAR (CANLI)", 97 if momentum_boost else 93
         elif is_25_formula and total < 3:
             live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
-        # --- EKSTRAL KURAL: 1.5 ÜST ÖZEL STRATEJİ ALARMI ---
+        
+        # --- KRİTİK GÜNCELLEME: 1.5 ÜST SİBER ALARM KESİN YARGI KURALI ---
         elif is_15_formula and total < 2:
+            # H2H Vizeli 1.5 Üst Siber Alarm Kontrolü
             h2h_vize = check_h2h_limit_v2(h_id, a_id)
             if h2h_vize:
+                # Sadece bu durumda "Siber Alarm" tetiklenir
                 live_emir, conf = "🔥 KESİN 1.5 ÜST (SİBER ALARM)", 99 if momentum_boost else 97
             else:
-                live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 95
+                # Vize yoksa normal Canlı ibaresi kalır, alarm tetiklenmez
+                live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 92
         else:
             live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
@@ -357,7 +362,7 @@ else:
         with c_adm2:
             if st.button("🚨 SİBER SIFIRLA", use_container_width=True):
                 st.session_state["PERMANENT_ARCHIVE"] = {}
-                st.session_state["MOMENTUM_TRACKER"] = {}
+                st.session_state["MOMENT_TRACKER"] = {}
                 st.rerun()
 
     with st.container():
