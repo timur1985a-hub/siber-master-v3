@@ -7,7 +7,7 @@ import pytz
 import re
 import json
 
-# --- OTURUM KODU: SIBER_TOTAL_SCAN_INTEGRATION_2026 ---
+# --- OTURUM KODU: SIBER_SUPREME_LAW_H2H_2026 ---
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
@@ -172,7 +172,8 @@ def check_team_history_detailed(team_id):
     except: return []
 
 @st.cache_data(ttl=3600)
-def check_h2h_limit_v2(h_id, a_id):
+def check_siber_kanun_h2h(h_id, a_id):
+    """SİBER KANUN: H2H Son maçta en az 4 gol kontrolü."""
     try:
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
         res = r.json().get('response', [])
@@ -244,6 +245,9 @@ def siber_engine(m):
     is_25_formula = (h_25_hits + a_25_hits) >= 10
     is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
 
+    # --- SİBER KANUN SORGUSU ---
+    kanun_vizesi = check_siber_kanun_h2h(h_id, a_id)
+
     iy_alarm_active = False
     if 8 < elapsed < 42 and total == 0:
         if is_iy_formula or (h_dom + a_dom) > 30:
@@ -259,7 +263,8 @@ def siber_engine(m):
     pre_emir = "ANALİZ BEKLENİYOR"
     s_target_label = ""
     
-    if is_25_formula: 
+    # --- 2.5 ÜST GÜNCELLEMESİ (KANUN ŞARTI) ---
+    if is_25_formula and kanun_vizesi: 
         pre_emir = "KESİN 2.5 ÜST"
         s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
     elif is_15_formula: 
@@ -278,14 +283,11 @@ def siber_engine(m):
             live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
         elif kg_alarm_active:
             live_emir, conf = "KESİN KG VAR (CANLI)", 97 if momentum_boost else 93
-        elif is_25_formula and total < 3:
+        # Canlı 2.5 Üst alarmında da kanun şartı geçerli:
+        elif is_25_formula and total < 3 and kanun_vizesi:
             live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
         elif is_15_formula and total < 2:
-            h2h_vize = check_h2h_limit_v2(h_id, a_id)
-            if h2h_vize:
-                live_emir, conf = "🔥 KESİN 1.5 ÜST (SİBER ALARM)", 99 if momentum_boost else 97
-            else:
-                live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 92
+            live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 92
         else:
             live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
@@ -357,10 +359,9 @@ else:
         with c_adm2:
             if st.button("🚨 SİBER SIFIRLA", use_container_width=True):
                 st.session_state["PERMANENT_ARCHIVE"] = {}
-                st.session_state["MOMENT_TRACKER"] = {}
+                st.session_state["MOMENTUM_TRACKER"] = {}
                 st.rerun()
 
-    # --- KRİTİK GÜNCELLEME: SADECE ADMIN İÇİN TOPLU TARAMA ALANI ---
     if st.session_state.get("role") == "admin":
         with st.container():
             st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
