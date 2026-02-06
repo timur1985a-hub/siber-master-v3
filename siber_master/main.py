@@ -37,12 +37,10 @@ def get_hardcoded_vault():
     cfg = [("1-AY", 30), ("3-AY", 90), ("6-AY", 180), ("12-AY", 365), ("SINIRSIZ", 36500)]
     for lbl, d in cfg:
         for i in range(1, 10001): 
-            # Sadece SINIRSIZ paket için seed güncellendi, diğerleri sabit kaldı.
             if lbl == "SINIRSIZ":
                 seed = f"V17_ULTRA_UNLIMITED_PRIVATE_{lbl}_{i}_TIMUR_2026"
             else:
                 seed = f"V16_ULTRA_FIXED_{lbl}_{i}_TIMUR_2026"
-                
             token = f"SBR-{lbl}-{hashlib.md5(seed.encode()).hexdigest().upper()[:8]}-TM"
             pas = hashlib.md5(f"PASS_{seed}".encode()).hexdigest().upper()[:6]
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
@@ -51,15 +49,16 @@ def get_hardcoded_vault():
 @st.cache_resource
 def get_persistent_archive(): return {}
 
-if "MOMENTUM_TRACKER" not in st.session_state:
-    st.session_state["MOMENTUM_TRACKER"] = {}
+# Session State Başlatma (Hata Payını Sıfıra İndirir)
+if "MOMENTUM_TRACKER" not in st.session_state: st.session_state["MOMENTUM_TRACKER"] = {}
+if "CORE_VAULT" not in st.session_state: st.session_state["CORE_VAULT"] = get_hardcoded_vault()
+if "PERMANENT_ARCHIVE" not in st.session_state: st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
+if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
+if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
+if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
+if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
-if "CORE_VAULT" not in st.session_state:
-    st.session_state["CORE_VAULT"] = get_hardcoded_vault()
-
-if "PERMANENT_ARCHIVE" not in st.session_state:
-    st.session_state["PERMANENT_ARCHIVE"] = get_persistent_archive()
-
+# Oturum Kontrol Mekanizması
 params = st.query_params
 if "auth" not in st.session_state:
     if params.get("auth") == "true":
@@ -70,13 +69,10 @@ if "auth" not in st.session_state:
             ud = st.session_state["CORE_VAULT"][t_param]
             if ud["pass"] == p_param and ud["issued"]:
                 st.session_state.update({"auth": True, "role": "user", "current_user": t_param})
+            else: st.session_state["auth"] = False
+        else: st.session_state["auth"] = False
     else:
         st.session_state["auth"] = False
-
-if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
-if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
-if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
-if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
 # --- 2. DEĞİŞMEZ TASARIM SİSTEMİ (DOKUNULMAZ) ---
 style_code = (
@@ -124,7 +120,7 @@ style_code = (
     "</style>"
 )
 st.markdown(style_code, unsafe_allow_html=True)
-if not st.session_state["auth"]: persist_auth_js()
+if not st.session_state.get("auth", False): persist_auth_js()
 
 # --- 3. SİBER ANALİZ MOTORU ---
 def to_tsi(utc_str):
@@ -276,7 +272,7 @@ def safe_to_int(val):
     except: return 0
 
 # --- 4. PANEL ---
-if not st.session_state["auth"]:
+if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
     st.markdown("<div class='marketing-subtitle'>Kesin İLK YARI - 1.5 ÜST - 2.5 ÜST Analiz Merkezi</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
