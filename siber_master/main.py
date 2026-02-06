@@ -440,4 +440,30 @@ else:
         alarm_html = ""
         if arc.get('iy_alarm'): alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL ALARMI</span>"
         if arc.get('kg_alarm'): alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR ALARMI</span>"
-        boost_html = "<span class='momentum-boost
+        boost_html = "<span class='momentum-boost'>⚡ KESİN HIZLANMA</span>" if arc.get('m_boost') else ""
+        target_html = f"<span class='hybrid-target'>{arc.get('s_target', '')}</span>" if arc.get('s_target') else ""
+        
+        # BGP Verisini içeren Projeksiyon Kutusu
+        hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 BEKLENEN GOL POTANSİYELİ & GÜÇ PROJEKSİYONU:</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
+        
+        st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}{target_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>SİBER EMİR</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI EMİR</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
+        
+        with st.expander(f"🔍 SİBER VERİ: {arc['home']} vs {arc['away']}"):
+            if is_live_card and arc.get('stats'):
+                s = arc['stats']
+                sum_d = (arc['h_d'] + arc['a_d']) if (arc['h_d'] + arc['a_d']) > 0 else 1
+                hp_val = (arc['h_d'] / sum_d) * 100
+                st.markdown(f"<div class='dom-container'><center><b>📊 ANLIK SİBER BASKI</b></center><div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div><table style='width:100%; text-align:center; font-size:0.8rem;'><tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr><tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr><tr><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr></table></div>", unsafe_allow_html=True)
+            st.write("### 🏟️ Formül Geçmiş Analizi (Son 8 Maç)")
+            ch_col, ca_col = st.columns(2)
+            with ch_col:
+                st.markdown(f"**🏠 {arc['home']}**")
+                if arc.get('h_h'): st.dataframe(pd.DataFrame(arc['h_h']), use_container_width=True)
+            with ca_col:
+                st.markdown(f"**🚀 {arc['away']}**")
+                if arc.get('a_h'): st.dataframe(pd.DataFrame(arc['a_h']), use_container_width=True)
+
+    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
+        st.query_params.clear()
+        st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
+        st.session_state["auth"] = False; st.rerun()
