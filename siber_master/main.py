@@ -169,6 +169,19 @@ def check_team_history_detailed(team_id):
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
+@st.cache_data(ttl=3600)
+def check_h2h_limit_v2(h_id, a_id):
+    """SİBER KATI KURAL: Aralarındaki son maçta 4+ gol kontrolü"""
+    try:
+        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
+        res = r.json().get('response', [])
+        if res:
+            m = res[0]
+            total_goals = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
+            return total_goals >= 4
+        return False # Geçmiş H2H kaydı yoksa risk almamak için gösterme
+    except: return False
+
 def check_success(emir, gh, ga):
     total = gh + ga
     if "İLK YARI" in emir: return (gh+ga) > 0 
@@ -179,11 +192,16 @@ def check_success(emir, gh, ga):
     return False
 
 def siber_engine(m):
+    h_id, a_id = m['teams']['home']['id'], m['teams']['away']['id']
+    
+    # --- SİBER KATI KURAL VİZESİ ---
+    if not check_h2h_limit_v2(h_id, a_id):
+        return None # Kurala uymayan maçı sisteme alma
+
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
     total = gh + ga
     fid = str(m['fixture']['id'])
     elapsed = m['fixture']['status']['elapsed'] or 0
-    h_id, a_id = m['teams']['home']['id'], m['teams']['away']['id']
     h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
     
     h_history = check_team_history_detailed(h_id)
@@ -223,24 +241,21 @@ def siber_engine(m):
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     
-    # KG VAR Formül Verisi: Her iki takımın da son 8 maçındaki KG VAR oranı
     h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
     a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
 
     is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
     is_15_formula = (h_15_hits + a_15_hits) >= 11
     is_25_formula = (h_25_hits + a_25_hits) >= 10
-    is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 # Hibrit KG Formülü: Toplamda %60+ başarı
+    is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
 
     iy_alarm_active = False
     if 8 < elapsed < 42 and total == 0:
         if is_iy_formula or (h_dom + a_dom) > 30:
             iy_alarm_active = True
 
-    # --- KG VAR ALARM MANTIĞI ---
     kg_alarm_active = False
     if (gh == 0 or ga == 0) and 20 < elapsed < 75:
-        # Karşılıklı baskı varsa ve geçmiş destekliyorsa
         if (h_dom > 25 and a_dom > 25) and abs(h_dom - a_dom) < 20:
             if is_kg_formula or (safe_to_int(stats_data['h_sht']) >= 2 and safe_to_int(stats_data['a_sht']) >= 2):
                 kg_alarm_active = True
@@ -292,7 +307,7 @@ def safe_to_int(val):
 # --- 4. PANEL ---
 if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Kesin İLK YARI - 1.5 ÜST - 2.5 ÜST - KG VAR Analiz Merkezi</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Katı H2H (4+ Gol) Filtresi ve Siber Analiz Aktif</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
@@ -319,7 +334,7 @@ if not st.session_state.get("auth", False):
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 
-    st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Gelişmiş KG VAR, 2.5 ÜST ve IY GOL formülleri aktif.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%97.4</span><br><br>Yerini al, serveti yönet!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
+    st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Gelişmiş H2H 4+ Gol Filtresi Aktif.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%97.4</span><br><br>Yerini al, serveti yönet!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
 
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
@@ -402,7 +417,11 @@ else:
     if current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_alarm, m_boost, h_proj, s_target, kg_alarm = siber_engine(m)
+            # --- SİBER ANALİZ VE FİLTRELEME ---
+            siber_res = siber_engine(m)
+            if siber_res is None: continue # Kurala uymayan maçı gösterme
+            
+            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_alarm, m_boost, h_proj, s_target, kg_alarm = siber_res
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], 
                 "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
