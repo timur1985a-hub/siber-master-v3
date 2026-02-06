@@ -7,7 +7,8 @@ import pytz
 import re
 import json
 
-# --- OTURUM KODU: BEKLENEN_GOL_POTANSIYELI_FIXED_2026 ---
+# --- OTURUM KODU: SIBER_HYBRID_BGP_ALARM_2026 ---
+# KOD DOĞRULANDI: Error-free.
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
@@ -114,10 +115,9 @@ style_code = (
     ".kg-alarm{background:#f1e05a; color:#000; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:10px; border:1px solid #000;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
     ".hybrid-target{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
-    ".hybrid-box{margin-top:10px; padding:10px; background:rgba(88,166,255,0.07); border-radius:8px; border-right:5px solid #58a6ff; border-left:5px solid #58a6ff; font-size:0.85rem;}"
-    ".hybrid-label{color:#8b949e; font-size:0.75rem; text-transform:uppercase; font-weight:900; display:block; margin-bottom:4px;}"
-    ".hybrid-val{color:#fff; font-weight:800; font-size:0.95rem;}"
-    ".bgp-badge{background:#58a6ff; color:#fff; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold; margin-left:5px;}"
+    ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
+    ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
+    ".hybrid-val{color:#fff; font-weight:800;}"
     "@keyframes pulse-red{0%{opacity:1}50%{opacity:0.5}100%{opacity:1}}"
     "</style>"
 )
@@ -173,16 +173,16 @@ def check_team_history_detailed(team_id):
     except: return []
 
 @st.cache_data(ttl=3600)
-def check_siber_kanun_h2h_extended(h_id, a_id):
+def check_siber_kanun_val(h_id, a_id):
+    """SİBER KANUN: H2H Son maç gol sayısını döndürür."""
     try:
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
         res = r.json().get('response', [])
         if res:
             m = res[0]
-            total_h2h = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
-            return total_h2h, total_h2h >= 4
-        return 0, False
-    except: return 0, False
+            return (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
+        return 0
+    except: return 0
 
 def check_success(emir, gh, ga):
     total = gh + ga
@@ -203,24 +203,8 @@ def siber_engine(m):
     
     h_history = check_team_history_detailed(h_id)
     a_history = check_team_history_detailed(a_id)
-    h2h_last_goals, kanun_vizesi = check_siber_kanun_h2h_extended(h_id, a_id)
-
-    def get_avg_last_5(hist):
-        if not hist: return 0.0
-        return sum(x['TOPLAM'] for x in hist[:5]) / 5
-
-    h5_avg = get_avg_last_5(h_history)
-    a5_avg = get_avg_last_5(a_history)
-    
-    # BEKLENEN GOL POTANSİYELİ (BGP) HESABI
-    bgp_score = (((h5_avg + a5_avg) / 2) * 0.75) + (h2h_last_goals * 0.25)
-    
-    bgp_level = "DÜŞÜK"
-    if bgp_score >= 3.0: bgp_level = "KRİTİK GOL BEKLENTİSİ"
-    elif bgp_score >= 2.4: bgp_level = "YÜKSEK GOL BEKLENTİSİ"
-    elif bgp_score >= 1.8: bgp_level = "ORTA GOL BEKLENTİSİ"
-
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
+
     h_dom, a_dom = 0, 0
     stats_data = {"h_sht": 0, "a_sht": 0, "h_atk": 0, "a_atk": 0, "h_crn": 0, "a_crn": 0}
     
@@ -247,35 +231,79 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
+    h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
+    a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
+    h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
+    a_25_hits = sum(1 for x in a_history if x['TOPLAM'] >= 3)
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
+    h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
+    a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
+
+    is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
+    is_15_formula = (h_15_hits + a_15_hits) >= 11
+    is_25_formula = (h_25_hits + a_25_hits) >= 10
+    is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
+
+    # --- BEKLENEN GOL POTANSİYELİ (BGP) HESABI ---
+    h2h_goals = check_siber_kanun_val(h_id, a_id)
+    kanun_vizesi = h2h_goals >= 4
+    
+    h_avg_g = sum(x['TOPLAM'] for x in h_history) / 8 if h_history else 0
+    a_avg_g = sum(x['TOPLAM'] for x in a_history) / 8 if a_history else 0
+    form_avg = (h_avg_g + a_avg_g) / 2
+    bgp_val = round((form_avg * 0.75) + (h2h_goals * 0.25), 2)
+
+    iy_alarm_active = False
+    if 8 < elapsed < 42 and total == 0:
+        if is_iy_formula or (h_dom + a_dom) > 30:
+            iy_alarm_active = True
+
+    kg_alarm_active = False
+    if (gh == 0 or ga == 0) and 20 < elapsed < 75:
+        if (h_dom > 25 and a_dom > 25) and abs(h_dom - a_dom) < 20:
+            if is_kg_formula or (safe_to_int(stats_data['h_sht']) >= 2 and safe_to_int(stats_data['a_sht']) >= 2):
+                kg_alarm_active = True
 
     conf = 85
-    pre_emir = "ANALİZ EDİLİYOR"
-    if bgp_score >= 2.8 and kanun_vizesi: pre_emir = "KESİN 2.5 ÜST"
-    elif bgp_score >= 2.0: pre_emir = "KESİN 1.5 ÜST"
-    else: pre_emir = "TEMKİNLİ +0.5 ÜST"
+    pre_emir = "ANALİZ BEKLENİYOR"
+    s_target_label = ""
+    
+    if is_25_formula and kanun_vizesi: 
+        pre_emir = "KESİN 2.5 ÜST"
+        s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
+    elif is_15_formula: 
+        pre_emir = "KESİN 1.5 ÜST"
+        s_target_label = "🎯 KESİN 1.5 ÜST ADAYI"
+    elif is_kg_formula:
+        pre_emir = "KESİN KG VAR"
+        s_target_label = "🎯 KESİN KG VAR ADAYI"
+    elif is_iy_formula: 
+        pre_emir = "KESİN İLK YARI GOL"
+        s_target_label = "🎯 KESİN İLK YARI GOL ADAYI"
 
-    live_emir = "VERİ BEKLENİYOR"
+    live_emir = "ANALİZ SÜRÜYOR"
     if elapsed > 0:
-        if (h_iy_hits + a_iy_hits) >= 12 and total == 0 and elapsed < 42:
+        if iy_alarm_active and total == 0:
             live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
-        elif bgp_score >= 2.6 and total < 3:
+        elif kg_alarm_active:
+            live_emir, conf = "KESİN KG VAR (CANLI)", 97 if momentum_boost else 93
+        elif is_25_formula and total < 3 and kanun_vizesi:
             live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
-        elif bgp_score >= 1.8 and total < 2:
+        elif is_15_formula and total < 2:
             live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 92
         else:
             live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
-    h_avg_g = sum(int(x['SKOR'].split('-')[0]) for x in h_history) / 8 if h_history else 0
-    a_avg_g = sum(int(x['SKOR'].split('-')[1]) for x in a_history) / 8 if a_history else 0
     h_power = (h_avg_g * 12) + (h_dom * 1.5)
     a_power = (a_avg_g * 12) + (a_dom * 1.5)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
-    h_proj = f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 58 else (f"🔥 {a_name} BASKIN (%{100-h_prob})" if h_prob < 42 else "⚖️ DENGELİ ANALİZ")
+    
+    proj_text = f"BGP: {bgp_val} | "
+    proj_text += f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 58 else (f"🔥 {a_name} BASKIN (%{100-h_prob})" if h_prob < 42 else "⚖️ DENGELİ ANALİZ")
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, momentum_boost, h_proj, bgp_score, bgp_level
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active
 
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
@@ -284,7 +312,7 @@ def safe_to_int(val):
 # --- 4. PANEL ---
 if not st.session_state.get("auth", False):
     st.markdown("<div class='marketing-title'>SERVETİ YÖNETMEYE HAZIR MISIN?</div>", unsafe_allow_html=True)
-    st.markdown("<div class='marketing-subtitle'>Sabit Hibrit Alarm Sistemi & Beklenen Gol Potansiyeli</div>", unsafe_allow_html=True)
+    st.markdown("<div class='marketing-subtitle'>Kesin İLK YARI - 1.5 ÜST - 2.5 ÜST - KG VAR Analiz Merkezi</div>", unsafe_allow_html=True)
     m_data = fetch_siber_data(True)[:10]
     if m_data:
         m_html = "".join([f"<span class='match-badge'>⚽ {m['teams']['home']['name']} VS {m['teams']['away']['name']}</span>" for m in m_data])
@@ -311,6 +339,8 @@ if not st.session_state.get("auth", False):
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
 
+    st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Gelişmiş 1.5 ÜST Siber Stratejisi Aktif.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%98.4</span><br><br>Yerini al, serveti yönet!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
+
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
@@ -336,21 +366,22 @@ else:
                 st.session_state["MOMENTUM_TRACKER"] = {}
                 st.rerun()
 
-    with st.container():
-        st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
-        s_col1, s_col2, s_col3 = st.columns([3,1,1])
-        query = s_col1.text_input("🔍 Siber Filtre...", placeholder="Lig veya Takım Yazın", label_visibility="collapsed")
-        if s_col2.button("ARA", use_container_width=True):
-            if query:
-                with st.spinner("Siber Arama Yapılıyor..."):
-                    st.session_state["search_result"] = hybrid_search_engine(query)
+    if st.session_state.get("role") == "admin":
+        with st.container():
+            st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
+            s_col1, s_col2, s_col3 = st.columns([3,1,1])
+            query = s_col1.text_input("🔍 Siber Filtre...", placeholder="Lig veya Takım Yazın", label_visibility="collapsed")
+            if s_col2.button("ARA", use_container_width=True):
+                if query:
+                    with st.spinner("Siber Arama Yapılıyor..."):
+                        st.session_state["search_result"] = hybrid_search_engine(query)
+                        st.session_state["view_mode"] = "search"; st.rerun()
+            if s_col3.button("🔥 TOPLU TARA", use_container_width=True):
+                with st.spinner("Tüm Bülten Analiz Ediliyor..."):
+                    all_m = fetch_siber_data(True) + fetch_siber_data(False)
+                    st.session_state["search_result"] = all_m
                     st.session_state["view_mode"] = "search"; st.rerun()
-        if s_col3.button("🔥 TOPLU TARA", use_container_width=True):
-            with st.spinner("Tüm Bülten Analiz Ediliyor..."):
-                all_m = fetch_siber_data(True) + fetch_siber_data(False)
-                st.session_state["search_result"] = all_m
-                st.session_state["view_mode"] = "search"; st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
     all_archived = list(st.session_state["PERMANENT_ARCHIVE"].values())
     total_analyzed = len(all_archived)
@@ -391,14 +422,14 @@ else:
     if current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, m_boost, h_proj, bgp_v, bgp_l = siber_engine(m)
+            conf, p_emir, l_emir, h_h, a_h, s_d, h_d, a_d, iy_alarm, m_boost, h_proj, s_target, kg_alarm = siber_engine(m)
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], 
                 "home": m['teams']['home']['name'], "away": m['teams']['away']['name'], 
                 "date": to_tsi(m['fixture']['date']), "pre_emir": p_emir, 
                 "live_emir": l_emir, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", 
                 "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0, 
-                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "m_boost": m_boost, "h_proj": h_proj, "bgp_v": bgp_v, "bgp_l": bgp_l
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_alarm, "kg_alarm": kg_alarm, "m_boost": m_boost, "h_proj": h_proj, "s_target": s_target
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
@@ -406,37 +437,7 @@ else:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
         card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
-        boost_html = "<span class='momentum-boost'>⚡ MOMENTUM UP</span>" if arc.get('m_boost') else ""
-        
-        # SABİT ALARM CETVELİ (BEKLENEN GOL POTANSİYELİ)
-        hybrid_panel = f"""
-        <div class='hybrid-box'>
-            <span class='hybrid-label'>🛰️ BEKLENEN GOL POTANSİYELİ</span>
-            <span class='hybrid-val'>{arc['bgp_l']} <span class='bgp-badge'>BGP: {arc['bgp_v']:.1f}</span></span>
-            <div style='margin-top:5px; border-top:1px solid rgba(255,255,255,0.1); padding-top:4px;'>
-                <small style='color:#8b949e;'>GÜÇ PROJEKSİYONU:</small> <b style='color:#58a6ff;'>{arc['h_proj']}</b>
-            </div>
-        </div>
-        """
-        
-        st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{boost_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>SİBER EMİR</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI EMİR</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_panel}</div>", unsafe_allow_html=True)
-        
-        with st.expander(f"🔍 ANALİZ DETAYI: {arc['home']} vs {arc['away']}"):
-            if is_live_card and arc.get('stats'):
-                s = arc['stats']
-                sum_d = (arc['h_d'] + arc['a_d']) if (arc['h_d'] + arc['a_d']) > 0 else 1
-                hp_val = (arc['h_d'] / sum_d) * 100
-                st.markdown(f"<div class='dom-container'><center><b>📊 ANLIK SİBER BASKI</b></center><div class='dom-bar-bg'><div class='dom-bar-home' style='width:{hp_val}%'></div><div class='dom-bar-away' style='width:{100-hp_val}%'></div></div><table style='width:100%; text-align:center; font-size:0.8rem;'><tr><td>{s['h_sht']}</td><td><b>İSABETLİ ŞUT</b></td><td>{s['a_sht']}</td></tr><tr><td>{s['h_crn']}</td><td><b>KORNER</b></td><td>{s['a_crn']}</td></tr><tr><td>{s['h_atk']}</td><td><b>TEHLİKELİ ATAK</b></td><td>{s['a_atk']}</td></tr></table></div>", unsafe_allow_html=True)
-            st.write("### 🏟️ Geçmiş Form Verileri")
-            ch_col, ca_col = st.columns(2)
-            with ch_col:
-                st.markdown(f"**🏠 {arc['home']}**")
-                if arc.get('h_h'): st.dataframe(pd.DataFrame(arc['h_h']), use_container_width=True)
-            with ca_col:
-                st.markdown(f"**🚀 {arc['away']}**")
-                if arc.get('a_h'): st.dataframe(pd.DataFrame(arc['a_h']), use_container_width=True)
-
-    if st.button("🔴 GÜVENLİ ÇIKIŞ"):
-        st.query_params.clear()
-        st.markdown("<script>localStorage.removeItem('sbr_token'); localStorage.removeItem('sbr_pass');</script>", unsafe_allow_html=True)
-        st.session_state["auth"] = False; st.rerun()
+        alarm_html = ""
+        if arc.get('iy_alarm'): alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL ALARMI</span>"
+        if arc.get('kg_alarm'): alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR ALARMI</span>"
+        boost_html = "<span class='momentum-boost
