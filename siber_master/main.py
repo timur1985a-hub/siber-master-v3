@@ -164,7 +164,7 @@ def fetch_live_stats(fid):
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=3600)
 def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 8}, timeout=10)
@@ -172,16 +172,16 @@ def check_team_history_detailed(team_id):
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
-@st.cache_data(ttl=1800)
-def check_siber_kanun_val(h_id, a_id):
+@st.cache_data(ttl=3600)
+def check_siber_kanun_vize(h_id, a_id):
+    """SİBER KANUN: H2H Son 5 maçta toplam en az 4 gol şartı."""
     try:
-        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 5}, timeout=10)
         res = r.json().get('response', [])
-        if res:
-            m = res[0]
-            return (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
-        return 0
-    except: return 0
+        if not res: return False
+        total_h2h_goals = sum((m['goals']['home'] or 0) + (m['goals']['away'] or 0) for m in res)
+        return total_h2h_goals >= 4
+    except: return False
 
 def check_success(emir, gh, ga):
     total = gh + ga
@@ -230,12 +230,12 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
+    h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
+    a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
     a_15_hits = sum(1 for x in a_history if x['TOPLAM'] >= 2)
     h_25_hits = sum(1 for x in h_history if x['TOPLAM'] >= 3)
     a_25_hits = sum(1 for x in a_history if x['TOPLAM'] >= 3)
-    h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
-    a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
     a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
 
@@ -244,13 +244,14 @@ def siber_engine(m):
     is_25_formula = (h_25_hits + a_25_hits) >= 10
     is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
 
-    h2h_goals = check_siber_kanun_val(h_id, a_id)
-    kanun_vizesi = h2h_goals >= 4
+    # --- KESİN SİBER KANUN VİZESİ (5 MAÇ 4 GOL) ---
+    kanun_vizesi = check_siber_kanun_vize(h_id, a_id)
     
     h_avg_g = sum(x['TOPLAM'] for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(x['TOPLAM'] for x in a_history) / 8 if a_history else 0
     form_avg = (h_avg_g + a_avg_g) / 2
-    bgp_val = round((form_avg * 0.75) + (h2h_goals * 0.25), 2)
+    # BGP Projeksiyonu her zaman hesaplanır ama Emir kısıtlanır
+    bgp_val = round((form_avg * 0.8), 2) 
 
     iy_alarm_active = False
     if 8 < elapsed < 42 and total == 0:
@@ -267,28 +268,32 @@ def siber_engine(m):
     pre_emir = "ANALİZ BEKLENİYOR"
     s_target_label = ""
     
-    if is_25_formula and kanun_vizesi: 
-        pre_emir = "KESİN 2.5 ÜST"
-        s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
-    elif is_15_formula: 
-        pre_emir = "KESİN 1.5 ÜST"
-        s_target_label = "🎯 KESİN 1.5 ÜST ADAYI"
-    elif is_kg_formula:
-        pre_emir = "KESİN KG VAR"
-        s_target_label = "🎯 KESİN KG VAR ADAYI"
-    elif is_iy_formula: 
-        pre_emir = "KESİN İLK YARI GOL"
-        s_target_label = "🎯 KESİN İLK YARI GOL ADAYI"
+    # SADECE KANUN VİZESİ VARSA ÜST EMİRLERİ VERİLİR
+    if kanun_vizesi:
+        if is_25_formula: 
+            pre_emir = "KESİN 2.5 ÜST"
+            s_target_label = "🎯 KESİN 2.5 ÜST ADAYI"
+        elif is_15_formula: 
+            pre_emir = "KESİN 1.5 ÜST"
+            s_target_label = "🎯 KESİN 1.5 ÜST ADAYI"
+        elif is_kg_formula:
+            pre_emir = "KESİN KG VAR"
+            s_target_label = "🎯 KESİN KG VAR ADAYI"
+        elif is_iy_formula: 
+            pre_emir = "KESİN İLK YARI GOL"
+            s_target_label = "🎯 KESİN İLK YARI GOL ADAYI"
+    else:
+        pre_emir = "DÜŞÜK GOL RİSKİ"
 
     live_emir = "ANALİZ SÜRÜYOR"
     if elapsed > 0:
         if iy_alarm_active and total == 0:
             live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
-        elif kg_alarm_active:
+        elif kg_alarm_active and kanun_vizesi:
             live_emir, conf = "KESİN KG VAR (CANLI)", 97 if momentum_boost else 93
         elif is_25_formula and total < 3 and kanun_vizesi:
             live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if (momentum_boost or (h_dom+a_dom)>45) else 91
-        elif is_15_formula and total < 2:
+        elif is_15_formula and total < 2 and kanun_vizesi:
             live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 92
         else:
             live_emir, conf = "MAÇ SONU +0.5 GOL", 90
