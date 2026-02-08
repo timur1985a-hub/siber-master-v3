@@ -7,9 +7,6 @@ import pytz
 import re
 import json
 
-# --- OTURUM KODU: SIBER_HYBRID_BGP_ALARM_2026 ---
-# KOD DOĞRULANDI: Error-free.
-
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
@@ -250,7 +247,6 @@ def siber_engine(m):
     h_avg_g = sum(x['TOPLAM'] for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(x['TOPLAM'] for x in a_history) / 8 if a_history else 0
     form_avg = (h_avg_g + a_avg_g) / 2
-    # BGP Projeksiyonu her zaman hesaplanır ama Emir kısıtlanır
     bgp_val = round((form_avg * 0.8), 2) 
 
     iy_alarm_active = False
@@ -283,7 +279,8 @@ def siber_engine(m):
             pre_emir = "KESİN İLK YARI GOL"
             s_target_label = "🎯 KESİN İLK YARI GOL ADAYI"
     else:
-        pre_emir = "DÜŞÜK GOL RİSKİ"
+        pre_emir = "DÜŞÜK GOL RİSKİ (KANUNA UYMUYOR)"
+        s_target_label = "⚠️ KANUNA UYMUYOR"
 
     live_emir = "ANALİZ SÜRÜYOR"
     if elapsed > 0:
@@ -438,13 +435,16 @@ else:
 
     for arc in display_list:
         is_live_card = arc['status'] not in ['FT', 'AET', 'PEN', 'NS', 'TBD']
-        card_color = "#2ea043" if arc['conf'] >= 94 else "#f1e05a"
+        card_color = "#2ea043" if arc['conf'] >= 94 else ("#f85149" if "UYMUYOR" in arc.get('s_target', '') else "#f1e05a")
         win_status = "✅" if check_success(arc['pre_emir'], *map(int, arc['score'].split('-'))) else ""
         alarm_html = ""
         if arc.get('iy_alarm'): alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL ALARMI</span>"
         if arc.get('kg_alarm'): alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR ALARMI</span>"
         boost_html = "<span class='momentum-boost'>⚡ KESİN HIZLANMA</span>" if arc.get('m_boost') else ""
-        target_html = f"<span class='hybrid-target'>{arc.get('s_target', '')}</span>" if arc.get('s_target') else ""
+        
+        target_style = "background:#f85149; color:#fff;" if "UYMUYOR" in arc.get('s_target', '') else "background:#238636; color:#fff;"
+        target_html = f"<span class='hybrid-target' style='{target_style}'>{arc.get('s_target', '')}</span>" if arc.get('s_target') else ""
+        
         hybrid_html = f"<div class='hybrid-box'><span class='hybrid-label'>📍 BEKLENEN GOL POTANSİYELİ & GÜÇ PROJEKSİYONU:</span><span class='hybrid-val'>{arc.get('h_proj', 'ANALİZ EDİLİYOR')}</span></div>"
         
         st.markdown(f"<div class='decision-card' style='border-left:6px solid {card_color};'><div class='ai-score' style='color:{card_color};'>%{arc['conf']}</div><div class='live-pulse' style='display:{'inline-block' if is_live_card else 'none'}'>📡 CANLI</div>{alarm_html}{boost_html}{target_html}<br><b style='color:#58a6ff;'>{arc['league']}</b> | {arc['date']}<br><span style='font-size:1.2rem; font-weight:bold;'>{arc['home']} vs {arc['away']}</span><br><div class='score-board'>{arc['score']} <span class='live-min-badge'>{arc['min']}'</span></div><div style='display:flex; gap:10px;'><div style='flex:1; background:rgba(88,166,255,0.1); padding:5px; border-radius:5px;'><small>SİBER EMİR</small><br><b>{arc['pre_emir']}</b> {win_status}</div><div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI EMİR</small><br><b>{arc['live_emir']}</b></div></div>{hybrid_html}</div>", unsafe_allow_html=True)
