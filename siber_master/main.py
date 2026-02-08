@@ -8,8 +8,6 @@ import re
 import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
-# KOD DOĞRULANDI: Hata yok. Şablon ve Lisans yapısı milimetrik olarak korunmuştur.
-# OTURUM KODU: SBR-2026-H2H-LAST-MATCH-REVISED
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -135,10 +133,15 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
+        # Maç Öncesi API düzeltmesi: Bugün ve Gelecek maçları kapsar
         url = f"{BASE_URL}/fixtures?live=all" if live else f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}"
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
-        return r.json().get('response', []) if r.status_code == 200 else []
+        data = r.json().get('response', [])
+        if not live:
+            # Sadece oynanmamış (NS) veya başlama aşamasında olanları filtrele
+            data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
+        return data if r.status_code == 200 else []
     except: return []
 
 def hybrid_search_engine(query):
@@ -169,14 +172,14 @@ def fetch_live_stats(fid):
 @st.cache_data(ttl=3600)
 def check_team_history_detailed(team_id):
     try:
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 8}, timeout=10)
+        # 5 Maç bazlı analiz için 'last': 5 olarak güncellendi
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
         res = r.json().get('response', [])
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
 @st.cache_data(ttl=3600)
 def check_siber_kanun_vize(h_id, a_id):
-    """Siber Kanun: Taraflar arasındaki en son (1) maçta en az 4 gol olmalı."""
     try:
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
         res = r.json().get('response', [])
@@ -224,6 +227,7 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
+    # 5 Maç üzerinden oran hesaplama (h_history ve a_history artık 5 maç döner)
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
@@ -233,19 +237,25 @@ def siber_engine(m):
     h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
     a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
 
-    is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
-    is_15_formula = (h_15_hits + a_15_hits) >= 11
-    is_25_formula = (h_25_hits + a_25_hits) >= 10
-    is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
+    # İY Formülü (10 maç toplamında en az 7 maç gol - %70 Başarı)
+    is_iy_formula = (h_iy_hits + a_iy_hits) >= 7
+    is_15_formula = (h_15_hits + a_15_hits) >= 7
+    is_25_formula = (h_25_hits + a_25_hits) >= 6
+    is_kg_formula = (h_kg_hits + a_kg_hits) >= 6 
 
     kanun_vizesi = check_siber_kanun_vize(h_id, a_id)
-    h_avg_g = sum(x['TOPLAM'] for x in h_history) / 8 if h_history else 0
-    a_avg_g = sum(x['TOPLAM'] for x in a_history) / 8 if a_history else 0
+    h_avg_g = sum(x['TOPLAM'] for x in h_history) / 5 if h_history else 0
+    a_avg_g = sum(x['TOPLAM'] for x in a_history) / 5 if a_history else 0
     form_avg = (h_avg_g + a_avg_g) / 2
     bgp_val = round((form_avg * 0.8), 2) 
 
-    iy_alarm_active = (8 < elapsed < 42 and total == 0) and (is_iy_formula or (h_dom + a_dom) > 30)
-    kg_alarm_active = ((gh == 0 or ga == 0) and 20 < elapsed < 75) and ((h_dom > 25 and a_dom > 25) or is_kg_formula)
+    # GÜNCELLENEN ALARM STRATEJİLERİ
+    iy_alarm_active = (8 < elapsed < 42 and total == 0) and (is_iy_formula or (h_dom + a_dom) > 25)
+    
+    # KG ALARMI: "Gol olmama" şartı kaldırıldı. Karşılıklı baskı ve isabetli şut dengesi getirildi.
+    # Her iki takımın tehlikeli atağı var mı ve isabetli şutlar dengeli mi?
+    kg_alarm_active = (20 < elapsed < 80) and (h_dom > 22 and a_dom > 22) and (safe_to_int(stats_data['h_sht']) >= 2 and safe_to_int(stats_data['a_sht']) >= 2)
+
     v15_active = is_15_formula and total < 2
     v25_active = is_25_formula and total < 3
 
