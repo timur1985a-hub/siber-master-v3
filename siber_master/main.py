@@ -110,6 +110,7 @@ style_code = (
     ".ust-badge{background:#58a6ff; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:10px;}"
     ".system-seal-ok{background:#2ea043; color:#fff; padding:5px 12px; border-radius:4px; font-weight:900; display:inline-block; margin-bottom:10px; border:1px solid #fff;}"
     ".system-seal-no{background:#f85149; color:#fff; padding:5px 12px; border-radius:4px; font-weight:900; display:inline-block; margin-bottom:10px; border:1px solid #fff;}"
+    ".vize-info{color:#8b949e; font-size:0.75rem; font-family:monospace; margin-bottom:10px; display:block;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
     ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
     ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
@@ -133,13 +134,18 @@ def to_tsi(utc_str):
 
 def fetch_siber_data(live=True):
     try:
-        # Maç Öncesi API düzeltmesi: Bugün ve Gelecek maçları kapsar
-        url = f"{BASE_URL}/fixtures?live=all" if live else f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}"
+        if live:
+            url = f"{BASE_URL}/fixtures?live=all"
+        else:
+            # Maç Öncesi: Bugünden itibaren +3 günlük geniş tarama
+            t_from = datetime.now().strftime('%Y-%m-%d')
+            t_to = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+            url = f"{BASE_URL}/fixtures?from={t_from}&to={t_to}"
+            
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         data = r.json().get('response', [])
         if not live:
-            # Sadece oynanmamış (NS) veya başlama aşamasında olanları filtrele
             data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
         return data if r.status_code == 200 else []
     except: return []
@@ -154,11 +160,6 @@ def hybrid_search_engine(query):
             r_live = requests.get(f"{BASE_URL}/fixtures?live=all", headers=HEADERS, timeout=10)
             live_list = r_live.json().get('response', [])
             found = [m for m in live_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
-            if not found:
-                today = datetime.now().strftime("%Y-%m-%d")
-                r_today = requests.get(f"{BASE_URL}/fixtures?date={today}", headers=HEADERS, timeout=10)
-                today_list = r_today.json().get('response', [])
-                found = [m for m in today_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
         except: pass
     return found
 
@@ -172,7 +173,6 @@ def fetch_live_stats(fid):
 @st.cache_data(ttl=3600)
 def check_team_history_detailed(team_id):
     try:
-        # 5 Maç bazlı analiz için 'last': 5 olarak güncellendi
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
         res = r.json().get('response', [])
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
@@ -181,13 +181,26 @@ def check_team_history_detailed(team_id):
 @st.cache_data(ttl=3600)
 def check_siber_kanun_vize(h_id, a_id):
     try:
-        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 3}, timeout=10)
         res = r.json().get('response', [])
-        if not res: return False
-        last_match = res[0]
-        total_last_goals = (last_match['goals']['home'] or 0) + (last_match['goals']['away'] or 0)
-        return total_last_goals >= 4
-    except: return False
+        if not res: return False, "Veri Bulunamadı"
+        
+        now = datetime.now()
+        for m in res:
+            total_g = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
+            # Tarih dönüşümü
+            m_date_str = m['fixture']['date'].split("T")[0]
+            m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
+            days_diff = (now - m_date).days
+            
+            if total_g >= 4:
+                if days_diff <= 600:
+                    vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
+                    return True, vize_str
+                else:
+                    return False, f"Eski Tarih ({m_date.strftime('%Y')})"
+        return False, "4 Gol Barajı Aşılmadı"
+    except: return False, "Sistem Hatası"
 
 def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
@@ -227,7 +240,6 @@ def siber_engine(m):
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
-    # 5 Maç üzerinden oran hesaplama (h_history ve a_history artık 5 maç döner)
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
@@ -237,25 +249,19 @@ def siber_engine(m):
     h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
     a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
 
-    # İY Formülü (10 maç toplamında en az 7 maç gol - %70 Başarı)
     is_iy_formula = (h_iy_hits + a_iy_hits) >= 7
     is_15_formula = (h_15_hits + a_15_hits) >= 7
     is_25_formula = (h_25_hits + a_25_hits) >= 6
     is_kg_formula = (h_kg_hits + a_kg_hits) >= 6 
 
-    kanun_vizesi = check_siber_kanun_vize(h_id, a_id)
+    kanun_vizesi, vize_kaniti = check_siber_kanun_vize(h_id, a_id)
     h_avg_g = sum(x['TOPLAM'] for x in h_history) / 5 if h_history else 0
     a_avg_g = sum(x['TOPLAM'] for x in a_history) / 5 if a_history else 0
     form_avg = (h_avg_g + a_avg_g) / 2
     bgp_val = round((form_avg * 0.8), 2) 
 
-    # GÜNCELLENEN ALARM STRATEJİLERİ
     iy_alarm_active = (8 < elapsed < 42 and total == 0) and (is_iy_formula or (h_dom + a_dom) > 25)
-    
-    # KG ALARMI: "Gol olmama" şartı kaldırıldı. Karşılıklı baskı ve isabetli şut dengesi getirildi.
-    # Her iki takımın tehlikeli atağı var mı ve isabetli şutlar dengeli mi?
     kg_alarm_active = (20 < elapsed < 80) and (h_dom > 22 and a_dom > 22) and (safe_to_int(stats_data['h_sht']) >= 2 and safe_to_int(stats_data['a_sht']) >= 2)
-
     v15_active = is_15_formula and total < 2
     v25_active = is_25_formula and total < 3
 
@@ -284,14 +290,11 @@ def siber_engine(m):
     a_prob = 100 - h_prob
     
     proj_text = f"BGP: {bgp_val} | "
-    if h_prob > 58:
-        proj_text += f"🔥 {h_name} BASKIN (%{h_prob})"
-    elif a_prob > 58:
-        proj_text += f"🔥 {a_name} BASKIN (%{a_prob})"
-    else:
-        proj_text += f"⚖️ DENGELİ ANALİZ (%{h_prob}-%{a_prob})"
+    if h_prob > 58: proj_text += f"🔥 {h_name} BASKIN (%{h_prob})"
+    elif a_prob > 58: proj_text += f"🔥 {a_name} BASKIN (%{a_prob})"
+    else: proj_text += f"⚖️ DENGELİ ANALİZ (%{h_prob}-%{a_prob})"
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active, v15_active, v25_active
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active, v15_active, v25_active, vize_kaniti
 
 # --- 4. PANEL ---
 if not st.session_state.get("auth", False):
@@ -320,13 +323,11 @@ if not st.session_state.get("auth", False):
                     st.query_params.update({"auth": "true", "t": l_t, "p": l_p})
                     st.rerun()
                 else: st.error("❌ HATALI GİRİŞ")
-
     st.markdown(f"""<div class='siber-assistant-card'><div class='siber-assistant-header'>📡 SİBER ASİSTAN</div><div class='siber-assistant-body'>Gelişmiş 1.5 ÜST Siber Stratejisi Aktif.<br><br>Başarı Oranı: <span class='siber-assistant-highlight'>%98.4</span><br><br>Yerini al, serveti yönet!</div><a href='{WA_LINK}' style='text-decoration:none;'><button class='siber-asistan-btn'>🔑 ŞİMDİ LİSANS AL</button></a></div>""", unsafe_allow_html=True)
 
 else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
-    
     st.markdown(f"""<div class='stats-panel'><div class='stat-card'><div class='stat-val'>%98.4</div><div class='stat-lbl'>SİBER BAŞARI</div></div><div class='stat-card'><div class='stat-val'>%96.1</div><div class='stat-lbl'>İLK YARI GOL</div></div><div class='stat-card'><div class='stat-val'>%94.8</div><div class='stat-lbl'>1.5 ÜST</div></div><div class='stat-card'><div class='stat-val'>%91.2</div><div class='stat-lbl'>KG VAR</div></div></div>""", unsafe_allow_html=True)
 
     if st.session_state.get("role") == "admin":
@@ -339,7 +340,6 @@ else:
             if adm_c2.button("♻️ TÜM ÖNBELLEĞİ TEMİZLE", use_container_width=True):
                 st.cache_data.clear()
                 st.rerun()
-            
             st.markdown("---")
             t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
@@ -382,13 +382,13 @@ else:
     elif current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25 = siber_engine(m)
+            conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25, v_k = siber_engine(m)
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
                 "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}",
                 "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0,
                 "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_a, "kg_alarm": kg_a, "m_boost": m_b, "h_proj": h_p, "s_target": s_t,
-                "v15": v15, "v25": v25
+                "v15": v15, "v25": v25, "vize_kanit": v_k
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
@@ -407,6 +407,7 @@ else:
         <div class='decision-card' style='border-left:6px solid {card_color};'>
             <div class='ai-score' style='color:{card_color};'>%{arc.get('conf', 0)}</div>
             <div class='{seal_class}'>{arc.get('s_target', 'ANALİZ YOK')}</div><br>
+            <span class='vize-info'>🛡️ {arc.get('vize_kanit', 'Veri Yok')}</span>
             <div class='live-pulse' style='display:{'inline-block' if is_live else 'none'}'>📡 CANLI</div>{alarm_html}<br>
             <b style='color:#58a6ff;'>{arc.get('league', 'Bilinmiyor')}</b> | {arc.get('date', '--/--')}<br>
             <span style='font-size:1.2rem; font-weight:bold;'>{arc.get('home', '---')} vs {arc.get('away', '---')}</span><br>
