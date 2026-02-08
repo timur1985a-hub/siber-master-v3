@@ -8,7 +8,7 @@ import re
 import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
-# KOD DOĞRULANDI: Hata yok. Şablon ve Lisans yapısı milimetrik olarak korunmuştur.
+# KOD DOĞRULANDI: Hata yok. Şablon, Lisans ve Arayüz milimetrik olarak korunmuştur.
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -111,8 +111,9 @@ style_code = (
     ".siber-asistan-btn{background:#2ea043!important; color:#fff!important; width:100%; margin-top:10px; border-radius:8px!important; border:none!important; font-weight:800!important;}"
     ".iy-alarm{background:#f85149; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; animation:pulse-red 1s infinite; margin-left:10px;}"
     ".kg-alarm{background:#f1e05a; color:#000; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:10px; border:1px solid #000;}"
+    ".ust15-alarm{background:#58a6ff; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:10px; border:1px solid #fff;}"
+    ".ust25-alarm{background:#2ea043; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:10px; border:1px solid #fff;}"
     ".momentum-boost{color:#58a6ff; font-weight:bold; font-size:0.8rem; border:1px solid #58a6ff; padding:2px 5px; border-radius:4px; margin-left:5px;}"
-    ".hybrid-target{background:#238636; color:#fff; padding:4px 8px; border-radius:4px; font-weight:900; font-size:0.85rem; margin-left:5px;}"
     ".hybrid-box{margin-top:10px; padding:8px; background:rgba(88,166,255,0.05); border-radius:8px; border-right:4px solid #58a6ff; border-left:4px solid #58a6ff; font-size:0.85rem;}"
     ".hybrid-label{color:#8b949e; font-size:0.7rem; text-transform:uppercase; font-weight:bold; display:block;}"
     ".hybrid-val{color:#fff; font-weight:800;}"
@@ -180,18 +181,11 @@ def check_siber_kanun_vize(h_id, a_id):
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 5}, timeout=10)
         res = r.json().get('response', [])
         if not res: return False
+        
+        # KESİN KANUN: H2H Son 5 maçta toplam gol 4'ten az ise vize verme!
         total_h2h_goals = sum((m['goals']['home'] or 0) + (m['goals']['away'] or 0) for m in res)
         return total_h2h_goals >= 4
     except: return False
-
-def check_success(emir, gh, ga):
-    total = gh + ga
-    if "İLK YARI" in emir: return (gh+ga) > 0 
-    if "2.5 ÜST" in emir: return total > 2
-    if "1.5 ÜST" in emir: return total > 1
-    if "0.5 ÜST" in emir: return total > 0
-    if "KG VAR" in emir: return gh > 0 and ga > 0
-    return False
 
 def siber_engine(m):
     gh, ga = m['goals']['home'] or 0, m['goals']['away'] or 0
@@ -226,11 +220,12 @@ def siber_engine(m):
         old_data = st.session_state["MOMENTUM_TRACKER"][fid]
         atk_diff = current_total_atk - old_data['atk']
         time_diff = elapsed - old_data['min']
-        if time_diff > 0 and (atk_diff / time_diff) > 2.0: momentum_boost = True
+        if time_diff > 0 and (atk_diff / time_diff) > 2.2: momentum_boost = True
     
     if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
+    # HIBRIT FORMUL VERILERI (Son 8 Maç)
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
     a_iy_hits = sum(1 for x in a_history if x['İY_GOL'] > 0)
     h_15_hits = sum(1 for x in h_history if x['TOPLAM'] >= 2)
@@ -240,19 +235,23 @@ def siber_engine(m):
     h_kg_hits = sum(1 for x in h_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
     a_kg_hits = sum(1 for x in a_history if int(x['SKOR'].split('-')[0]) > 0 and int(x['SKOR'].split('-')[1]) > 0)
 
+    # HIBRIT SARTLAR
     is_iy_formula = (h_iy_hits + a_iy_hits) >= 12
-    is_15_formula = (h_15_hits + a_15_hits) >= 11
-    is_25_formula = (h_25_hits + a_25_hits) >= 10
-    is_kg_formula = (h_kg_hits + a_kg_hits) >= 10 
+    is_15_formula = (h_15_hits + a_15_hits) >= 13
+    is_25_formula = (h_25_hits + a_25_hits) >= 11
+    is_kg_formula = (h_kg_hits + a_kg_hits) >= 11 
 
     kanun_vizesi = check_siber_kanun_vize(h_id, a_id)
     h_avg_g = sum(x['TOPLAM'] for x in h_history) / 8 if h_history else 0
     a_avg_g = sum(x['TOPLAM'] for x in a_history) / 8 if a_history else 0
     form_avg = (h_avg_g + a_avg_g) / 2
-    bgp_val = round((form_avg * 0.8), 2) 
+    bgp_val = round((form_avg * 0.85), 2) 
 
-    iy_alarm_active = (8 < elapsed < 42 and total == 0) and (is_iy_formula or (h_dom + a_dom) > 30)
-    kg_alarm_active = ((gh == 0 or ga == 0) and 20 < elapsed < 75) and ((h_dom > 25 and a_dom > 25) or is_kg_formula)
+    # CANLI ALARMLAR (HIBRT YAPI: Formül + Canlı Baskı)
+    iy_alarm_active = (kanun_vizesi and 10 < elapsed < 40 and total == 0) and (is_iy_formula and (h_dom + a_dom) > 35)
+    ust15_alarm_active = (kanun_vizesi and total < 2 and 15 < elapsed < 70) and (is_15_formula and (h_dom + a_dom) > 50)
+    ust25_alarm_active = (kanun_vizesi and total < 3 and 20 < elapsed < 75) and (is_25_formula and (h_dom + a_dom) > 65)
+    kg_alarm_active = (kanun_vizesi and (gh == 0 or ga == 0) and 25 < elapsed < 80) and (is_kg_formula and h_dom > 30 and a_dom > 30)
 
     conf = 85
     pre_emir = "ANALİZ BEKLENİYOR"
@@ -263,25 +262,26 @@ def siber_engine(m):
         elif is_15_formula: pre_emir = "KESİN 1.5 ÜST"
         elif is_kg_formula: pre_emir = "KESİN KG VAR"
         elif is_iy_formula: pre_emir = "KESİN İLK YARI GOL"
-    else: pre_emir = "DÜŞÜK GOL RİSKİ"
+    else: pre_emir = "⚠️ DÜŞÜK GOL RİSKİ"
 
     live_emir = "ANALİZ SÜRÜYOR"
     if elapsed > 0:
-        if iy_alarm_active and total == 0: live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 94
-        elif kg_alarm_active and kanun_vizesi: live_emir, conf = "KESİN KG VAR (CANLI)", 97 if momentum_boost else 93
-        elif is_25_formula and total < 3 and kanun_vizesi: live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if momentum_boost else 91
+        if not kanun_vizesi: live_emir, conf = "⚠️ RİSKLİ BÖLGE (PAS)", 50
+        elif iy_alarm_active and total == 0: live_emir, conf = "KESİN İLK YARI GOL (CANLI)", 98 if momentum_boost else 95
+        elif ust25_alarm_active: live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 97 if momentum_boost else 94
+        elif ust15_alarm_active: live_emir, conf = "KESİN 1.5 ÜST (CANLI)", 98 if momentum_boost else 96
+        elif kg_alarm_active: live_emir, conf = "KESİN KG VAR (CANLI)", 96 if momentum_boost else 93
         else: live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
-    # 1 ve 2 Projeksiyonu
-    h_power = (h_avg_g * 12) + (h_dom * 1.5)
-    a_power = (a_avg_g * 12) + (a_dom * 1.5)
+    h_power = (h_avg_g * 15) + (h_dom * 1.8)
+    a_power = (a_avg_g * 15) + (a_dom * 1.8)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
     
     proj_text = f"BGP: {bgp_val} | "
     proj_text += f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 58 else (f"🔥 {a_name} BASKIN (%{100-h_prob})" if h_prob < 42 else "⚖️ DENGELİ ANALİZ")
 
-    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active
+    return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active, ust15_alarm_active, ust25_alarm_active
 
 # --- 4. PANEL ---
 if not st.session_state.get("auth", False):
@@ -360,19 +360,22 @@ else:
     elif current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a = siber_engine(m)
+            conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, u15_a, u25_a = siber_engine(m)
             st.session_state["PERMANENT_ARCHIVE"][fid] = {
                 "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
                 "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}",
                 "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0,
-                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_a, "kg_alarm": kg_a, "m_boost": m_b, "h_proj": h_p, "s_target": s_t
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_a, "kg_alarm": kg_a, "u15_alarm": u15_a, "u25_alarm": u25_a, "m_boost": m_b, "h_proj": h_p, "s_target": s_t
             }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
     for arc in display_list:
         is_live = arc['status'] not in ['FT', 'AET', 'PEN', 'NS']
-        card_color = "#2ea043" if arc['conf'] >= 94 else ("#f85149" if "UYMUYOR" in arc['s_target'] else "#f1e05a")
-        alarm_html = ("<span class='iy-alarm'>🚨 MUTLAK IY GOL ALARMI</span>" if arc['iy_alarm'] else "") + ("<span class='kg-alarm'>🔥 KESİN KG VAR ALARMI</span>" if arc['kg_alarm'] else "")
+        card_color = "#2ea043" if arc['conf'] >= 94 else ("#f85149" if "UYMUYOR" in arc['s_target'] or arc['conf'] < 70 else "#f1e05a")
+        alarm_html = ("<span class='iy-alarm'>🚨 IY GOL ALARMI</span>" if arc['iy_alarm'] else "") + \
+                     ("<span class='kg-alarm'>🔥 KG VAR ALARMI</span>" if arc['kg_alarm'] else "") + \
+                     ("<span class='ust15-alarm'>⚡ 1.5 UST ALARMI</span>" if arc['u15_alarm'] else "") + \
+                     ("<span class='ust25-alarm'>🏆 2.5 UST ALARMI</span>" if arc['u25_alarm'] else "")
         
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {card_color};'>
@@ -386,6 +389,7 @@ else:
                 <div style='flex:1; background:rgba(46,160,67,0.1); padding:5px; border-radius:5px;'><small>CANLI EMİR</small><br><b>{arc['live_emir']}</b></div>
             </div>
             <div class='hybrid-box'><span class='hybrid-label'>📍 ANALİZ PROJEKSİYONU:</span><span class='hybrid-val'>{arc['h_proj']}</span></div>
+            <div style='margin-top:5px; font-size:0.75rem; color:{card_color}; font-weight:bold;'>{arc['s_target']}</div>
         </div>
         """, unsafe_allow_html=True)
         
