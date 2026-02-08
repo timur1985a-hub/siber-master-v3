@@ -26,12 +26,7 @@ def persist_auth_js():
     """, unsafe_allow_html=True)
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-# API İsteği için tarayıcı simülasyonu (Header & User-Agent)
-HEADERS = {
-    'x-apisports-key': API_KEY, 
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'application/json'
-}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
@@ -143,20 +138,20 @@ def fetch_siber_data(live=True):
             url = f"{BASE_URL}/fixtures?live=all"
         else:
             t_from = datetime.now().strftime('%Y-%m-%d')
-            t_to = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+            t_to = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
             url = f"{BASE_URL}/fixtures?from={t_from}&to={t_to}"
             
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         
         if r.status_code == 200:
-            res_json = r.json()
-            data = res_json.get('response', [])
+            data = r.json().get('response', [])
             if not live:
                 data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
             return data
         return []
-    except: return []
+    except Exception as e:
+        return []
 
 def hybrid_search_engine(query):
     query = query.lower().strip()
@@ -166,54 +161,47 @@ def hybrid_search_engine(query):
     if not found:
         try:
             r_live = requests.get(f"{BASE_URL}/fixtures?live=all", headers=HEADERS, timeout=10)
-            if r_live.status_code == 200:
-                live_list = r_live.json().get('response', [])
-                found = [m for m in live_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+            live_list = r_live.json().get('response', [])
+            found = [m for m in live_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
         except: pass
     return found
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=15)
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
-        if r.status_code == 200:
-            return r.json().get('response', [])
-        return []
+        return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
 
 @st.cache_data(ttl=3600)
 def check_team_history_detailed(team_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
-        if r.status_code == 200:
-            res = r.json().get('response', [])
-            return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
-        return []
+        res = r.json().get('response', [])
+        return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
 
 @st.cache_data(ttl=3600)
 def check_siber_kanun_vize(h_id, a_id):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 3}, timeout=10)
-        if r.status_code == 200:
-            res = r.json().get('response', [])
-            if not res: return False, "Veri Bulunamadı"
+        res = r.json().get('response', [])
+        if not res: return False, "Veri Bulunamadı"
+        
+        now = datetime.now()
+        for m in res:
+            total_g = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
+            m_date_str = m['fixture']['date'].split("T")[0]
+            m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
+            days_diff = (now - m_date).days
             
-            now = datetime.now()
-            for m in res:
-                total_g = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
-                m_date_str = m['fixture']['date'].split("T")[0]
-                m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
-                days_diff = (now - m_date).days
-                
-                if total_g >= 4:
-                    if days_diff <= 600:
-                        vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
-                        return True, vize_str
-                    else:
-                        return False, f"Eski Tarih ({m_date.strftime('%Y')})"
-            return False, "4 Gol Barajı Aşılmadı"
-        return False, "Sistem Hatası"
+            if total_g >= 4:
+                if days_diff <= 730:
+                    vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
+                    return True, vize_str
+                else:
+                    return False, f"Eski Tarih ({m_date.strftime('%Y')})"
+        return False, "4 Gol Barajı Aşılmadı"
     except: return False, "Sistem Hatası"
 
 def siber_engine(m):
@@ -445,6 +433,3 @@ else:
 
     if st.button("🔴 ÇIKIŞ"):
         st.session_state.auth = False; st.rerun()
-
-# --- VERİ DOĞRULAMA ---
-# Kod hatasız ve yazılım kurallarına uygun şekilde optimize edildi.
