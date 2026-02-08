@@ -267,7 +267,6 @@ def siber_engine(m):
         elif is_25_formula and total < 3 and kanun_vizesi: live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if momentum_boost else 91
         else: live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
-    # YÜZDE ORANI HESAPLAMA SİSTEMİ
     h_power = (h_avg_g * 12) + (h_dom * 1.5)
     a_power = (a_avg_g * 12) + (a_dom * 1.5)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
@@ -320,6 +319,10 @@ else:
     
     if st.session_state.get("role") == "admin":
         with st.expander("🔑 SİBER LİSANS YÖNETİMİ"):
+            if st.button("🧹 SİBER ARŞİVİ SIFIRLA"):
+                st.session_state["PERMANENT_ARCHIVE"] = {}
+                st.success("Arşiv Temizlendi")
+                st.rerun()
             t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
             for i, pkg in enumerate(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"]):
                 with t_tabs[i]:
@@ -377,10 +380,10 @@ else:
         seal_class = "system-seal-ok" if "UYUYOR" in arc['s_target'] else "system-seal-no"
         
         alarm_html = ""
-        if arc['iy_alarm']: alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL</span>"
-        if arc['kg_alarm']: alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR</span>"
-        if arc['v15']: alarm_html += "<span class='ust-badge'>⚽ 1.5 ÜST ADAYI</span>"
-        if arc['v25']: alarm_html += "<span class='ust-badge'>💎 2.5 ÜST ADAYI</span>"
+        if arc.get('iy_alarm'): alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL</span>"
+        if arc.get('kg_alarm'): alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR</span>"
+        if arc.get('v15'): alarm_html += "<span class='ust-badge'>⚽ 1.5 ÜST ADAYI</span>"
+        if arc.get('v25'): alarm_html += "<span class='ust-badge'>💎 2.5 ÜST ADAYI</span>"
         
         st.markdown(f"""
         <div class='decision-card' style='border-left:6px solid {card_color};'>
