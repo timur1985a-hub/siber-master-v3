@@ -9,6 +9,7 @@ import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 # KOD DOĞRULANDI: Hata yok. Şablon ve Lisans yapısı milimetrik olarak korunmuştur.
+# OTURUM KODU: SBR-2026-H2H-LAST-MATCH-REVISED
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -175,12 +176,14 @@ def check_team_history_detailed(team_id):
 
 @st.cache_data(ttl=3600)
 def check_siber_kanun_vize(h_id, a_id):
+    """Siber Kanun: Taraflar arasındaki en son (1) maçta en az 4 gol olmalı."""
     try:
-        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 5}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 1}, timeout=10)
         res = r.json().get('response', [])
         if not res: return False
-        total_h2h_goals = sum((m['goals']['home'] or 0) + (m['goals']['away'] or 0) for m in res)
-        return total_h2h_goals >= 4
+        last_match = res[0]
+        total_last_goals = (last_match['goals']['home'] or 0) + (last_match['goals']['away'] or 0)
+        return total_last_goals >= 4
     except: return False
 
 def siber_engine(m):
@@ -314,7 +317,6 @@ else:
     st.markdown("<div class='internal-welcome'>YAPAY ZEKA ANALİZ MERKEZİ</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='owner-info'>🛡️ Oturum: {st.session_state['current_user']} | ⛽ Kalan API: {st.session_state['api_remaining']}</div>", unsafe_allow_html=True)
     
-    # --- YÜZDELİK BAŞARI ENDEKSİ (SABİT) ---
     st.markdown(f"""<div class='stats-panel'><div class='stat-card'><div class='stat-val'>%98.4</div><div class='stat-lbl'>SİBER BAŞARI</div></div><div class='stat-card'><div class='stat-val'>%96.1</div><div class='stat-lbl'>İLK YARI GOL</div></div><div class='stat-card'><div class='stat-val'>%94.8</div><div class='stat-lbl'>1.5 ÜST</div></div><div class='stat-card'><div class='stat-val'>%91.2</div><div class='stat-lbl'>KG VAR</div></div></div>""", unsafe_allow_html=True)
 
     if st.session_state.get("role") == "admin":
@@ -386,7 +388,6 @@ else:
         seal_class = "system-seal-ok" if "UYUYOR" in arc.get('s_target', '') else "system-seal-no"
         
         alarm_html = ""
-        # KeyError koruması: get() kullanarak anahtarların varlığını kontrol ediyoruz
         if arc.get('iy_alarm'): alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL</span>"
         if arc.get('kg_alarm'): alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR</span>"
         if arc.get('v15'): alarm_html += "<span class='ust-badge'>⚽ 1.5 ÜST ADAYI</span>"
