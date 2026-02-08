@@ -267,13 +267,20 @@ def siber_engine(m):
         elif is_25_formula and total < 3 and kanun_vizesi: live_emir, conf = "KESİN 2.5 ÜST (CANLI)", 96 if momentum_boost else 91
         else: live_emir, conf = "MAÇ SONU +0.5 GOL", 90
 
+    # YÜZDE ORANI HESAPLAMA SİSTEMİ
     h_power = (h_avg_g * 12) + (h_dom * 1.5)
     a_power = (a_avg_g * 12) + (a_dom * 1.5)
     sum_pow = (h_power + a_power) if (h_power + a_power) > 0 else 1
     h_prob = round((h_power / sum_pow) * 100)
+    a_prob = 100 - h_prob
     
     proj_text = f"BGP: {bgp_val} | "
-    proj_text += f"🔥 {h_name} BASKIN (%{h_prob})" if h_prob > 58 else (f"🔥 {a_name} BASKIN (%{100-h_prob})" if h_prob < 42 else "⚖️ DENGELİ ANALİZ")
+    if h_prob > 58:
+        proj_text += f"🔥 {h_name} BASKIN (%{h_prob})"
+    elif a_prob > 58:
+        proj_text += f"🔥 {a_name} BASKIN (%{a_prob})"
+    else:
+        proj_text += f"⚖️ DENGELİ ANALİZ (%{h_prob}-%{a_prob})"
 
     return conf, pre_emir, live_emir, h_history, a_history, stats_data, h_dom, a_dom, iy_alarm_active, momentum_boost, proj_text, s_target_label, kg_alarm_active, v15_active, v25_active
 
@@ -369,7 +376,6 @@ else:
         card_color = "#2ea043" if arc['conf'] >= 94 else ("#f85149" if "UYMUYOR" in arc['s_target'] else "#f1e05a")
         seal_class = "system-seal-ok" if "UYUYOR" in arc['s_target'] else "system-seal-no"
         
-        # Alarmları ve Ust Badge'lerini topluyoruz
         alarm_html = ""
         if arc['iy_alarm']: alarm_html += "<span class='iy-alarm'>🚨 MUTLAK IY GOL</span>"
         if arc['kg_alarm']: alarm_html += "<span class='kg-alarm'>🔥 KESİN KG VAR</span>"
