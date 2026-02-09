@@ -8,7 +8,6 @@ import re
 import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
-# OTURUM KODU: SBR-2026-API-PROTECT-TECH
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -122,7 +121,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state.get("auth", False): persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (API KORUMALI) ---
+# --- 3. SİBER ANALİZ MOTORU ---
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
     except: return 0
@@ -133,16 +132,9 @@ def to_tsi(utc_str):
         return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
     except: return "--:--"
 
-@st.cache_data(ttl=120) # 2 DAKİKA BOYUNCA AYNI ISTEĞİ TEKRARLAMA (API KORUMA)
 def fetch_siber_data(live=True):
     try:
-        if live:
-            url = f"{BASE_URL}/fixtures?live=all"
-        else:
-            t_from = datetime.now().strftime('%Y-%m-%d')
-            t_to = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
-            url = f"{BASE_URL}/fixtures?from={t_from}&to={t_to}"
-            
+        url = f"{BASE_URL}/fixtures?live=all" if live else f"{BASE_URL}/fixtures?date={datetime.now().strftime('%Y-%m-%d')}"
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         data = r.json().get('response', [])
@@ -156,9 +148,15 @@ def hybrid_search_engine(query):
     if not query: return []
     pool = st.session_state.get("stored_matches", [])
     found = [m for m in pool if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+    if not found:
+        try:
+            r_live = requests.get(f"{BASE_URL}/fixtures?live=all", headers=HEADERS, timeout=10)
+            live_list = r_live.json().get('response', [])
+            found = [m for m in live_list if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+        except: pass
     return found
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=10)
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
@@ -181,10 +179,10 @@ def check_siber_kanun_vize(h_id, a_id):
         if not res: return False, "Veri Bulunamadı"
         
         now = datetime.now()
+        # 3 maçtan en az birinde toplam gol 4+ mı? VE Tarih 600 günden eski mi?
         for m in res:
             total_g = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
-            m_date_str = m['fixture']['date'].split("T")[0]
-            m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
+            m_date = datetime.fromisoformat(m['fixture']['date'].replace("Z", "+00:00")).replace(tzinfo=None)
             days_diff = (now - m_date).days
             
             if total_g >= 4:
@@ -192,7 +190,7 @@ def check_siber_kanun_vize(h_id, a_id):
                     vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
                     return True, vize_str
                 else:
-                    return False, f"Eski Tarih ({m_date.strftime('%Y')})"
+                    return False, "Zaman Aşımı (600+ Gün)"
         return False, "4 Gol Barajı Aşılmadı"
     except: return False, "Sistem Hatası"
 
@@ -376,16 +374,14 @@ else:
     elif current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            # Veri önbellekte varsa çek, yoksa motoru çalıştır (API KORUMA)
-            if fid not in st.session_state["PERMANENT_ARCHIVE"] or st.session_state["view_mode"] == "live":
-                conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25, v_k = siber_engine(m)
-                st.session_state["PERMANENT_ARCHIVE"][fid] = {
-                    "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
-                    "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}",
-                    "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0,
-                    "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_a, "kg_alarm": kg_a, "m_boost": m_b, "h_proj": h_p, "s_target": s_t,
-                    "v15": v15, "v25": v25, "vize_kanit": v_k
-                }
+            conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25, v_k = siber_engine(m)
+            st.session_state["PERMANENT_ARCHIVE"][fid] = {
+                "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
+                "date": to_tsi(m['fixture']['date']), "pre_emir": p_e, "live_emir": l_e, "score": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}",
+                "status": m['fixture']['status']['short'], "min": m['fixture']['status']['elapsed'] or 0,
+                "h_h": h_h, "a_h": a_h, "stats": s_d, "h_d": h_d, "a_d": a_d, "iy_alarm": iy_a, "kg_alarm": kg_a, "m_boost": m_b, "h_proj": h_p, "s_target": s_t,
+                "v15": v15, "v25": v25, "vize_kanit": v_k
+            }
             display_list.append(st.session_state["PERMANENT_ARCHIVE"][fid])
 
     for arc in display_list:
