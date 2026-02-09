@@ -26,7 +26,7 @@ def persist_auth_js():
     """, unsafe_allow_html=True)
 
 API_KEY = "6c18a0258bb5e182d0b6afcf003ce67a"
-HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0'}
+HEADERS = {'x-apisports-key': API_KEY, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
 BASE_URL = "https://v3.football.api-sports.io"
 ADMIN_TOKEN, ADMIN_PASS = "SBR-MASTER-2026-TIMUR-X7", "1937timurR&"
 WA_LINK = "https://api.whatsapp.com/send?phone=905414516774"
@@ -137,18 +137,21 @@ def fetch_siber_data(live=True):
         if live:
             url = f"{BASE_URL}/fixtures?live=all"
         else:
-            # Maç Öncesi: Bugünden itibaren +3 günlük geniş tarama
             t_from = datetime.now().strftime('%Y-%m-%d')
-            t_to = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+            t_to = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
             url = f"{BASE_URL}/fixtures?from={t_from}&to={t_to}"
             
         r = requests.get(url, headers=HEADERS, timeout=15)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
-        data = r.json().get('response', [])
-        if not live:
-            data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
-        return data if r.status_code == 200 else []
-    except: return []
+        
+        if r.status_code == 200:
+            data = r.json().get('response', [])
+            if not live:
+                data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
+            return data
+        return []
+    except Exception as e:
+        return []
 
 def hybrid_search_engine(query):
     query = query.lower().strip()
@@ -163,7 +166,7 @@ def hybrid_search_engine(query):
         except: pass
     return found
 
-@st.cache_data(ttl=10)
+@st.cache_data(ttl=15)
 def fetch_live_stats(fid):
     try:
         r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
@@ -188,13 +191,12 @@ def check_siber_kanun_vize(h_id, a_id):
         now = datetime.now()
         for m in res:
             total_g = (m['goals']['home'] or 0) + (m['goals']['away'] or 0)
-            # Tarih dönüşümü
             m_date_str = m['fixture']['date'].split("T")[0]
             m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
             days_diff = (now - m_date).days
             
             if total_g >= 4:
-                if days_diff <= 600:
+                if days_diff <= 730:
                     vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
                     return True, vize_str
                 else:
