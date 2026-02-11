@@ -8,7 +8,7 @@ import re
 import json
 
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
-# OTURUM KODU: SBR-2026-API-PROTECT-TECH
+# OTURUM KODU: SBR-2026-SEARCH-RECON-FIX
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
 def persist_auth_js():
@@ -133,7 +133,7 @@ def to_tsi(utc_str):
         return dt.astimezone(pytz.timezone("Europe/Istanbul")).strftime("%d/%m %H:%M")
     except: return "--:--"
 
-@st.cache_data(ttl=120) # 2 DAKİKA BOYUNCA AYNI ISTEĞİ TEKRARLAMA (API KORUMA)
+@st.cache_data(ttl=120)
 def fetch_siber_data(live=True):
     try:
         if live:
@@ -152,10 +152,21 @@ def fetch_siber_data(live=True):
     except: return []
 
 def hybrid_search_engine(query):
+    """SİBER GELİŞTİRİLMİŞ ARAMA MOTORU: HEM SİSTEMİ HEM APİ'Yİ TARAR"""
     query = query.lower().strip()
     if not query: return []
+    
+    # 1. Aşama: Sistemdeki mevcut listede ara
     pool = st.session_state.get("stored_matches", [])
     found = [m for m in pool if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+    
+    # 2. Aşama: Eğer sistemde yoksa, API üzerinden hem canlı hem gelecek maçları tara
+    if not found:
+        api_live = fetch_siber_data(live=True)
+        api_pre = fetch_siber_data(live=False)
+        full_pool = api_live + api_pre
+        found = [m for m in full_pool if query in m['teams']['home']['name'].lower() or query in m['teams']['away']['name'].lower()]
+        
     return found
 
 @st.cache_data(ttl=60)
@@ -350,10 +361,18 @@ else:
     st.markdown("<div class='search-box-sbr'>", unsafe_allow_html=True)
     s_col1, s_col2, s_col3 = st.columns([3,1,1])
     query = s_col1.text_input("🔍 Siber Filtre...", placeholder="Lig veya Takım Yazın", key="query_input", label_visibility="collapsed")
+    
     if s_col2.button("ARA", use_container_width=True):
         if query:
-            st.session_state["search_result"] = hybrid_search_engine(query)
-            st.session_state["view_mode"] = "search"; st.rerun()
+            results = hybrid_search_engine(query)
+            if results:
+                st.session_state["search_result"] = results
+                st.session_state["view_mode"] = "search"
+                st.toast(f"✅ {len(results)} Maç Bulundu!", icon="🚀")
+                st.rerun()
+            else:
+                st.error(f"❌ '{query}' İçin Maç Bulunamadı.")
+                
     if s_col3.button("🔥 TOPLU TARA", use_container_width=True):
         st.session_state["search_result"] = fetch_siber_data(True) + fetch_siber_data(False)
         st.session_state["view_mode"] = "search"; st.rerun()
@@ -376,8 +395,7 @@ else:
     elif current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            # Veri önbellekte varsa çek, yoksa motoru çalıştır (API KORUMA)
-            if fid not in st.session_state["PERMANENT_ARCHIVE"] or st.session_state["view_mode"] == "live":
+            if fid not in st.session_state["PERMANENT_ARCHIVE"] or st.session_state["view_mode"] in ["live", "search"]:
                 conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25, v_k = siber_engine(m)
                 st.session_state["PERMANENT_ARCHIVE"][fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
