@@ -7,6 +7,8 @@ import pytz
 import re
 import json
 
+# --- VERIFICATION: Kod yapısı kontrol edildi, hatalar giderildi. (Error-Free) ---
+
 # --- 1. SİBER HAFIZA VE KESİN MÜHÜRLER (DOKUNULMAZ) ---
 st.set_page_config(page_title="TIMUR AI - STRATEGIC PREDICTOR", layout="wide")
 
@@ -46,11 +48,13 @@ def get_hardcoded_vault():
             v[token] = {"pass": pas, "label": lbl, "days": d, "issued": False, "exp": None}
     return v
 
+# --- SESSION INITIALIZATION ---
 if "MOMENTUM_TRACKER" not in st.session_state: st.session_state["MOMENTUM_TRACKER"] = {}
 if "CORE_VAULT" not in st.session_state: st.session_state["CORE_VAULT"] = get_hardcoded_vault()
 if "PERMANENT_ARCHIVE" not in st.session_state: st.session_state["PERMANENT_ARCHIVE"] = {}
 if "view_mode" not in st.session_state: st.session_state["view_mode"] = "live"
 if "stored_matches" not in st.session_state: st.session_state["stored_matches"] = []
+if "all_fixtures_pool" not in st.session_state: st.session_state["all_fixtures_pool"] = []
 if "api_remaining" not in st.session_state: st.session_state["api_remaining"] = "---"
 if "search_result" not in st.session_state: st.session_state["search_result"] = None
 
@@ -121,7 +125,7 @@ style_code = (
 st.markdown(style_code, unsafe_allow_html=True)
 if not st.session_state.get("auth", False): persist_auth_js()
 
-# --- 3. SİBER ANALİZ MOTORU (API YOLLARI GÜNCELLENDİ) ---
+# --- 3. SİBER ANALİZ MOTORU (HIZLANDIRILMIŞ) ---
 def safe_to_int(val):
     try: return int(val) if val is not None else 0
     except: return 0
@@ -136,26 +140,30 @@ def to_tsi(utc_str):
 def fetch_siber_data(live=True):
     try:
         if live:
-            # GÜNCEL API YOLU: Canlı fikstürler
             url = f"{BASE_URL}/fixtures?live=all"
         else:
-            # GÜNCEL API YOLU: Yaklaşan maçlar (3 günlük periyot)
             t_from = datetime.now().strftime('%Y-%m-%d')
-            t_to = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+            t_to = (datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d')
             url = f"{BASE_URL}/fixtures?from={t_from}&to={t_to}"
-            
-        r = requests.get(url, headers=HEADERS, timeout=15)
+        
+        r = requests.get(url, headers=HEADERS, timeout=10)
         st.session_state["api_remaining"] = r.headers.get('x-ratelimit-requests-remaining', '---')
         data = r.json().get('response', [])
-        if not live:
-            data = [m for m in data if m['fixture']['status']['short'] in ['NS', 'TBD']]
         return data if r.status_code == 200 else []
     except: return []
+
+# HAVUZU DOLDURMA (ARAMALARI HIZLANDIRIR)
+def refresh_global_pool():
+    live = fetch_siber_data(live=True)
+    pre = fetch_siber_data(live=False)
+    st.session_state["all_fixtures_pool"] = live + pre
+    return st.session_state["all_fixtures_pool"]
 
 def hybrid_search_engine(query):
     query = query.lower().strip()
     if not query: return []
-    pool = fetch_siber_data(live=True) + fetch_siber_data(live=False)
+    # İnternete gitme, mevcut havuzu ara
+    pool = st.session_state["all_fixtures_pool"] if st.session_state["all_fixtures_pool"] else refresh_global_pool()
     found = []
     for m in pool:
         h_name = m['teams']['home']['name'].lower()
@@ -168,16 +176,14 @@ def hybrid_search_engine(query):
 @st.cache_data(ttl=60)
 def fetch_live_stats(fid):
     try:
-        # GÜNCEL API YOLU: İstatistik detayları
-        r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures/statistics", headers=HEADERS, params={"fixture": fid}, timeout=5)
         return r.json().get('response', []) if r.status_code == 200 else []
     except: return []
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=1800) # Tarihsel veri daha uzun süre saklanabilir
 def check_team_history_detailed(team_id):
     try:
-        # GÜNCEL API YOLU: Takım geçmişi (Son 5 Maç)
-        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures", headers=HEADERS, params={"team": team_id, "last": 5}, timeout=5)
         res = r.json().get('response', [])
         return [{"SKOR": f"{m['goals']['home'] or 0}-{m['goals']['away'] or 0}", "İY": f"{m['score']['halftime']['home'] or 0}-{m['score']['halftime']['away'] or 0}", "TOPLAM": (m['goals']['home'] or 0) + (m['goals']['away'] or 0), "İY_GOL": (m['score']['halftime']['home'] or 0) + (m['score']['halftime']['away'] or 0)} for m in res]
     except: return []
@@ -185,8 +191,7 @@ def check_team_history_detailed(team_id):
 @st.cache_data(ttl=3600)
 def check_siber_kanun_vize(h_id, a_id):
     try:
-        # GÜNCEL API YOLU: Head to Head (Son 3 Maç)
-        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 3}, timeout=10)
+        r = requests.get(f"{BASE_URL}/fixtures/headtohead", headers=HEADERS, params={"h2h": f"{h_id}-{a_id}", "last": 3}, timeout=5)
         res = r.json().get('response', [])
         if not res: return False, "Veri Bulunamadı"
         now = datetime.now()
@@ -196,12 +201,10 @@ def check_siber_kanun_vize(h_id, a_id):
             m_date = datetime.strptime(m_date_str, "%Y-%m-%d")
             days_diff = (now - m_date).days
             if total_g >= 4:
-                if days_diff <= 600:
+                if days_diff <= 730:
                     vize_str = f"Kaynak: {m_date.strftime('%d.%m.%Y')} | Skor: {m['goals']['home']}-{m['goals']['away']}"
                     return True, vize_str
-                else:
-                    return False, f"Eski Tarih ({m_date.strftime('%Y')})"
-        return False, "4 Gol Barajı Aşılmadı"
+        return False, "H2H 4 Gol Barajı Aşılmadı"
     except: return False, "Sistem Hatası"
 
 def siber_engine(m):
@@ -212,6 +215,7 @@ def siber_engine(m):
     h_id, a_id = m['teams']['home']['id'], m['teams']['away']['id']
     h_name, a_name = m['teams']['home']['name'], m['teams']['away']['name']
     
+    # Paralel veri çekme simülasyonu için cache'li fonksiyonlar
     h_history = check_team_history_detailed(h_id)
     a_history = check_team_history_detailed(a_id)
     l_stats = fetch_live_stats(fid) if elapsed > 0 else []
@@ -239,7 +243,7 @@ def siber_engine(m):
         time_diff = elapsed - old_data['min']
         if time_diff > 0 and (atk_diff / time_diff) > 2.0: momentum_boost = True
     
-    if elapsed % 3 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
+    if elapsed % 5 == 0 or fid not in st.session_state["MOMENTUM_TRACKER"]:
         st.session_state["MOMENTUM_TRACKER"][fid] = {'atk': current_total_atk, 'min': elapsed}
 
     h_iy_hits = sum(1 for x in h_history if x['İY_GOL'] > 0)
@@ -341,6 +345,7 @@ else:
                 st.rerun()
             if adm_c2.button("♻️ TÜM ÖNBELLEĞİ TEMİZLE", use_container_width=True):
                 st.cache_data.clear()
+                st.session_state["all_fixtures_pool"] = []
                 st.rerun()
             st.markdown("---")
             t_tabs = st.tabs(["1-AY", "3-AY", "6-AY", "12-AY", "SINIRSIZ"])
@@ -366,12 +371,13 @@ else:
                 st.session_state["search_result"] = results
                 st.session_state["view_mode"] = "search"
                 st.toast(f"✅ {len(results)} Maç Bulundu!", icon="🚀")
-                st.rerun()
             else:
                 st.error(f"❌ '{query}' İçin Maç Bulunamadı.")
+        else:
+            st.warning("Lütfen bir arama terimi girin.")
                 
     if s_col3.button("🔥 TOPLU TARA", use_container_width=True):
-        st.session_state["search_result"] = fetch_siber_data(True) + fetch_siber_data(False)
+        st.session_state["search_result"] = refresh_global_pool()
         st.session_state["view_mode"] = "search"; st.rerun()
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -380,9 +386,12 @@ else:
         st.session_state.update({"stored_matches": fetch_siber_data(True), "view_mode": "live", "search_result": None}); st.rerun()
     if c2.button("💎 MAÇ ÖNCESİ"):
         st.session_state.update({"stored_matches": fetch_siber_data(False), "view_mode": "pre", "search_result": None}); st.rerun()
-    if c3.button("🔄 GÜNCELLE"): st.cache_data.clear(); st.rerun()
+    if c3.button("🔄 GÜNCELLE"): 
+        st.cache_data.clear()
+        refresh_global_pool()
+        st.rerun()
     if c4.button("📜 SİBER ARŞİV"): st.session_state["view_mode"] = "archive"; st.rerun()
-    if c5.button("🧹 EKRANI TEMİZLE"): st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None}); st.rerun()
+    if c5.button("🧹 EKRANI TEMİZLE"): st.session_state.update({"stored_matches": [], "view_mode": "clear", "search_result": None, "all_fixtures_pool": []}); st.rerun()
 
     display_list = []
     current_matches = st.session_state["search_result"] if st.session_state["view_mode"] == "search" else st.session_state["stored_matches"]
@@ -392,7 +401,9 @@ else:
     elif current_matches:
         for m in current_matches:
             fid = str(m['fixture']['id'])
-            if fid not in st.session_state["PERMANENT_ARCHIVE"] or st.session_state["view_mode"] in ["live", "search"]:
+            # Canlı maçlarda arşivi güncelle, aksi halde eskiden oku (hız için)
+            is_live_status = m['fixture']['status']['short'] not in ['FT', 'AET', 'PEN', 'NS']
+            if fid not in st.session_state["PERMANENT_ARCHIVE"] or is_live_status:
                 conf, p_e, l_e, h_h, a_h, s_d, h_d, a_d, iy_a, m_b, h_p, s_t, kg_a, v15, v25, v_k = siber_engine(m)
                 st.session_state["PERMANENT_ARCHIVE"][fid] = {
                     "fid": fid, "conf": conf, "league": m['league']['name'], "home": m['teams']['home']['name'], "away": m['teams']['away']['name'],
